@@ -26,6 +26,11 @@ export class EmailService {
         const region = this.ssmConfig.getSesRegion();
         const credentials = this.ssmConfig.getAwsCredentials();
 
+        this.logger.log(`🔍 Email Service Initialization:`);
+        this.logger.log(`   - Region: ${region}`);
+        this.logger.log(`   - Has Credentials: ${credentials ? 'YES' : 'NO'}`);
+        this.logger.log(`   - NODE_ENV: ${process.env.NODE_ENV}`);
+
         if (credentials) {
             this.sesClient = new SESClient({
                 region,
@@ -33,9 +38,12 @@ export class EmailService {
             });
             this.isConfigured = true;
             this.logger.log('✅ Email service configured with AWS SES');
+            this.logger.log(`   - Access Key ID: ${credentials.accessKeyId.substring(0, 8)}...`);
         } else {
             this.isConfigured = false;
             this.logger.warn('⚠️ Email service not configured (missing AWS credentials) - emails will be logged only');
+            this.logger.warn(`   - Check AWS_ACCESS_KEY_ID: ${process.env.AWS_ACCESS_KEY_ID ? 'SET' : 'NOT SET'}`);
+            this.logger.warn(`   - Check AWS_SECRET_ACCESS_KEY: ${process.env.AWS_SECRET_ACCESS_KEY ? 'SET' : 'NOT SET'}`);
         }
     }
 
@@ -128,12 +136,15 @@ export class EmailService {
     private async sendEmail(options: EmailOptions): Promise<void> {
         if (!this.isConfigured || !this.sesClient) {
             // In dev mode without SES, just log the email
-            this.logger.log(`📧 [DEV] Email would be sent to: ${options.to}`);
+            this.logger.log(`📧 [NO SES CONFIG] Email would be sent to: ${options.to}`);
             this.logger.log(`   Subject: ${options.subject}`);
             return;
         }
 
         try {
+            this.logger.log(`📤 Attempting to send email to: ${options.to}`);
+            this.logger.log(`   From: ${this.senderName} <${this.senderEmail}>`);
+
             const command = new SendEmailCommand({
                 Destination: {
                     ToAddresses: [options.to],
@@ -148,11 +159,28 @@ export class EmailService {
                 Source: `${this.senderName} <${this.senderEmail}>`,
             });
 
-            await this.sesClient.send(command);
-            this.logger.log(`✅ Email sent to ${options.to}`);
+            const result = await this.sesClient.send(command);
+            this.logger.log(`✅ Email sent successfully to ${options.to}`);
+            this.logger.log(`   MessageId: ${result.MessageId}`);
         } catch (error: any) {
-            this.logger.error(`❌ Failed to send email to ${options.to}: ${error.message}`);
-            // Don't throw in dev - just log
+            this.logger.error(`❌ SES Error sending email to ${options.to}`);
+            this.logger.error(`   Error Name: ${error.name}`);
+            this.logger.error(`   Error Code: ${error.Code || error.code || 'N/A'}`);
+            this.logger.error(`   Error Message: ${error.message}`);
+
+            // Common SES errors:
+            // - MessageRejected: Email address not verified (sandbox mode)
+            // - AccessDenied: IAM permissions issue
+            // - InvalidParameterValue: Invalid sender email
+
+            if (error.name === 'MessageRejected') {
+                this.logger.error('   ⚠️ HINT: Your SES might be in sandbox mode. Verify the recipient email or request production access.');
+            }
+            if (error.name === 'AccessDeniedException' || error.Code === 'AccessDenied') {
+                this.logger.error('   ⚠️ HINT: Check IAM permissions for SES. The IAM user needs ses:SendEmail permission.');
+            }
+
+            // In production, throw a user-friendly error
             if (process.env.NODE_ENV === 'production') {
                 throw new Error('Failed to send email. Please try again later.');
             }
