@@ -19,7 +19,9 @@ const nextConfig: NextConfig = {
 
   // Security Headers
   async headers() {
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+    // Extract base domain from API URL for CSP (remove /api path if present)
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+    const backendBaseUrl = apiUrl.replace(/\/api\/?$/, '');
 
     return [
       {
@@ -54,7 +56,7 @@ const nextConfig: NextConfig = {
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "font-src 'self' https://fonts.gstatic.com",
               "img-src 'self' data: blob: https://images.unsplash.com https://iskcon-storage.s3.ap-south-1.amazonaws.com",
-              `connect-src 'self' ${backendUrl} https://iskcon-storage.s3.ap-south-1.amazonaws.com`,
+              `connect-src 'self' ${backendBaseUrl} https://iskcon-storage.s3.ap-south-1.amazonaws.com`,
               "frame-ancestors 'none'",
             ].join('; '),
           },
