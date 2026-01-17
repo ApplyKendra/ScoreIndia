@@ -12,6 +12,31 @@ export function NotificationModal() {
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [isOpen, setIsOpen] = useState(false);
 
+    // Fetch notifications but DON'T auto-open the modal
+    const fetchNotifications = async () => {
+        try {
+            const data = await notificationApi.getActive();
+            if (data.length === 0) return;
+
+            let dismissedIds: string[] = [];
+            try {
+                const stored = localStorage.getItem(DISMISSED_KEY);
+                if (stored) dismissedIds = JSON.parse(stored);
+            } catch (e) {
+                localStorage.removeItem(DISMISSED_KEY);
+            }
+
+            const undismissed = data.filter((n) => !dismissedIds.includes(n.id));
+
+            // Just store the count for the badge, don't open modal
+            setNotifications(undismissed);
+            // DON'T auto-open: setIsOpen(true);
+        } catch (error) {
+            console.error('Failed to fetch notifications:', error);
+        }
+    };
+
+    // Show ALL notifications when user clicks bell icon
     const fetchAndShowNotifications = async (showAll = false) => {
         try {
             const data = await notificationApi.getActive();
@@ -57,8 +82,10 @@ export function NotificationModal() {
     };
 
     useEffect(() => {
-        const timer = setTimeout(() => fetchAndShowNotifications(false), 1000);
+        // Only fetch notifications on load, don't auto-open the modal
+        const timer = setTimeout(() => fetchNotifications(), 1000);
 
+        // Open modal only when user clicks the bell icon
         const handleManualOpen = () => fetchAndShowNotifications(true);
         window.addEventListener('open-notifications', handleManualOpen);
 
