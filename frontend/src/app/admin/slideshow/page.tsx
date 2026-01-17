@@ -37,7 +37,12 @@ const GRADIENT_OPTIONS = [
     { label: 'Rose to Pink', value: 'from-rose-500 via-pink-500 to-fuchsia-500' },
 ];
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+// API URL: Get base URL (without /api suffix) for direct fetch calls
+const getBaseUrl = () => {
+    const envUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+    return envUrl.replace(/\/api\/?$/, '');
+};
+const API_URL = getBaseUrl();
 
 export default function AdminSlideshowPage() {
     const [slides, setSlides] = useState<HeroSlide[]>([]);

@@ -24,8 +24,12 @@ import {
   Crown
 } from 'lucide-react';
 
-// Premium 3D Image Slideshow Component
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+// API URL: Get base URL (without /api suffix) for direct fetch calls
+const getBaseUrl = () => {
+  const envUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+  return envUrl.replace(/\/api\/?$/, '');
+};
+const API_URL = getBaseUrl();
 
 interface Slide {
   id: string;
