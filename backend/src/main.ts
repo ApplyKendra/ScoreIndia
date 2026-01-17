@@ -14,6 +14,28 @@ async function bootstrap() {
   const frontendUrl = configService.get<string>('app.frontendUrl') || 'http://localhost:3000';
   const isProduction = configService.get<string>('app.nodeEnv') === 'production';
 
+  // Build allowed origins - include both www and non-www in production
+  const getAllowedOrigins = (): string[] => {
+    const origins = [frontendUrl];
+
+    // In production, also allow both www and non-www versions
+    if (isProduction) {
+      // If frontendUrl is https://iskconburla.com, also add https://www.iskconburla.com
+      if (frontendUrl.includes('://iskconburla.com')) {
+        origins.push('https://www.iskconburla.com');
+      }
+      // If frontendUrl is https://www.iskconburla.com, also add https://iskconburla.com
+      if (frontendUrl.includes('://www.iskconburla.com')) {
+        origins.push('https://iskconburla.com');
+      }
+    }
+
+    logger.log(`🌐 Allowed CORS origins: ${origins.join(', ')}`);
+    return origins;
+  };
+
+  const allowedOrigins = getAllowedOrigins();
+
   // Security middleware with enhanced headers
   app.use(helmet({
     // Content Security Policy - Restrict resource loading
@@ -24,7 +46,7 @@ async function bootstrap() {
         styleSrc: ["'self'", "'unsafe-inline'"], // Required for inline styles
         imgSrc: ["'self'", "https://*.s3.*.amazonaws.com", "data:", "blob:"],
         fontSrc: ["'self'", "https://fonts.gstatic.com"],
-        connectSrc: ["'self'", frontendUrl],
+        connectSrc: ["'self'", ...allowedOrigins],
         frameSrc: ["'none'"],
         objectSrc: ["'none'"],
       },
@@ -46,9 +68,9 @@ async function bootstrap() {
   }));
   app.use(cookieParser());
 
-  // CORS configuration
+  // CORS configuration - allow both www and non-www
   app.enableCors({
-    origin: [frontendUrl],
+    origin: allowedOrigins,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     credentials: true,
     allowedHeaders: ['Content-Type', 'Authorization'],
@@ -72,6 +94,9 @@ async function bootstrap() {
   await app.listen(port);
   logger.log(`🚀 ISKCON Backend running on http://localhost:${port}`);
   logger.log(`📚 API available at http://localhost:${port}/api`);
+  logger.log(`🔒 CORS enabled for: ${allowedOrigins.join(', ')}`);
+  logger.log(`⚙️ Environment: ${isProduction ? 'PRODUCTION' : 'DEVELOPMENT'}`);
 }
 
 bootstrap();
+
