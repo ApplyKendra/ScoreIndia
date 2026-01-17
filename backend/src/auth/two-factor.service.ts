@@ -16,6 +16,14 @@ export class TwoFactorService {
         const keyString = this.configService.get<string>('TWO_FACTOR_ENCRYPTION_KEY') ||
             'dev-encryption-key-32-bytes-!!';
         this.encryptionKey = crypto.scryptSync(keyString, 'salt', 32);
+
+        // Log key status (never log the actual key!)
+        const isUsingDefault = keyString === 'dev-encryption-key-32-bytes-!!';
+        this.logger.log(`🔐 2FA Service Initialized:`);
+        this.logger.log(`   - Encryption key configured: ${!isUsingDefault ? 'YES (custom)' : 'NO (using default - UNSAFE for production!)'}`);
+        if (isUsingDefault && process.env.NODE_ENV === 'production') {
+            this.logger.error('⚠️ CRITICAL: Using default 2FA encryption key in production! Set TWO_FACTOR_ENCRYPTION_KEY env variable.');
+        }
     }
 
     /**
