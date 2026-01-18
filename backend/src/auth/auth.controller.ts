@@ -19,10 +19,13 @@ import { RegisterDto, LoginDto } from './dto';
 import { Public, CurrentUser } from '../common/decorators';
 
 // Cookie options for secure token storage
+// For cross-domain cookies (Vercel frontend + Render backend), we need:
+// - sameSite: 'none' (allows cross-domain)
+// - secure: true (required when sameSite is 'none')
 const COOKIE_OPTIONS = {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict' as const,
+    secure: process.env.NODE_ENV === 'production', // true for HTTPS
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' as const : 'lax' as const, // 'none' for cross-domain in production
     path: '/',
 };
 
