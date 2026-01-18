@@ -173,19 +173,31 @@ function LoginContent() {
 
         setIsLoading(true);
         try {
+            console.log('🔐 Verifying email OTP...');
             const response = await authApi.verifyEmailOtp(pendingUserId, emailOtpCode);
+            console.log('🔐 OTP Verify Response:', response);
+            console.log('🔐 User:', response.user);
+            console.log('🔐 User Role:', response.user?.role);
+
             login(response.user);
             toast.success('Welcome back!');
 
             const redirect = searchParams.get('redirect');
+            console.log('🔐 Redirect param:', redirect);
+            console.log('🔐 Checking role for redirect...');
+
             if (redirect) {
+                console.log('🔐 Redirecting to:', redirect);
                 router.push(redirect);
             } else if (response.user.role === 'SUPER_ADMIN' || response.user.role === 'SUB_ADMIN') {
+                console.log('🔐 Admin role detected, redirecting to /admin');
                 router.push('/admin');
             } else {
+                console.log('🔐 User role, redirecting to /');
                 router.push('/');
             }
         } catch (error: any) {
+            console.error('🔐 OTP Verify Error:', error);
             toast.error(error.response?.data?.message || 'Invalid OTP');
         } finally {
             setIsLoading(false);
