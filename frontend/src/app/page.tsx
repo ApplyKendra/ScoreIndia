@@ -494,7 +494,7 @@ export default function LandingPage() {
 
               {/* Trust Indicators */}
               <div className="mt-8 sm:mt-12 pt-6 sm:pt-8 border-t border-white/10">
-                <div className="flex flex-wrap items-center justify-center lg:justify-start gap-8 sm:gap-16">
+                <div className="flex flex-wrap items-center justify-center lg:justify-start gap-10 sm:gap-14">
                   <div className="text-center lg:text-left">
                     <p className="text-2xl sm:text-3xl font-bold text-white">15+</p>
                     <p className="text-xs sm:text-sm text-white/60">Years</p>
