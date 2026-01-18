@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { SESClient, SendEmailCommand } from '@aws-sdk/client-ses';
 import { SsmConfigService } from '../config';
@@ -11,24 +11,30 @@ export interface EmailOptions {
 }
 
 @Injectable()
-export class EmailService {
+export class EmailService implements OnModuleInit {
     private readonly logger = new Logger(EmailService.name);
     private sesClient: SESClient | null = null;
     private readonly senderEmail = 'no-reply@iskconburla.com';
     private readonly senderName = 'ISKCON Burla';
-    private readonly isConfigured: boolean;
+    private isConfigured: boolean = false;
 
     constructor(
         private configService: ConfigService,
         private ssmConfig: SsmConfigService,
     ) {
+        // Don't initialize SES here - wait for onModuleInit
+        // This ensures SSM has loaded credentials first
+    }
+
+    async onModuleInit() {
+        this.logger.log(`🔍 Email Service Initialization (onModuleInit):`)
+
         // Get region and credentials from SSM (production) or env (development)
         const region = this.ssmConfig.getSesRegion();
         const credentials = this.ssmConfig.getAwsCredentials();
 
-        this.logger.log(`🔍 Email Service Initialization:`);
         this.logger.log(`   - Region: ${region}`);
-        this.logger.log(`   - Has Credentials: ${credentials ? 'YES' : 'NO'}`);
+        this.logger.log(`   - Has Credentials from SSM: ${credentials ? 'YES' : 'NO'}`)
         this.logger.log(`   - NODE_ENV: ${process.env.NODE_ENV}`);
 
         if (credentials) {
@@ -40,10 +46,29 @@ export class EmailService {
             this.logger.log('✅ Email service configured with AWS SES');
             this.logger.log(`   - Access Key ID: ${credentials.accessKeyId.substring(0, 8)}...`);
         } else {
-            this.isConfigured = false;
-            this.logger.warn('⚠️ Email service not configured (missing AWS credentials) - emails will be logged only');
-            this.logger.warn(`   - Check AWS_ACCESS_KEY_ID: ${process.env.AWS_ACCESS_KEY_ID ? 'SET' : 'NOT SET'}`);
-            this.logger.warn(`   - Check AWS_SECRET_ACCESS_KEY: ${process.env.AWS_SECRET_ACCESS_KEY ? 'SET' : 'NOT SET'}`);
+            // Try direct env vars as last resort
+            const directAccessKey = process.env.AWS_ACCESS_KEY_ID;
+            const directSecretKey = process.env.AWS_SECRET_ACCESS_KEY;
+
+            this.logger.log(`   - Trying direct env vars: ACCESS=${!!directAccessKey}, SECRET=${!!directSecretKey}`);
+
+            if (directAccessKey && directSecretKey) {
+                this.sesClient = new SESClient({
+                    region: process.env.AWS_SES_REGION || process.env.AWS_REGION || 'ap-south-1',
+                    credentials: {
+                        accessKeyId: directAccessKey,
+                        secretAccessKey: directSecretKey,
+                    },
+                });
+                this.isConfigured = true;
+                this.logger.log('✅ Email service configured with direct env vars');
+                this.logger.log(`   - Access Key ID: ${directAccessKey.substring(0, 8)}...`);
+            } else {
+                this.isConfigured = false;
+                this.logger.warn('⚠️ Email service not configured (missing AWS credentials) - emails will be logged only');
+                this.logger.warn(`   - Check AWS_ACCESS_KEY_ID: ${directAccessKey ? 'SET' : 'NOT SET'}`);
+                this.logger.warn(`   - Check AWS_SECRET_ACCESS_KEY: ${directSecretKey ? 'SET' : 'NOT SET'}`);
+            }
         }
     }
 
