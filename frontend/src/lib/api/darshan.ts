@@ -169,7 +169,7 @@ export const darshanApi = {
         const formData = new FormData();
         formData.append('image', file);
 
-        const uploadRes = await fetch(`${API_URL}/api/upload/image`, {
+        const uploadRes = await fetch(`${API_URL}/upload/image`, {
             method: 'POST',
             credentials: 'include',
             body: formData,

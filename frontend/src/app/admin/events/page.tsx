@@ -135,7 +135,7 @@ export default function AdminEventsPage() {
             const formDataUpload = new FormData();
             formDataUpload.append('image', selectedFile);
 
-            const res = await fetch(`${API_URL}/api/upload/image`, {
+            const res = await fetch(`${API_URL}/upload/image`, {
                 method: 'POST',
                 credentials: 'include',
                 body: formDataUpload,

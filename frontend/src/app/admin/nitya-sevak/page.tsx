@@ -94,7 +94,7 @@ export default function AdminNityaSevakPage() {
         try {
             const formData = new FormData();
             formData.append('image', file);
-            const res = await fetch(`${API_URL}/api/upload/image`, {
+            const res = await fetch(`${API_URL}/upload/image`, {
                 method: 'POST',
                 credentials: 'include',
                 body: formData,
