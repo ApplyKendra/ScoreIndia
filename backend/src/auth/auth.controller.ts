@@ -19,15 +19,19 @@ import { RegisterDto, LoginDto } from './dto';
 import { Public, CurrentUser } from '../common/decorators';
 
 // Cookie options for secure token storage
-// For cross-domain cookies (Vercel frontend + Render backend), we need:
-// - sameSite: 'none' (allows cross-domain)
-// - secure: true (required when sameSite is 'none')
-const COOKIE_OPTIONS = {
+// With api.iskconburla.com subdomain, cookies are now same-site
+// Setting domain to '.iskconburla.com' allows cookie sharing between subdomains
+const getCookieOptions = () => ({
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production', // true for HTTPS
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' as const : 'lax' as const, // 'none' for cross-domain in production
+    sameSite: 'lax' as const, // 'lax' works for same-site navigation
     path: '/',
-};
+    // Set domain in production to share cookies across subdomains
+    // .iskconburla.com works for both iskconburla.com and api.iskconburla.com
+    ...(process.env.NODE_ENV === 'production' ? { domain: '.iskconburla.com' } : {}),
+});
+
+const COOKIE_OPTIONS = getCookieOptions();
 
 const ACCESS_TOKEN_MAX_AGE = 15 * 60 * 1000; // 15 minutes
 const REFRESH_TOKEN_MAX_AGE = 7 * 24 * 60 * 60 * 1000; // 7 days
