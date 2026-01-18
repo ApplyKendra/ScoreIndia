@@ -267,35 +267,59 @@ export class AuthService {
     }
 
     async validateTwoFactor(userId: string, token: string, ipAddress?: string, userAgent?: string) {
+        this.logger.log(`🔐 [2FA Validate] Starting for userId: ${userId}`);
+
         const user = await this.prisma.user.findUnique({
             where: { id: userId },
         });
 
         if (!user || !(user as any).twoFactorSecret) {
+            this.logger.error(`❌ [2FA Validate] Invalid 2FA setup - user: ${!!user}, secret: ${!!(user as any)?.twoFactorSecret}`);
             throw new UnauthorizedException('Invalid 2FA setup');
         }
+
+        this.logger.log(`🔐 [2FA Validate] User found: ${user.email}, Role: ${user.role}`);
 
         const decryptedSecret = this.twoFactorService.decryptSecret((user as any).twoFactorSecret);
         const isValid = this.twoFactorService.verifyToken(token, decryptedSecret);
 
+        this.logger.log(`🔐 [2FA Validate] Token valid: ${isValid}`);
+
         if (!isValid) {
             await this.auditService.logAuth('LOGIN_FAILED', user.id, user.email, ipAddress, userAgent, { reason: '2FA failed' });
+            this.logger.error(`❌ [2FA Validate] Invalid 2FA code for: ${user.email}`);
             throw new UnauthorizedException('Invalid 2FA code');
         }
 
-        // For admin roles, require email OTP as additional verification
-        if (this.twoFactorService.isTwoFactorMandatory(user.role)) {
-            const otp = await this.otpService.saveOtp(user.id, 'login');
-            await this.emailService.sendLoginOtp(user.email, user.name, otp);
-            this.logger.log(`Login OTP sent to admin: ${user.email}`);
+        // Check if email OTP is required for admin roles
+        const isMandatory = this.twoFactorService.isTwoFactorMandatory(user.role);
+        this.logger.log(`🔐 [2FA Validate] Is 2FA mandatory for role ${user.role}? ${isMandatory}`);
 
-            return {
-                requiresEmailOtp: true,
-                userId: user.id,
-                message: 'An OTP has been sent to your email',
-            };
+        // For admin roles, require email OTP as additional verification
+        if (isMandatory) {
+            this.logger.log(`📧 [2FA Validate] Admin role detected, generating OTP for: ${user.email}`);
+
+            try {
+                const otp = await this.otpService.saveOtp(user.id, 'login');
+                this.logger.log(`📧 [2FA Validate] OTP generated successfully: ${otp.substring(0, 2)}****`);
+
+                this.logger.log(`📧 [2FA Validate] Attempting to send email to: ${user.email}`);
+                await this.emailService.sendLoginOtp(user.email, user.name, otp);
+                this.logger.log(`✅ [2FA Validate] Login OTP sent to admin: ${user.email}`);
+
+                return {
+                    requiresEmailOtp: true,
+                    userId: user.id,
+                    message: 'An OTP has been sent to your email',
+                };
+            } catch (error: any) {
+                this.logger.error(`❌ [2FA Validate] Failed to send OTP email: ${error.message}`);
+                this.logger.error(`❌ [2FA Validate] Error stack: ${error.stack}`);
+                throw error; // Re-throw to let controller handle it
+            }
         }
 
+        this.logger.log(`🔐 [2FA Validate] Non-admin role, completing login directly`);
         return this.completeLogin(user, ipAddress, userAgent);
     }
 
