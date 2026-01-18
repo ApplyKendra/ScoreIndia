@@ -496,18 +496,18 @@ export default function LandingPage() {
               <div className="mt-8 sm:mt-12 pt-6 sm:pt-8 border-t border-white/10">
                 <div className="flex flex-wrap items-center justify-center lg:justify-start gap-4 sm:gap-8">
                   <div className="text-center lg:text-left">
-                    <p className="text-2xl sm:text-3xl font-bold text-white">50+</p>
-                    <p className="text-xs sm:text-sm text-white/60">Years of Service</p>
+                    <p className="text-2xl sm:text-3xl font-bold text-white">15+</p>
+                    <p className="text-xs sm:text-sm text-white/60">Years</p>
                   </div>
                   <div className="w-px h-8 sm:h-12 bg-white/20 hidden sm:block" />
                   <div className="text-center lg:text-left">
-                    <p className="text-2xl sm:text-3xl font-bold text-white">10K+</p>
-                    <p className="text-xs sm:text-sm text-white/60">Active Devotees</p>
+                    <p className="text-2xl sm:text-3xl font-bold text-white">1000+</p>
+                    <p className="text-xs sm:text-sm text-white/60">Members</p>
                   </div>
                   <div className="w-px h-8 sm:h-12 bg-white/20 hidden sm:block" />
                   <div className="text-center lg:text-left">
-                    <p className="text-2xl sm:text-3xl font-bold text-white">108+</p>
-                    <p className="text-xs sm:text-sm text-white/60">Temples Worldwide</p>
+                    <p className="text-2xl sm:text-3xl font-bold text-white">100+</p>
+                    <p className="text-xs sm:text-sm text-white/60">Nitya Sevak</p>
                   </div>
                 </div>
               </div>
