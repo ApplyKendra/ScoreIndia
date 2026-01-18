@@ -46,25 +46,53 @@ export interface TwoFactorVerifyResponse {
     recoveryCodes?: string[];
 }
 
+// Debug logger for auth flow
+const logAuth = (step: string, data?: any, error?: any) => {
+    const timestamp = new Date().toISOString();
+    if (error) {
+        console.error(`🔐 [AUTH ${timestamp}] ${step}:`, error);
+    } else if (data) {
+        console.log(`🔐 [AUTH ${timestamp}] ${step}:`, data);
+    } else {
+        console.log(`🔐 [AUTH ${timestamp}] ${step}`);
+    }
+};
+
 export const authApi = {
     login: async (dto: LoginDto): Promise<AuthResponse> => {
-        const { data } = await api.post('/auth/login', dto);
-        return data;
+        logAuth('LOGIN_START', { email: dto.email });
+        try {
+            const { data } = await api.post('/auth/login', dto);
+            logAuth('LOGIN_SUCCESS', data);
+            return data;
+        } catch (error: any) {
+            logAuth('LOGIN_ERROR', null, error.response?.data || error.message);
+            throw error;
+        }
     },
 
     register: async (dto: RegisterDto): Promise<AuthResponse> => {
-        const { data } = await api.post('/auth/register', dto);
-        return data;
+        logAuth('REGISTER_START', { email: dto.email });
+        try {
+            const { data } = await api.post('/auth/register', dto);
+            logAuth('REGISTER_SUCCESS', data);
+            return data;
+        } catch (error: any) {
+            logAuth('REGISTER_ERROR', null, error.response?.data || error.message);
+            throw error;
+        }
     },
 
     logout: async (): Promise<void> => {
-        // Backend clears the cookies
+        logAuth('LOGOUT_START');
         await api.post('/auth/logout');
+        logAuth('LOGOUT_COMPLETE');
     },
 
     refresh: async (): Promise<void> => {
-        // Cookie is sent automatically to refresh
+        logAuth('REFRESH_START');
         await api.post('/auth/refresh');
+        logAuth('REFRESH_COMPLETE');
     },
 
     getProfile: async (): Promise<User> => {
@@ -74,18 +102,33 @@ export const authApi = {
 
     // 2FA endpoints
     setupTwoFactor: async (): Promise<TwoFactorSetupResponse> => {
+        logAuth('2FA_SETUP_START');
         const { data } = await api.post('/auth/2fa/setup');
+        logAuth('2FA_SETUP_SUCCESS');
         return data;
     },
 
     verifyTwoFactor: async (token: string): Promise<TwoFactorVerifyResponse> => {
+        logAuth('2FA_VERIFY_START');
         const { data } = await api.post('/auth/2fa/verify', { token });
+        logAuth('2FA_VERIFY_SUCCESS', data);
         return data;
     },
 
     validateTwoFactor: async (userId: string, token: string): Promise<AuthResponse> => {
-        const { data } = await api.post('/auth/2fa/validate', { userId, token });
-        return data;
+        logAuth('2FA_VALIDATE_START', { userId, tokenLength: token.length });
+        try {
+            const { data } = await api.post('/auth/2fa/validate', { userId, token });
+            logAuth('2FA_VALIDATE_SUCCESS', {
+                hasUser: !!data.user,
+                requiresEmailOtp: data.requiresEmailOtp,
+                message: data.message
+            });
+            return data;
+        } catch (error: any) {
+            logAuth('2FA_VALIDATE_ERROR', null, error.response?.data || error.message);
+            throw error;
+        }
     },
 
     disableTwoFactor: async (token: string): Promise<{ message: string }> => {
@@ -95,24 +138,52 @@ export const authApi = {
 
     // 2FA setup for first-time admin login (requires setupToken from login)
     setupTwoFactorForUser: async (userId: string, setupToken: string): Promise<TwoFactorSetupResponse> => {
-        const { data } = await api.post('/auth/2fa/setup-for-user', { userId, setupToken });
-        return data;
+        logAuth('2FA_SETUP_FOR_USER_START', { userId });
+        try {
+            const { data } = await api.post('/auth/2fa/setup-for-user', { userId, setupToken });
+            logAuth('2FA_SETUP_FOR_USER_SUCCESS');
+            return data;
+        } catch (error: any) {
+            logAuth('2FA_SETUP_FOR_USER_ERROR', null, error.response?.data || error.message);
+            throw error;
+        }
     },
 
     verifyTwoFactorSetup: async (userId: string, token: string): Promise<AuthResponse> => {
-        const { data } = await api.post('/auth/2fa/verify-setup', { userId, token });
-        return data;
+        logAuth('2FA_VERIFY_SETUP_START', { userId });
+        try {
+            const { data } = await api.post('/auth/2fa/verify-setup', { userId, token });
+            logAuth('2FA_VERIFY_SETUP_SUCCESS', data);
+            return data;
+        } catch (error: any) {
+            logAuth('2FA_VERIFY_SETUP_ERROR', null, error.response?.data || error.message);
+            throw error;
+        }
     },
 
     // Email OTP endpoints
     verifyEmailOtp: async (userId: string, otp: string): Promise<AuthResponse> => {
-        const { data } = await api.post('/auth/otp/verify-login', { userId, otp });
-        return data;
+        logAuth('EMAIL_OTP_VERIFY_START', { userId, otpLength: otp.length });
+        try {
+            const { data } = await api.post('/auth/otp/verify-login', { userId, otp });
+            logAuth('EMAIL_OTP_VERIFY_SUCCESS', data);
+            return data;
+        } catch (error: any) {
+            logAuth('EMAIL_OTP_VERIFY_ERROR', null, error.response?.data || error.message);
+            throw error;
+        }
     },
 
     resendLoginOtp: async (userId: string): Promise<{ message: string }> => {
-        const { data } = await api.post('/auth/otp/resend-login', { userId });
-        return data;
+        logAuth('EMAIL_OTP_RESEND_START', { userId });
+        try {
+            const { data } = await api.post('/auth/otp/resend-login', { userId });
+            logAuth('EMAIL_OTP_RESEND_SUCCESS', data);
+            return data;
+        } catch (error: any) {
+            logAuth('EMAIL_OTP_RESEND_ERROR', null, error.response?.data || error.message);
+            throw error;
+        }
     },
 
     sendPasswordChangeOtp: async (): Promise<{ message: string }> => {
@@ -145,3 +216,4 @@ export const authApi = {
 };
 
 export default authApi;
+
