@@ -325,17 +325,25 @@ export class AuthService {
 
     // Verify email OTP and complete login for admins
     async verifyEmailOtpAndLogin(userId: string, otp: string, ipAddress?: string, userAgent?: string) {
+        this.logger.log(`📧 [verifyEmailOtpAndLogin] START - userId: ${userId}, otp: ${otp.substring(0, 2)}****`);
+
         const user = await this.prisma.user.findUnique({
             where: { id: userId },
         });
 
         if (!user) {
+            this.logger.error(`❌ [verifyEmailOtpAndLogin] User not found: ${userId}`);
             throw new BadRequestException('User not found');
         }
 
+        this.logger.log(`📧 [verifyEmailOtpAndLogin] User found: ${user.email}, attempting OTP verification...`);
+
         // Verify OTP
         const isValid = await this.otpService.verifyOtp(userId, otp, 'login');
+        this.logger.log(`📧 [verifyEmailOtpAndLogin] OTP verification result: ${isValid}`);
+
         if (!isValid) {
+            this.logger.error(`❌ [verifyEmailOtpAndLogin] Invalid or expired OTP for: ${user.email}`);
             await this.auditService.logAuth('LOGIN_FAILED', user.id, user.email, ipAddress, userAgent, { reason: 'Invalid email OTP' });
             throw new UnauthorizedException('Invalid or expired OTP');
         }

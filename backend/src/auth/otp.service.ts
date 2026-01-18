@@ -277,6 +277,10 @@ export class OtpService implements OnModuleInit, OnModuleDestroy {
      * Verify OTP for a user
      */
     async verifyOtp(userId: string, otp: string, type: 'login' | 'password_change'): Promise<boolean> {
+        this.logger.log(`🔑 [verifyOtp] START - userId: ${userId}, type: ${type}`);
+        this.logger.log(`🔑 [verifyOtp] Redis available: ${this.redisService.isAvailable()}`);
+        this.logger.log(`🔑 [verifyOtp] In-memory OTP store size: ${this.otpStore.size}`);
+
         // Check if locked
         const lockCheck = await this.isVerificationLocked(userId, type);
         if (lockCheck.locked) {
@@ -289,19 +293,35 @@ export class OtpService implements OnModuleInit, OnModuleDestroy {
         // SECURITY: Use atomic get-and-delete to prevent race conditions
         // This ensures OTP can only be verified once, even with concurrent requests
         if (this.redisService.isAvailable()) {
+            this.logger.log(`🔑 [verifyOtp] Looking up OTP in Redis...`);
             storedOtp = await this.redisService.getAndDeleteOtp(userId, type);
+            this.logger.log(`🔑 [verifyOtp] Redis returned: ${storedOtp ? 'OTP found' : 'NOT FOUND'}`);
         } else {
             // In-memory fallback: get and delete atomically
             const key = `${userId}:${type}`;
+            this.logger.log(`🔑 [verifyOtp] Looking up OTP in memory with key: ${key}`);
+
+            // Debug: log all keys in store
+            const allKeys = Array.from(this.otpStore.keys());
+            this.logger.log(`🔑 [verifyOtp] All OTP keys in memory: ${JSON.stringify(allKeys)}`);
+
             const entry = this.otpStore.get(key);
-            if (entry && new Date() <= entry.expiresAt) {
-                storedOtp = entry.otp;
-                this.otpStore.delete(key); // Delete immediately (single-threaded, so atomic)
+            if (entry) {
+                this.logger.log(`🔑 [verifyOtp] Found entry, expires at: ${entry.expiresAt}, now: ${new Date()}`);
+                if (new Date() <= entry.expiresAt) {
+                    storedOtp = entry.otp;
+                    this.otpStore.delete(key); // Delete immediately (single-threaded, so atomic)
+                    this.logger.log(`🔑 [verifyOtp] OTP retrieved and deleted from memory`);
+                } else {
+                    this.logger.warn(`🔑 [verifyOtp] OTP expired!`);
+                }
+            } else {
+                this.logger.warn(`🔑 [verifyOtp] No entry found for key: ${key}`);
             }
         }
 
         if (!storedOtp) {
-            this.logger.warn(`No OTP found for user ${userId}, type: ${type}`);
+            this.logger.warn(`❌ [verifyOtp] No OTP found for user ${userId}, type: ${type}`);
             await this.recordFailedAttempt(userId, type);
             return false;
         }
