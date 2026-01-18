@@ -499,12 +499,12 @@ export default function LandingPage() {
                     <p className="text-2xl sm:text-3xl font-bold text-white">15+</p>
                     <p className="text-xs sm:text-sm text-white/60">Years</p>
                   </div>
-                  <div className="w-px h-8 sm:h-12 bg-white/20 hidden sm:block" />
+                  <div className="w-px h-8 sm:h-12 bg-white/20" />
                   <div className="text-center lg:text-left">
                     <p className="text-2xl sm:text-3xl font-bold text-white">1000+</p>
                     <p className="text-xs sm:text-sm text-white/60">Members</p>
                   </div>
-                  <div className="w-px h-8 sm:h-12 bg-white/20 hidden sm:block" />
+                  <div className="w-px h-8 sm:h-12 bg-white/20" />
                   <div className="text-center lg:text-left">
                     <p className="text-2xl sm:text-3xl font-bold text-white">100+</p>
                     <p className="text-xs sm:text-sm text-white/60">Nitya Sevak</p>
