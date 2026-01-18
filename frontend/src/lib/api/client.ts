@@ -13,8 +13,24 @@ export const api = axios.create({
     withCredentials: true,
 });
 
-// Track which URLs should NOT trigger redirect on 401
-const noRedirectUrls = ['/auth/profile', '/auth/refresh', '/auth/logout'];
+// Track which URLs should NOT trigger token refresh on 401
+// These are endpoints involved in the authentication flow
+const noRefreshUrls = [
+    '/auth/login',
+    '/auth/register',
+    '/auth/2fa/validate',
+    '/auth/2fa/setup',
+    '/auth/2fa/verify',
+    '/auth/2fa/setup-for-user',
+    '/auth/2fa/verify-setup',
+    '/auth/otp/verify-login',
+    '/auth/otp/resend-login',
+    '/auth/profile',
+    '/auth/refresh',
+    '/auth/logout',
+    '/auth/verify-email',
+    '/auth/resend-verification',
+];
 
 // Response interceptor for token refresh (now cookie-based)
 api.interceptors.response.use(
@@ -23,8 +39,8 @@ api.interceptors.response.use(
         const originalRequest = error.config;
         const requestUrl = originalRequest?.url || '';
 
-        // Don't try to refresh for these endpoints
-        const shouldSkipRefresh = noRedirectUrls.some(url => requestUrl.includes(url));
+        // Don't try to refresh for auth endpoints
+        const shouldSkipRefresh = noRefreshUrls.some(url => requestUrl.includes(url));
 
         // If 401 and not already retried, try to refresh the token
         if (error.response?.status === 401 && !originalRequest._retry && !shouldSkipRefresh) {
@@ -48,3 +64,4 @@ api.interceptors.response.use(
 );
 
 export default api;
+
