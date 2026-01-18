@@ -6,7 +6,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
-import { Eye, EyeOff, Loader2, Mail, Lock, ArrowLeft, Video, ShoppingBag, UtensilsCrossed, Users } from 'lucide-react';
+import { Eye, EyeOff, Loader2, Mail, Lock, ArrowLeft, Sparkles, Shield, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -30,7 +30,6 @@ function LoginContent() {
     const { login, isAuthenticated, user } = useAuthStore();
 
     useEffect(() => {
-        // Prevent multiple redirects
         if (isRedirecting) return;
 
         if (isAuthenticated && user) {
@@ -59,15 +58,12 @@ function LoginContent() {
         try {
             const response = await authApi.login({ email: data.email, password: data.password });
 
-            // Check if 2FA setup is required (first-time admin login)
             if (response.requiresTwoFactorSetup && response.userId && response.setupToken) {
                 toast.info('Two-factor authentication setup is required');
-                // Redirect to dedicated 2FA setup page with userId and setupToken
                 router.push(`/setup-2fa?userId=${response.userId}&token=${encodeURIComponent(response.setupToken)}`);
                 return;
             }
 
-            // Check if 2FA verification is required
             if (response.requiresTwoFactor && response.userId) {
                 setRequiresTwoFactor(true);
                 setPendingUserId(response.userId);
@@ -75,7 +71,6 @@ function LoginContent() {
                 return;
             }
 
-            // Normal login - tokens are set in HttpOnly cookies
             login(response.user);
             toast.success('Welcome back!');
 
@@ -100,7 +95,6 @@ function LoginContent() {
     const [resendCount, setResendCount] = useState(0);
     const [resendCooldown, setResendCooldown] = useState(0);
 
-    // Resend OTP handler with 3x limit
     const handleResendOtp = async () => {
         if (!pendingUserId || resendCount >= 3 || resendCooldown > 0) return;
 
@@ -110,7 +104,6 @@ function LoginContent() {
             setResendCount(prev => prev + 1);
             toast.success('New OTP sent to your email');
 
-            // 30 second cooldown between resends
             setResendCooldown(30);
             const interval = setInterval(() => {
                 setResendCooldown(prev => {
@@ -138,7 +131,6 @@ function LoginContent() {
         try {
             const response = await authApi.validateTwoFactor(pendingUserId, twoFactorCode);
 
-            // Check if email OTP is required (admin accounts)
             if (response.requiresEmailOtp && response.userId) {
                 setRequiresTwoFactor(false);
                 setRequiresEmailOtp(true);
@@ -205,334 +197,359 @@ function LoginContent() {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50 dark:from-slate-900 dark:via-slate-950 dark:to-indigo-950 flex items-center justify-center p-4">
+        <div className="min-h-screen relative overflow-hidden">
+            {/* Background - Matching Homepage Hero */}
+            <div className="absolute inset-0 bg-gradient-to-br from-[#0f0c29] via-[#302b63] to-[#24243e]" />
+
+            {/* Animated Background Elements */}
+            <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                {/* Large Gradient Orbs */}
+                <div className="absolute top-[-20%] right-[-10%] w-[600px] h-[600px] rounded-full bg-gradient-to-br from-[#5750F1]/40 to-purple-600/20 blur-3xl animate-pulse" style={{ animationDuration: '8s' }} />
+                <div className="absolute bottom-[-20%] left-[-10%] w-[500px] h-[500px] rounded-full bg-gradient-to-br from-cyan-500/30 to-blue-600/20 blur-3xl animate-pulse" style={{ animationDuration: '10s', animationDelay: '1s' }} />
+                <div className="absolute top-1/2 left-1/3 w-[300px] h-[300px] rounded-full bg-gradient-to-br from-rose-500/20 to-orange-500/10 blur-2xl animate-pulse" style={{ animationDuration: '12s', animationDelay: '2s' }} />
+
+                {/* Grid Pattern */}
+                <div
+                    className="absolute inset-0 opacity-[0.03]"
+                    style={{
+                        backgroundImage: `
+                            linear-gradient(rgba(255,255,255,1) 1px, transparent 1px),
+                            linear-gradient(90deg, rgba(255,255,255,1) 1px, transparent 1px)
+                        `,
+                        backgroundSize: '60px 60px',
+                    }}
+                />
+
+                {/* Radial Glow at Top */}
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[600px] bg-gradient-radial from-[#5750F1]/20 via-transparent to-transparent" />
+            </div>
+
             {/* Back to Home */}
             <Link
                 href="/"
-                className="absolute top-6 left-6 inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white font-medium transition-colors"
+                className="absolute top-6 left-6 z-50 inline-flex items-center gap-2 text-white/70 hover:text-white font-medium transition-all duration-300 group"
             >
-                <ArrowLeft className="h-5 w-5" />
-                Back to Home
+                <div className="p-2 rounded-xl bg-white/10 backdrop-blur-md border border-white/10 group-hover:bg-white/20 transition-all duration-300">
+                    <ArrowLeft className="h-5 w-5" />
+                </div>
+                <span className="hidden sm:inline">Back to Home</span>
             </Link>
 
-            <div className="w-full max-w-6xl mx-auto">
-                <div className="rounded-2xl bg-white/80 dark:bg-slate-900/70 backdrop-blur shadow-xl ring-1 ring-black/5 overflow-hidden">
-                    <div className="flex flex-wrap items-stretch min-h-[620px]">
-                        {/* Left Side - Login Form */}
-                        <div className="w-full xl:w-1/2">
-                            <div className="w-full p-6 sm:p-8 lg:p-12 xl:p-16">
-                                <div className="mb-8">
-                                    <div className="mb-6 flex items-center justify-between">
-                                        {/* Logo */}
-                                        <Link href="/" className="flex items-center gap-2 group">
-                                            <div className="h-12 w-12 bg-gradient-to-br from-[#5750F1] to-[#7C3AED] rounded-xl flex items-center justify-center shadow-lg shadow-[#5750F1]/20 group-hover:scale-105 transition-transform duration-300">
-                                                <Image
-                                                    src="/logo-white.svg"
-                                                    alt="ISKCON Logo"
-                                                    width={32}
-                                                    height={32}
-                                                    className="h-8 w-8"
-                                                />
-                                            </div>
-                                            <span className="font-bold text-2xl tracking-tight text-gray-900 dark:text-white">ISKCON Burla</span>
-                                        </Link>
-                                        <Link href="/register" className="text-sm font-medium text-[#5750F1] hover:underline">
-                                            Create account
-                                        </Link>
+            {/* Main Content */}
+            <div className="relative z-10 min-h-screen flex items-center justify-center p-4 sm:p-6 lg:p-8">
+                <div className="w-full max-w-[1100px] mx-auto">
+                    <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
+
+                        {/* Left Side - Branding & Features */}
+                        <div className="hidden lg:flex flex-col justify-center">
+                            {/* Logo */}
+                            <Link href="/" className="flex items-center gap-3 mb-10 group">
+                                <div className="relative">
+                                    <div className="absolute inset-0 bg-[#5750F1] rounded-2xl blur-xl opacity-50 group-hover:opacity-70 transition-opacity" />
+                                    <div className="relative h-14 w-14 bg-gradient-to-br from-[#5750F1] to-[#7C3AED] rounded-2xl flex items-center justify-center shadow-2xl shadow-[#5750F1]/30">
+                                        <Image
+                                            src="/logo-white.svg"
+                                            alt="ISKCON Logo"
+                                            width={36}
+                                            height={36}
+                                            className="h-9 w-9"
+                                        />
                                     </div>
-                                    <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white mb-2">
-                                        Welcome back
-                                    </h1>
-                                    <p className="text-gray-600 dark:text-gray-400 text-sm sm:text-base">
-                                        Sign in to access your ISKCON services
-                                    </p>
                                 </div>
+                                <div>
+                                    <h2 className="font-bold text-2xl text-white">ISKCON Burla</h2>
+                                    <p className="text-white/50 text-sm">Digital Temple Portal</p>
+                                </div>
+                            </Link>
 
-                                {/* Login Form, 2FA Form, or Email OTP Form */}
-                                {requiresEmailOtp ? (
-                                    <div className="space-y-5">
-                                        <div className="text-center mb-6">
-                                            <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-[#10B981] to-[#059669] rounded-2xl flex items-center justify-center">
-                                                <Mail className="h-8 w-8 text-white" />
-                                            </div>
-                                            <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-                                                Email Verification
-                                            </h2>
-                                            <p className="text-gray-600 dark:text-gray-400 text-sm mt-2">
-                                                Enter the 6-digit code sent to your email
-                                            </p>
+                            {/* Headline */}
+                            <h1 className="text-4xl xl:text-5xl font-bold text-white mb-6 leading-tight">
+                                Welcome back to your
+                                <span className="block bg-gradient-to-r from-cyan-300 via-white to-pink-300 bg-clip-text text-transparent">
+                                    spiritual journey
+                                </span>
+                            </h1>
+
+                            <p className="text-white/60 text-lg mb-10 leading-relaxed">
+                                Access exclusive temple services, order prasadam, watch live darshan, and connect with our devotee community.
+                            </p>
+
+                            {/* Features */}
+                            <div className="space-y-4">
+                                {[
+                                    { icon: Sparkles, text: 'Order sacred prasadam online' },
+                                    { icon: Shield, text: 'Secure & encrypted authentication' },
+                                    { icon: CheckCircle2, text: 'Access exclusive devotee services' },
+                                ].map((feature, i) => (
+                                    <div key={i} className="flex items-center gap-4 group">
+                                        <div className="w-11 h-11 rounded-xl bg-white/10 border border-white/10 flex items-center justify-center group-hover:bg-white/20 transition-all">
+                                            <feature.icon className="h-5 w-5 text-[#5750F1]" />
                                         </div>
-                                        <div className="space-y-2">
-                                            <Label htmlFor="emailOtpCode" className="text-sm font-medium">
-                                                Email OTP Code
-                                            </Label>
-                                            <Input
-                                                id="emailOtpCode"
-                                                type="text"
-                                                inputMode="numeric"
-                                                placeholder="000000"
-                                                value={emailOtpCode}
-                                                onChange={(e) => setEmailOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                                                className="h-14 text-center text-2xl tracking-[0.5em] font-mono bg-gray-50 dark:bg-slate-800 border-gray-200 dark:border-gray-700 focus:border-[#10B981] focus:ring-[#10B981]"
-                                                maxLength={6}
-                                                autoFocus
-                                            />
-                                        </div>
-                                        <Button
-                                            type="button"
-                                            onClick={handleEmailOtpSubmit}
-                                            className="w-full h-12 bg-[#10B981] hover:bg-[#059669] text-white text-base font-medium shadow-lg shadow-[#10B981]/25"
-                                            disabled={isLoading || emailOtpCode.length !== 6}
-                                        >
-                                            {isLoading ? (
-                                                <>
-                                                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                                                    Verifying...
-                                                </>
-                                            ) : (
-                                                'Verify & Sign In'
-                                            )}
-                                        </Button>
-                                        {/* Resend OTP Button */}
-                                        <div className="text-center">
-                                            {resendCount < 3 ? (
-                                                <Button
-                                                    type="button"
-                                                    variant="ghost"
-                                                    className="text-sm text-[#10B981] hover:text-[#059669]"
-                                                    onClick={handleResendOtp}
-                                                    disabled={isLoading || resendCooldown > 0}
-                                                >
-                                                    {resendCooldown > 0 ? (
-                                                        `Resend in ${resendCooldown}s`
-                                                    ) : (
-                                                        `Resend OTP (${3 - resendCount} left)`
-                                                    )}
-                                                </Button>
-                                            ) : (
-                                                <p className="text-sm text-red-500">Maximum resend attempts reached</p>
-                                            )}
-                                        </div>
-                                        <Button
-                                            type="button"
-                                            variant="ghost"
-                                            className="w-full"
-                                            onClick={() => {
-                                                setRequiresEmailOtp(false);
-                                                setEmailOtpCode('');
-                                                setPendingUserId(null);
-                                                setResendCount(0);
-                                            }}
-                                        >
-                                            Back to Login
-                                        </Button>
+                                        <span className="text-white/70 group-hover:text-white transition-colors">{feature.text}</span>
                                     </div>
-                                ) : requiresTwoFactor ? (
-                                    <div className="space-y-5">
-                                        <div className="text-center mb-6">
-                                            <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-[#5750F1] to-[#7C3AED] rounded-2xl flex items-center justify-center">
-                                                <Lock className="h-8 w-8 text-white" />
-                                            </div>
-                                            <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-                                                Two-Factor Authentication
-                                            </h2>
-                                            <p className="text-gray-600 dark:text-gray-400 text-sm mt-2">
-                                                Enter the 6-digit code from your authenticator app
-                                            </p>
-                                        </div>
-                                        <div className="space-y-2">
-                                            <Label htmlFor="twoFactorCode" className="text-sm font-medium">
-                                                Verification Code
-                                            </Label>
-                                            <Input
-                                                id="twoFactorCode"
-                                                type="text"
-                                                inputMode="numeric"
-                                                placeholder="000000"
-                                                value={twoFactorCode}
-                                                onChange={(e) => setTwoFactorCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                                                className="h-14 text-center text-2xl tracking-[0.5em] font-mono bg-gray-50 dark:bg-slate-800 border-gray-200 dark:border-gray-700 focus:border-[#5750F1] focus:ring-[#5750F1]"
-                                                maxLength={6}
-                                                autoFocus
-                                            />
-                                        </div>
-                                        <Button
-                                            type="button"
-                                            onClick={handleTwoFactorSubmit}
-                                            className="w-full h-12 bg-[#5750F1] hover:bg-[#4a43d6] text-white text-base font-medium shadow-lg shadow-[#5750F1]/25"
-                                            disabled={isLoading || twoFactorCode.length !== 6}
-                                        >
-                                            {isLoading ? (
-                                                <>
-                                                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                                                    Verifying...
-                                                </>
-                                            ) : (
-                                                'Continue'
-                                            )}
-                                        </Button>
-                                        <Button
-                                            type="button"
-                                            variant="ghost"
-                                            className="w-full"
-                                            onClick={() => {
-                                                setRequiresTwoFactor(false);
-                                                setTwoFactorCode('');
-                                                setPendingUserId(null);
-                                            }}
-                                        >
-                                            Back to Login
-                                        </Button>
-                                    </div>
-                                ) : (
-                                    <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-                                        <div className="space-y-2">
-                                            <Label htmlFor="email" className="text-sm font-medium">Email address</Label>
-                                            <div className="relative">
-                                                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-                                                <Input
-                                                    id="email"
-                                                    type="email"
-                                                    placeholder="Enter your email"
-                                                    {...register('email', {
-                                                        required: 'Email is required',
-                                                        pattern: {
-                                                            value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                                                            message: 'Invalid email address',
-                                                        },
-                                                    })}
-                                                    className={`pl-10 h-12 bg-gray-50 dark:bg-slate-800 border-gray-200 dark:border-gray-700 focus:border-[#5750F1] focus:ring-[#5750F1] ${errors.email ? 'border-red-500 ring-red-500' : ''}`}
-                                                />
-                                            </div>
-                                            {errors.email && (
-                                                <p className="text-sm text-red-500">{errors.email.message}</p>
-                                            )}
-                                        </div>
+                                ))}
+                            </div>
 
-                                        <div className="space-y-2">
-                                            <div className="flex items-center justify-between">
-                                                <Label htmlFor="password" className="text-sm font-medium">Password</Label>
-                                                <Link href="#" className="text-sm text-[#5750F1] hover:underline">
-                                                    Forgot password?
-                                                </Link>
-                                            </div>
-                                            <div className="relative">
-                                                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-                                                <Input
-                                                    id="password"
-                                                    type={showPassword ? 'text' : 'password'}
-                                                    placeholder="••••••••"
-                                                    {...register('password', {
-                                                        required: 'Password is required',
-                                                    })}
-                                                    className={`pl-10 pr-10 h-12 bg-gray-50 dark:bg-slate-800 border-gray-200 dark:border-gray-700 focus:border-[#5750F1] focus:ring-[#5750F1] ${errors.password ? 'border-red-500 ring-red-500' : ''}`}
-                                                />
-                                                <Button
-                                                    type="button"
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
-                                                    onClick={() => setShowPassword(!showPassword)}
-                                                >
-                                                    {showPassword ? <EyeOff className="h-5 w-5 text-gray-400" /> : <Eye className="h-5 w-5 text-gray-400" />}
-                                                </Button>
-                                            </div>
-                                            {errors.password && (
-                                                <p className="text-sm text-red-500">{errors.password.message}</p>
-                                            )}
-                                        </div>
-
-                                        <Button
-                                            type="submit"
-                                            className="w-full h-12 bg-[#5750F1] hover:bg-[#4a43d6] text-white text-base font-medium shadow-lg shadow-[#5750F1]/25"
-                                            disabled={isLoading}
-                                        >
-                                            {isLoading ? (
-                                                <>
-                                                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                                                    Signing in...
-                                                </>
-                                            ) : (
-                                                'Sign in'
-                                            )}
-                                        </Button>
-                                    </form>
-                                )}
-
-                                <p className="mt-6 text-center text-sm text-gray-600 dark:text-gray-400">
-                                    Don&apos;t have an account?{' '}
-                                    <Link href="/register" className="font-medium text-[#5750F1] hover:underline">
-                                        Register here
-                                    </Link>
-                                </p>
+                            {/* Stats */}
+                            <div className="mt-12 pt-8 border-t border-white/10 flex gap-12">
+                                <div>
+                                    <div className="text-3xl font-bold text-white">1000+</div>
+                                    <div className="text-sm text-white/50">Active members</div>
+                                </div>
+                                <div>
+                                    <div className="text-3xl font-bold text-white">15+</div>
+                                    <div className="text-sm text-white/50">Years of service</div>
+                                </div>
                             </div>
                         </div>
 
-                        {/* Right Side - Gradient Panel */}
-                        <div className="hidden xl:block xl:w-1/2 bg-gradient-to-br from-indigo-700 via-[#5750F1] to-purple-700 relative">
-                            <div className="p-10 h-full flex flex-col justify-center text-white relative z-10">
-                                <div className="mb-8">
-                                    <div className="flex items-center gap-3 mb-6">
-                                        <div className="w-20 h-20 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center mb-6 shadow-lg">
-                                            <Image
-                                                src="/logo-white.svg"
-                                                alt="ISKCON Logo"
-                                                width={48}
-                                                height={48}
-                                                className="h-12 w-12"
-                                            />
-                                        </div>
-                                        <div>
-                                            <h2 className="text-xl font-bold">ISKCON Portal</h2>
-                                            <p className="text-indigo-100 text-sm">Digital Temple Services</p>
-                                        </div>
+                        {/* Right Side - Login Form */}
+                        <div className="w-full max-w-md mx-auto lg:max-w-none lg:pl-8">
+                            {/* Mobile Logo */}
+                            <div className="lg:hidden text-center mb-8">
+                                <Link href="/" className="inline-flex items-center gap-3">
+                                    <div className="h-12 w-12 bg-gradient-to-br from-[#5750F1] to-[#7C3AED] rounded-xl flex items-center justify-center shadow-lg">
+                                        <Image
+                                            src="/logo-white.svg"
+                                            alt="ISKCON Logo"
+                                            width={28}
+                                            height={28}
+                                            className="h-7 w-7"
+                                        />
                                     </div>
-                                </div>
-
-                                <h2 className="text-3xl font-bold mb-4">
-                                    Your gateway to spiritual services
-                                </h2>
-
-                                <p className="text-indigo-100 text-lg mb-8">
-                                    Access prasadam ordering, temple store, live darshan, and youth programs all in one place.
-                                </p>
-
-                                <div className="space-y-4">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
-                                            <UtensilsCrossed className="h-4 w-4" />
-                                        </div>
-                                        <span className="text-indigo-100">Order Prasadam Online</span>
-                                    </div>
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
-                                            <ShoppingBag className="h-4 w-4" />
-                                        </div>
-                                        <span className="text-indigo-100">Shop Devotional Items</span>
-                                    </div>
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
-                                            <Video className="h-4 w-4" />
-                                        </div>
-                                        <span className="text-indigo-100">Watch Live Darshan</span>
-                                    </div>
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
-                                            <Users className="h-4 w-4" />
-                                        </div>
-                                        <span className="text-indigo-100">Join Youth Programs</span>
-                                    </div>
-                                </div>
-
-                                <div className="mt-12">
-                                    <div className="text-sm text-indigo-100/90 mb-2">Trusted by</div>
-                                    <div className="text-2xl font-bold">10,000+ Devotees</div>
-                                </div>
+                                    <span className="font-bold text-xl text-white">ISKCON Burla</span>
+                                </Link>
                             </div>
 
-                            {/* Decorative Elements */}
-                            <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-32 translate-x-32 blur-xl"></div>
-                            <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full translate-y-24 -translate-x-24 blur-xl"></div>
+                            {/* Form Card - White Background */}
+                            <div className="relative">
+                                {/* Glow effect */}
+                                <div className="absolute -inset-1 bg-gradient-to-r from-[#5750F1]/30 via-purple-500/30 to-cyan-500/30 rounded-3xl blur-xl opacity-60" />
+
+                                <div className="relative bg-white rounded-3xl p-8 sm:p-10 shadow-2xl">
+                                    {/* Form Header */}
+                                    <div className="text-center mb-8">
+                                        <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
+                                            {requiresEmailOtp ? 'Email Verification' : requiresTwoFactor ? 'Two-Factor Auth' : 'Sign In'}
+                                        </h2>
+                                        <p className="text-gray-500">
+                                            {requiresEmailOtp
+                                                ? 'Enter the 6-digit code sent to your email'
+                                                : requiresTwoFactor
+                                                    ? 'Enter your authenticator code'
+                                                    : 'Continue to your account'}
+                                        </p>
+                                    </div>
+
+                                    {/* Login Form, 2FA Form, or Email OTP Form */}
+                                    {requiresEmailOtp ? (
+                                        <div className="space-y-6">
+                                            <div className="flex justify-center mb-6">
+                                                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center shadow-lg shadow-emerald-500/25">
+                                                    <Mail className="h-8 w-8 text-white" />
+                                                </div>
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label htmlFor="emailOtpCode" className="text-sm font-medium text-gray-700">
+                                                    Verification Code
+                                                </Label>
+                                                <Input
+                                                    id="emailOtpCode"
+                                                    type="text"
+                                                    inputMode="numeric"
+                                                    placeholder="000000"
+                                                    value={emailOtpCode}
+                                                    onChange={(e) => setEmailOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                                                    className="h-14 text-center text-2xl tracking-[0.5em] font-mono bg-gray-50 border-gray-200 focus:border-emerald-500 focus:ring-emerald-500/20"
+                                                    maxLength={6}
+                                                    autoFocus
+                                                />
+                                            </div>
+                                            <Button
+                                                type="button"
+                                                onClick={handleEmailOtpSubmit}
+                                                className="w-full h-12 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-medium rounded-xl shadow-lg shadow-emerald-500/25 transition-all duration-300"
+                                                disabled={isLoading || emailOtpCode.length !== 6}
+                                            >
+                                                {isLoading ? (
+                                                    <>
+                                                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                                                        Verifying...
+                                                    </>
+                                                ) : (
+                                                    'Verify & Sign In'
+                                                )}
+                                            </Button>
+                                            <div className="text-center">
+                                                {resendCount < 3 ? (
+                                                    <Button
+                                                        type="button"
+                                                        variant="ghost"
+                                                        className="text-sm text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
+                                                        onClick={handleResendOtp}
+                                                        disabled={isLoading || resendCooldown > 0}
+                                                    >
+                                                        {resendCooldown > 0 ? (
+                                                            `Resend in ${resendCooldown}s`
+                                                        ) : (
+                                                            `Resend OTP (${3 - resendCount} left)`
+                                                        )}
+                                                    </Button>
+                                                ) : (
+                                                    <p className="text-sm text-red-500">Maximum resend attempts reached</p>
+                                                )}
+                                            </div>
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                className="w-full text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+                                                onClick={() => {
+                                                    setRequiresEmailOtp(false);
+                                                    setEmailOtpCode('');
+                                                    setPendingUserId(null);
+                                                    setResendCount(0);
+                                                }}
+                                            >
+                                                Back to Login
+                                            </Button>
+                                        </div>
+                                    ) : requiresTwoFactor ? (
+                                        <div className="space-y-6">
+                                            <div className="flex justify-center mb-6">
+                                                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#5750F1] to-purple-600 flex items-center justify-center shadow-lg shadow-[#5750F1]/25">
+                                                    <Shield className="h-8 w-8 text-white" />
+                                                </div>
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label htmlFor="twoFactorCode" className="text-sm font-medium text-gray-700">
+                                                    Authenticator Code
+                                                </Label>
+                                                <Input
+                                                    id="twoFactorCode"
+                                                    type="text"
+                                                    inputMode="numeric"
+                                                    placeholder="000000"
+                                                    value={twoFactorCode}
+                                                    onChange={(e) => setTwoFactorCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                                                    className="h-14 text-center text-2xl tracking-[0.5em] font-mono bg-gray-50 border-gray-200 focus:border-[#5750F1] focus:ring-[#5750F1]/20"
+                                                    maxLength={6}
+                                                    autoFocus
+                                                />
+                                            </div>
+                                            <Button
+                                                type="button"
+                                                onClick={handleTwoFactorSubmit}
+                                                className="w-full h-12 bg-gradient-to-r from-[#5750F1] to-purple-600 hover:from-[#4a43d6] hover:to-purple-700 text-white font-medium rounded-xl shadow-lg shadow-[#5750F1]/25 transition-all duration-300"
+                                                disabled={isLoading || twoFactorCode.length !== 6}
+                                            >
+                                                {isLoading ? (
+                                                    <>
+                                                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                                                        Verifying...
+                                                    </>
+                                                ) : (
+                                                    'Continue'
+                                                )}
+                                            </Button>
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                className="w-full text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+                                                onClick={() => {
+                                                    setRequiresTwoFactor(false);
+                                                    setTwoFactorCode('');
+                                                    setPendingUserId(null);
+                                                }}
+                                            >
+                                                Back to Login
+                                            </Button>
+                                        </div>
+                                    ) : (
+                                        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+                                            <div className="space-y-2">
+                                                <Label htmlFor="email" className="text-sm font-medium text-gray-700">Email Address</Label>
+                                                <div className="relative">
+                                                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                                                    <Input
+                                                        id="email"
+                                                        type="email"
+                                                        placeholder="you@example.com"
+                                                        {...register('email', {
+                                                            required: 'Email is required',
+                                                            pattern: {
+                                                                value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                                                                message: 'Invalid email address',
+                                                            },
+                                                        })}
+                                                        className={`pl-12 h-12 bg-gray-50 border-gray-200 focus:border-[#5750F1] focus:ring-[#5750F1]/20 rounded-xl ${errors.email ? 'border-red-400' : ''}`}
+                                                    />
+                                                </div>
+                                                {errors.email && (
+                                                    <p className="text-sm text-red-500">{errors.email.message}</p>
+                                                )}
+                                            </div>
+
+                                            <div className="space-y-2">
+                                                <div className="flex items-center justify-between">
+                                                    <Label htmlFor="password" className="text-sm font-medium text-gray-700">Password</Label>
+                                                    <Link href="#" className="text-sm text-[#5750F1] hover:text-[#4a43d6] font-medium transition-colors">
+                                                        Forgot password?
+                                                    </Link>
+                                                </div>
+                                                <div className="relative">
+                                                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                                                    <Input
+                                                        id="password"
+                                                        type={showPassword ? 'text' : 'password'}
+                                                        placeholder="••••••••"
+                                                        {...register('password', {
+                                                            required: 'Password is required',
+                                                        })}
+                                                        className={`pl-12 pr-12 h-12 bg-gray-50 border-gray-200 focus:border-[#5750F1] focus:ring-[#5750F1]/20 rounded-xl ${errors.password ? 'border-red-400' : ''}`}
+                                                    />
+                                                    <Button
+                                                        type="button"
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 hover:bg-gray-200/50"
+                                                        onClick={() => setShowPassword(!showPassword)}
+                                                    >
+                                                        {showPassword ? <EyeOff className="h-4 w-4 text-gray-500" /> : <Eye className="h-4 w-4 text-gray-500" />}
+                                                    </Button>
+                                                </div>
+                                                {errors.password && (
+                                                    <p className="text-sm text-red-500">{errors.password.message}</p>
+                                                )}
+                                            </div>
+
+                                            <Button
+                                                type="submit"
+                                                className="w-full h-12 bg-gradient-to-r from-[#5750F1] to-purple-600 hover:from-[#4a43d6] hover:to-purple-700 text-white font-medium rounded-xl shadow-lg shadow-[#5750F1]/25 transition-all duration-300 hover:shadow-xl hover:shadow-[#5750F1]/30 hover:-translate-y-0.5"
+                                                disabled={isLoading}
+                                            >
+                                                {isLoading ? (
+                                                    <>
+                                                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                                                        Signing in...
+                                                    </>
+                                                ) : (
+                                                    'Sign In'
+                                                )}
+                                            </Button>
+                                        </form>
+                                    )}
+
+                                    {/* Footer */}
+                                    <div className="mt-8 pt-6 border-t border-gray-100 text-center">
+                                        <p className="text-gray-500">
+                                            Don&apos;t have an account?{' '}
+                                            <Link href="/register" className="text-[#5750F1] hover:text-[#4a43d6] font-semibold transition-colors">
+                                                Create account
+                                            </Link>
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -544,7 +561,7 @@ function LoginContent() {
 export default function LoginPage() {
     return (
         <Suspense fallback={
-            <div className="min-h-screen flex items-center justify-center">
+            <div className="min-h-screen flex items-center justify-center bg-[#0f0c29]">
                 <Loader2 className="h-8 w-8 animate-spin text-[#5750F1]" />
             </div>
         }>
