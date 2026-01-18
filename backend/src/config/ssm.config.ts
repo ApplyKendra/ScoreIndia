@@ -15,13 +15,28 @@ export class SsmConfigService implements OnModuleInit {
     }
 
     async onModuleInit() {
-        // In development, use .env; in production, use SSM
+        this.logger.log(`🔧 SSM Config Initializing... NODE_ENV=${process.env.NODE_ENV}`);
+
+        // In development, use .env; in production, try SSM first then fallback to env
         if (process.env.NODE_ENV === 'production') {
-            await this.loadSecretsFromSSM();
+            try {
+                await this.loadSecretsFromSSM();
+            } catch (error: any) {
+                this.logger.warn(`SSM not available (${error.message}), using environment variables`);
+            }
+
+            // ALWAYS load env vars as fallback/override in production
+            // This ensures Render env vars work even if SSM fails
+            this.loadSecretsFromEnv();
         } else {
             this.logger.log('Development mode: Using .env variables');
             this.loadSecretsFromEnv();
         }
+
+        // Log what we loaded
+        this.logger.log(`🔧 SSM Config Initialized with ${this.secrets.size} secrets`);
+        this.logger.log(`   - Has aws.access-key-id: ${!!this.secrets.get('aws.access-key-id')}`);
+        this.logger.log(`   - Has aws.secret-access-key: ${!!this.secrets.get('aws.secret-access-key')}`);
         this.initialized = true;
     }
 
@@ -38,53 +53,57 @@ export class SsmConfigService implements OnModuleInit {
             '/iskcon/redis/url',
         ];
 
-        try {
-            const command = new GetParametersCommand({
-                Names: parameterNames,
-                WithDecryption: true,
+        const command = new GetParametersCommand({
+            Names: parameterNames,
+            WithDecryption: true,
+        });
+
+        const response = await this.ssmClient.send(command);
+
+        if (response.Parameters) {
+            response.Parameters.forEach((param: Parameter) => {
+                if (param.Name && param.Value) {
+                    // Store with simple key (e.g., 'jwt.secret' from '/iskcon/jwt/secret')
+                    const key = param.Name.replace('/iskcon/', '').replace(/\//g, '.');
+                    this.secrets.set(key, param.Value);
+                }
             });
-
-            const response = await this.ssmClient.send(command);
-
-            if (response.Parameters) {
-                response.Parameters.forEach((param: Parameter) => {
-                    if (param.Name && param.Value) {
-                        // Store with simple key (e.g., 'jwt.secret' from '/iskcon/jwt/secret')
-                        const key = param.Name.replace('/iskcon/', '').replace(/\//g, '.');
-                        this.secrets.set(key, param.Value);
-                    }
-                });
-            }
-
-            if (response.InvalidParameters && response.InvalidParameters.length > 0) {
-                this.logger.warn(`Invalid SSM parameters: ${response.InvalidParameters.join(', ')}`);
-            }
-
-            this.logger.log(`Loaded ${this.secrets.size} secrets from AWS SSM`);
-        } catch (error: any) {
-            // For Render/Vercel deployment: fall back to environment variables
-            this.logger.warn(`SSM not available (${error.message}), falling back to environment variables`);
-            this.loadSecretsFromEnv();
         }
+
+        if (response.InvalidParameters && response.InvalidParameters.length > 0) {
+            this.logger.warn(`Invalid SSM parameters: ${response.InvalidParameters.join(', ')}`);
+        }
+
+        this.logger.log(`Loaded ${this.secrets.size} secrets from AWS SSM`);
     }
 
     private loadSecretsFromEnv() {
+        this.logger.log(`📋 Loading secrets from environment variables...`);
+
         // Map .env variables to the same keys as SSM
-        const envMappings: Record<string, string> = {
-            'jwt.secret': process.env.JWT_SECRET || '',
-            'jwt.refresh-secret': process.env.JWT_REFRESH_SECRET || '',
-            'database.url': process.env.DATABASE_URL || '',
+        // Only set if not already set (SSM takes priority) or if env var is set
+        const envMappings: Record<string, string | undefined> = {
+            'jwt.secret': process.env.JWT_SECRET,
+            'jwt.refresh-secret': process.env.JWT_REFRESH_SECRET,
+            'database.url': process.env.DATABASE_URL,
             '2fa.encryption-key': process.env.TWO_FACTOR_ENCRYPTION_KEY || 'dev-encryption-key-32-bytes-!!',
-            'aws.access-key-id': process.env.AWS_ACCESS_KEY_ID || '',
-            'aws.secret-access-key': process.env.AWS_SECRET_ACCESS_KEY || '',
-            'aws.s3.bucket-name': process.env.AWS_S3_BUCKET_NAME || '',
-            'aws.ses.region': process.env.AWS_SES_REGION || 'ap-south-1',
-            'redis.url': process.env.REDIS_URL || '',
+            'aws.access-key-id': process.env.AWS_ACCESS_KEY_ID,
+            'aws.secret-access-key': process.env.AWS_SECRET_ACCESS_KEY,
+            'aws.s3.bucket-name': process.env.AWS_S3_BUCKET_NAME,
+            'aws.ses.region': process.env.AWS_SES_REGION || process.env.AWS_REGION || 'ap-south-1',
+            'redis.url': process.env.REDIS_URL,
         };
 
         Object.entries(envMappings).forEach(([key, value]) => {
-            this.secrets.set(key, value);
+            // Set value if env var exists and (not already set OR env var has value)
+            if (value && (!this.secrets.has(key) || value)) {
+                this.secrets.set(key, value);
+            }
         });
+
+        this.logger.log(`📋 Loaded ${this.secrets.size} secrets from env vars`);
+        this.logger.log(`   - AWS_ACCESS_KEY_ID env: ${process.env.AWS_ACCESS_KEY_ID ? 'SET' : 'NOT SET'}`);
+        this.logger.log(`   - AWS_SECRET_ACCESS_KEY env: ${process.env.AWS_SECRET_ACCESS_KEY ? 'SET' : 'NOT SET'}`);
     }
 
     /**

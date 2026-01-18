@@ -99,21 +99,25 @@ export class EmailService {
      * Send OTP for admin login verification
      */
     async sendLoginOtp(to: string, name: string, otp: string): Promise<void> {
-        // Log OTP only in development for debugging (never log actual OTP in production)
-        if (process.env.NODE_ENV !== 'production') {
-            this.logger.debug(`[DEV ONLY] Login OTP for ${to}: ${otp}`);
-        } else {
-            this.logger.log(`Login OTP sent to ${to}`);
-        }
+        this.logger.log(`📧 [sendLoginOtp] START - Sending OTP to: ${to}`);
+        this.logger.log(`📧 [sendLoginOtp] OTP preview: ${otp.substring(0, 2)}**** (masked for security)`);
+        this.logger.log(`📧 [sendLoginOtp] isConfigured: ${this.isConfigured}, hasSesClient: ${!!this.sesClient}`);
 
         const html = this.getOtpEmailHtml(name, otp, 'Login Verification');
 
-        await this.sendEmail({
-            to,
-            subject: 'Your Login Verification Code - ISKCON Burla',
-            html,
-            text: `Hare Krishna ${name}! Your login verification code is: ${otp}. Valid for 5 minutes.`,
-        });
+        try {
+            await this.sendEmail({
+                to,
+                subject: 'Your Login Verification Code - ISKCON Burla',
+                html,
+                text: `Hare Krishna ${name}! Your login verification code is: ${otp}. Valid for 5 minutes.`,
+            });
+            this.logger.log(`✅ [sendLoginOtp] SUCCESS - OTP email sent to: ${to}`);
+        } catch (error: any) {
+            this.logger.error(`❌ [sendLoginOtp] FAILED - Could not send OTP to: ${to}`);
+            this.logger.error(`❌ [sendLoginOtp] Error: ${error.message}`);
+            throw error;
+        }
     }
 
     /**
