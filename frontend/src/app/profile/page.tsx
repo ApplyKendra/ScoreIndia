@@ -140,6 +140,9 @@ export default function ProfilePage() {
                         <Button variant="outline" className="w-full justify-start" asChild>
                             <a href="/orders">View My Orders</a>
                         </Button>
+                        <Button variant="outline" className="w-full justify-start" asChild>
+                            <a href="/my-donations">My Donations</a>
+                        </Button>
                         {(user.role === 'SUPER_ADMIN' || user.role === 'SUB_ADMIN') && (
                             <Button variant="outline" className="w-full justify-start" asChild>
                                 <a href="/admin">Go to Admin Dashboard</a>

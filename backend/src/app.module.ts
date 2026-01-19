@@ -21,6 +21,7 @@ import { EmailModule } from './email/email.module';
 import { AuditModule } from './audit/audit.module';
 import { RedisModule } from './redis';
 import { NotificationModule } from './notification/notification.module';
+import { DonationModule } from './donation';
 
 // Guards
 import { JwtAuthGuard } from './common/guards';
@@ -63,6 +64,7 @@ import { JwtAuthGuard } from './common/guards';
     DarshanModule,
     PagesModule,
     NotificationModule,
+    DonationModule,
   ],
   providers: [
     // Global JWT authentication guard

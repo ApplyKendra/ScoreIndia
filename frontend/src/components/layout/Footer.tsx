@@ -15,6 +15,7 @@ const footerLinks = {
     explore: [
         { href: '/about-us', label: 'About Us' },
         { href: '/contact-us', label: 'Contact Us' },
+        { href: '/donations', label: 'Donate' },
         { href: '/temple-construction', label: 'Temple Construction' },
         { href: '/seva-opportunities', label: 'Seva Opportunities' },
         { href: '/nitya-sevak', label: 'Nitya Sevak Program' },
@@ -241,7 +242,7 @@ export function Footer() {
                                 {/* Quick Links */}
                                 <div className="sm:pt-4 sm:mt-4 sm:border-t sm:border-white/10">
                                     <Link
-                                        href="/donate"
+                                        href="/donations"
                                         className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs sm:text-sm font-medium rounded-md sm:rounded-lg hover:shadow-lg hover:shadow-amber-500/30 transition-all duration-300"
                                     >
                                         <Heart className="w-3 h-3 sm:w-4 sm:h-4" />

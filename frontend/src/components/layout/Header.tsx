@@ -246,6 +246,16 @@ export function Header() {
                                             <span>My Orders</span>
                                         </Link>
                                     </DropdownMenuItem>
+                                    <DropdownMenuItem asChild className="rounded-lg cursor-pointer">
+                                        <Link href="/my-donations" className="flex items-center gap-2">
+                                            <div className="h-8 w-8 rounded-lg bg-rose-100 dark:bg-rose-900/30 flex items-center justify-center">
+                                                <svg className="h-4 w-4 text-rose-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                                                </svg>
+                                            </div>
+                                            <span>My Donations</span>
+                                        </Link>
+                                    </DropdownMenuItem>
                                     {(user.role === 'SUPER_ADMIN' || user.role === 'SUB_ADMIN') && (
                                         <>
                                             <DropdownMenuSeparator className="my-2" />

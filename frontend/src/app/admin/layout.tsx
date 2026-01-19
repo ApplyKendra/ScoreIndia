@@ -150,6 +150,12 @@ export default function AdminLayout({
             roles: ['SUPER_ADMIN', 'SUB_ADMIN'],
         },
         {
+            label: 'Donations',
+            href: '/admin/donations',
+            icon: Heart,
+            roles: ['SUPER_ADMIN', 'SUB_ADMIN'],
+        },
+        {
             label: 'Notifications',
             href: '/admin/notifications',
             icon: Bell,

@@ -86,6 +86,7 @@ model User {
   registrations   YouthEventRegistration[]
   addresses       UserAddress[]
   auditLogs       AuditLog[]  @relation("UserAuditLogs")
+  donations       Donation[]
   
   @@index([email])
   @@index([role])
@@ -590,3 +591,67 @@ model Notification {
   @@index([isActive])
   @@index([priority])
 }
+
+// ============================================
+// DONATION MODULE
+// ============================================
+
+enum DonationStatus {
+  PENDING           // Created, waiting for payment
+  PAYMENT_UPLOADED  // User uploaded payment proof
+  VERIFIED          // Admin verified payment
+  REJECTED          // Admin rejected payment
+  EXPIRED           // Payment window expired
+}
+
+enum DonationPaymentMethod {
+  UPI
+  BANK_TRANSFER
+}
+
+model Donation {
+  id              String                 @id @default(uuid())
+  donationId      String                 @unique // Human-readable: DON-XXXXXX
+  
+  // Donor info (can be guest or logged-in user)
+  userId          String?
+  user            User?                  @relation(fields: [userId], references: [id])
+  name            String
+  email           String
+  phone           String
+  pan             String?                // For 80G receipt
+  address         String?
+  city            String?
+  pincode         String?
+  
+  // Donation details
+  category        String                 // general, temple, prasadam, etc.
+  amount          Decimal                @db.Decimal(10, 2)
+  paymentMethod   DonationPaymentMethod
+  
+  // Payment tracking
+  status          DonationStatus         @default(PENDING)
+  paymentProofUrl String?                // S3 URL for screenshot
+  transactionId   String?                // User-provided transaction ID
+  uploadToken     String?                // Security token for guest uploads
+  expiresAt       DateTime               // 10-min payment window
+  
+  // Verification
+  verifiedAt      DateTime?
+  verifiedBy      String?
+  rejectionReason String?
+  
+  // Receipt
+  receiptNumber   String?                // Generated after verification
+  
+  // Audit
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+  
+  @@index([userId])
+  @@index([status])
+  @@index([donationId])
+  @@index([createdAt])
+  @@index([email])
+}
+

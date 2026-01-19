@@ -109,15 +109,12 @@ export default function TempleConstructionPage() {
                         </p>
                     )}
 
-                    {data?.donationLink && (
-                        <Link href={data.donationLink} target="_blank">
-                            <Button className="px-8 py-6 text-base font-semibold bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 rounded-xl shadow-lg shadow-amber-500/30">
-                                <Heart className="w-5 h-5 mr-2" />
-                                Donate Now
-                                <ExternalLink className="w-4 h-4 ml-2" />
-                            </Button>
-                        </Link>
-                    )}
+                    <Link href="/donations">
+                        <Button className="px-8 py-6 text-base font-semibold bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 rounded-xl shadow-lg shadow-amber-500/30">
+                            <Heart className="w-5 h-5 mr-2" />
+                            Donate Now
+                        </Button>
+                    </Link>
                 </div>
 
                 <div className="absolute bottom-0 left-0 right-0">

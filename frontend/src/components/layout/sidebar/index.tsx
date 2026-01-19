@@ -8,7 +8,7 @@ import { useEffect, useState, useMemo, useCallback } from "react";
 import { ChevronUp, HomeIcon, ShoppingBagIcon, CalendarIcon, VideoIcon, YouthIcon } from "./icons";
 import { MenuItem } from "./menu-item";
 import { useSidebarContext } from "./sidebar-context";
-import { X, Sun, Moon, ShoppingCart, User, Settings, LogOut } from "lucide-react";
+import { X, Sun, Moon, ShoppingCart, User, Settings, LogOut, Heart as HeartIcon } from "lucide-react";
 import { useAuthStore } from "@/lib/stores/auth-store";
 import { Badge } from "@/components/ui/badge";
 import { useCartStore } from "@/lib/stores/cart-store";
@@ -39,6 +39,7 @@ const NAV_DATA: { section: string; items: NavItem[] }[] = [
         items: [
             { href: "/profile", label: "My Profile", icon: User },
             { href: "/orders", label: "My Orders", icon: CalendarIcon },
+            { href: "/my-donations", label: "My Donations", icon: HeartIcon },
             { href: "/cart", label: "Cart", icon: ShoppingCart },
         ],
     },
