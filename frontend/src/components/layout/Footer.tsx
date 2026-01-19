@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { Facebook, Instagram, Youtube, Twitter, MapPin, Phone, Mail, Heart, ArrowRight, ExternalLink } from 'lucide-react';
+import { Facebook, Instagram, Youtube, Twitter, MapPin, Phone, Mail, Heart } from 'lucide-react';
 
 const footerLinks = {
     services: [
@@ -91,42 +91,18 @@ export function Footer() {
 
                 {/* Content */}
                 <div className="relative z-10 container px-3 sm:px-4 pt-10 sm:pt-16 pb-6 sm:pb-8">
-                    {/* Top Section - Newsletter/CTA */}
-                    <div className="relative mb-8 sm:mb-12 p-4 sm:p-8 rounded-xl sm:rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10">
-                        <div className="absolute top-0 right-0 w-20 sm:w-32 h-20 sm:h-32 rounded-bl-full bg-gradient-to-br from-[#5750F1]/20 to-transparent" />
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 items-center">
-                            <div className="text-center lg:text-left">
-                                <h3 className="text-lg sm:text-2xl font-bold text-white mb-1 sm:mb-2">Stay Connected with Krishna</h3>
-                                <p className="text-white/60 text-xs sm:text-sm">
-                                    Get updates on festivals & spiritual wisdom
-                                </p>
-                            </div>
-                            <div className="flex flex-row gap-2 sm:gap-3">
-                                <input
-                                    type="email"
-                                    placeholder="Your email"
-                                    className="flex-1 min-w-0 px-3 sm:px-4 py-2.5 sm:py-3 text-sm rounded-lg sm:rounded-xl bg-white/10 border border-white/20 text-white placeholder:text-white/40 focus:outline-none focus:border-[#5750F1] focus:ring-2 focus:ring-[#5750F1]/30 transition-all"
-                                />
-                                <button className="px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-[#5750F1] to-purple-600 text-white text-sm font-semibold rounded-lg sm:rounded-xl hover:shadow-lg hover:shadow-[#5750F1]/30 transition-all duration-300 flex items-center justify-center gap-1 sm:gap-2 whitespace-nowrap">
-                                    <span className="hidden xs:inline">Subscribe</span>
-                                    <ArrowRight className="w-4 h-4" />
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
                     {/* Main Footer Grid */}
                     <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-5 gap-6 sm:gap-8 lg:gap-12 mb-8 sm:mb-12">
                         {/* Brand */}
                         <div className="col-span-2 lg:col-span-2 space-y-4 sm:space-y-5">
                             <Link href="/" className="flex items-center gap-2 sm:gap-3 group">
-                                <div className="relative h-10 w-10 sm:h-12 sm:w-12 bg-gradient-to-br from-[#5750F1] to-purple-600 rounded-lg sm:rounded-xl flex items-center justify-center shadow-lg shadow-[#5750F1]/30 group-hover:scale-105 transition-transform">
+                                <div className="relative h-14 w-14 sm:h-16 sm:w-16 bg-gradient-to-br from-[#5750F1] to-purple-600 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-lg shadow-[#5750F1]/30 group-hover:scale-105 transition-transform">
                                     <Image
                                         src="/logo-white.svg"
                                         alt="ISKCON Logo"
-                                        width={28}
-                                        height={28}
-                                        className="h-5 w-5 sm:h-7 sm:w-7"
+                                        width={40}
+                                        height={40}
+                                        className="h-8 w-8 sm:h-10 sm:w-10"
                                     />
                                 </div>
                                 <div>
@@ -268,13 +244,13 @@ export function Footer() {
                                 <p className="text-white/40 text-[10px] sm:text-sm italic hidden xs:block">
                                     Hare Krishna Hare Krishna
                                 </p>
-                                <div className="h-6 w-6 sm:h-8 sm:w-8 rounded-md sm:rounded-lg bg-white/10 flex items-center justify-center">
+                                <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-lg sm:rounded-xl bg-white/10 flex items-center justify-center">
                                     <Image
                                         src="/logo-white.svg"
                                         alt="ISKCON"
-                                        width={20}
-                                        height={20}
-                                        className="h-4 w-4 sm:h-5 sm:w-5"
+                                        width={32}
+                                        height={32}
+                                        className="h-6 w-6 sm:h-8 sm:w-8"
                                     />
                                 </div>
                             </div>

@@ -239,12 +239,14 @@ export default function MyDonationsPage() {
                             <p className="text-gray-500 dark:text-gray-400 mb-8 max-w-md mx-auto">
                                 You haven't made any donations yet. Your contributions help us serve the community and spread Krishna consciousness.
                             </p>
-                            <Link href="/donations">
-                                <Button className="px-8 py-6 text-lg bg-gradient-to-r from-[#5750F1] to-purple-600 hover:from-[#4a43d6] hover:to-purple-700 rounded-xl shadow-xl shadow-[#5750F1]/25">
-                                    <Heart className="w-5 h-5 mr-2" />
-                                    Make Your First Donation
-                                </Button>
-                            </Link>
+                            <div className="flex justify-center">
+                                <Link href="/donations">
+                                    <Button className="px-6 py-3 text-sm bg-gradient-to-r from-[#5750F1] to-purple-600 hover:from-[#4a43d6] hover:to-purple-700 rounded-xl shadow-lg shadow-[#5750F1]/25">
+                                        <Heart className="w-4 h-4 mr-2" />
+                                        Make Your First Donation
+                                    </Button>
+                                </Link>
+                            </div>
                         </Card>
                     ) : (
                         <div className="space-y-4">
