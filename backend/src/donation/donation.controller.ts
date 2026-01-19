@@ -24,8 +24,11 @@ export class DonationController {
         private readonly uploadService: UploadService,
     ) { }
 
+    // ============================================
+    // PUBLIC ROUTES (no auth required)
+    // ============================================
+
     // Create donation - public (guests can donate)
-    // Rate limited: 5 requests per minute per IP
     @Public()
     @Throttle({ default: { limit: 5, ttl: 60000 } })
     @Post()
@@ -33,7 +36,7 @@ export class DonationController {
         return this.donationService.create(dto, user?.id);
     }
 
-    // Upload payment proof
+    // Upload payment proof - public
     @Public()
     @Throttle({ default: { limit: 10, ttl: 60000 } })
     @Post(':donationId/upload-proof')
@@ -47,31 +50,8 @@ export class DonationController {
         if (!file) {
             throw new BadRequestException('Payment proof file is required');
         }
-
-        // Upload to S3
         const imageUrl = await this.uploadService.uploadImage(file);
-
-        return this.donationService.uploadPaymentProof(
-            donationId,
-            imageUrl,
-            dto,
-            user?.id,
-        );
-    }
-
-    // Get my donations (logged-in users only)
-    @Get('my')
-    async getMyDonations(
-        @CurrentUser() user: any,
-        @Query('page') page?: string,
-        @Query('limit') limit?: string,
-    ) {
-        return this.donationService.getMyDonations(
-            user.id,
-            user.email,
-            page ? parseInt(page) : 1,
-            limit ? parseInt(limit) : 10,
-        );
+        return this.donationService.uploadPaymentProof(donationId, imageUrl, dto, user?.id);
     }
 
     // Public receipt - returns limited data (no sensitive PII)
@@ -81,12 +61,37 @@ export class DonationController {
         return this.donationService.getPublicReceipt(donationId);
     }
 
+    // ============================================
+    // AUTHENTICATED USER ROUTES
+    // ============================================
+
+    // Get my donations (logged-in users only) - MUST BE BEFORE :donationId
+    @Get('my')
+    async getMyDonations(
+        @CurrentUser() user: any,
+        @Query('page') page?: string,
+        @Query('limit') limit?: string,
+    ) {
+        if (!user || !user.id) {
+            throw new BadRequestException('User not authenticated');
+        }
+        return this.donationService.getMyDonations(
+            user.id,
+            user.email,
+            page ? parseInt(page) : 1,
+            limit ? parseInt(limit) : 10,
+        );
+    }
+
     // Get donation by ID (authenticated users only - full data)
     @Get(':donationId')
     async getDonation(
         @Param('donationId') donationId: string,
         @CurrentUser() user: any,
     ) {
+        if (!user || !user.id) {
+            throw new BadRequestException('User not authenticated');
+        }
         const donation = await this.donationService.getDonationById(donationId);
 
         // Only allow access if user owns this donation or is admin
@@ -100,7 +105,18 @@ export class DonationController {
         return donation;
     }
 
-    // Admin: Get all donations
+    // ============================================
+    // ADMIN ROUTES
+    // ============================================
+
+    // Admin: Get stats - specific route before generic
+    @Roles('SUPER_ADMIN', 'SUB_ADMIN')
+    @Get('admin/stats')
+    async getStats() {
+        return this.donationService.getStats();
+    }
+
+    // Admin: Get all donations - generic route LAST
     @Roles('SUPER_ADMIN', 'SUB_ADMIN')
     @Get()
     async getAllDonations(
@@ -113,13 +129,6 @@ export class DonationController {
             limit ? parseInt(limit) : 20,
             status as any,
         );
-    }
-
-    // Admin: Get stats
-    @Roles('SUPER_ADMIN', 'SUB_ADMIN')
-    @Get('admin/stats')
-    async getStats() {
-        return this.donationService.getStats();
     }
 
     // Admin: Verify or reject donation

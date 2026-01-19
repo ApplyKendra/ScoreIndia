@@ -84,7 +84,11 @@ export default function MyDonationsPage() {
             });
             if (res.ok) {
                 const data = await res.json();
+                console.log('Donations fetched:', data);
                 setDonations(data.data || []);
+            } else {
+                const errorData = await res.json().catch(() => ({}));
+                console.error('Failed to fetch donations:', res.status, errorData);
             }
         } catch (error) {
             console.error('Failed to fetch donations:', error);
