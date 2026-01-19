@@ -1,0 +1,29 @@
+{
+    "name": "ISKCON Burla",
+    "short_name": "ISKCON Burla",
+    "description": "ISKCON Burla - Your spiritual home in Sambalpur, Odisha. Order prasadam, shop temple store, watch live darshan.",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#0f0c29",
+    "theme_color": "#5750F1",
+    "orientation": "portrait-primary",
+    "icons": [
+        {
+            "src": "/icon-192.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "/icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        }
+    ],
+    "categories": [
+        "religion",
+        "lifestyle",
+        "food"
+    ],
+    "lang": "en",
+    "dir": "ltr"
+}
