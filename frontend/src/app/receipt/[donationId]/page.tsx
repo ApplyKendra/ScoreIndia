@@ -36,7 +36,8 @@ interface DonationReceipt {
     verifiedAt: string;
 }
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+// Remove trailing /api if present since we add it in fetch calls
+const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001').replace(/\/api$/, '');
 
 const categoryLabels: Record<string, string> = {
     general: 'General Donation',

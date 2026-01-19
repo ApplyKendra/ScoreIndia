@@ -38,7 +38,8 @@ interface Donation {
     verifiedAt?: string;
 }
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+// Remove trailing /api if present since we add it in fetch calls
+const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001').replace(/\/api$/, '');
 
 const statusConfig: Record<string, { label: string; color: string; icon: any; bgColor: string; borderColor: string }> = {
     PENDING: { label: 'Pending Payment', color: 'text-amber-600 dark:text-amber-400', bgColor: 'bg-amber-50 dark:bg-amber-900/20', borderColor: 'border-amber-200 dark:border-amber-800', icon: Clock },
