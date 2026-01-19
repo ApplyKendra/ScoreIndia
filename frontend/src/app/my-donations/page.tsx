@@ -136,7 +136,7 @@ export default function MyDonationsPage() {
 
                 {/* Content */}
                 <div className="relative z-10 px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
-                    <div className="max-w-5xl mx-auto">
+                    <div className="max-w-5xl mx-auto w-full">
                         <Link
                             href="/"
                             className="inline-flex items-center text-white/70 hover:text-white transition-colors mb-6 text-sm group"
@@ -224,7 +224,7 @@ export default function MyDonationsPage() {
 
             {/* Donations List */}
             <section className="px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-                <div className="max-w-5xl mx-auto">
+                <div className="max-w-5xl mx-auto w-full">
                     {donations.length === 0 ? (
                         <Card className="p-12 sm:p-16 text-center border-0 shadow-xl bg-white dark:bg-gray-900 rounded-3xl">
                             <div className="w-24 h-24 rounded-full bg-gradient-to-br from-rose-100 to-pink-100 dark:from-rose-900/30 dark:to-pink-900/30 flex items-center justify-center mx-auto mb-6">

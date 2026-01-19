@@ -212,6 +212,8 @@ export default function DonationsPage() {
                 }
                 setTimeLeft(600); // Reset timer to 10 minutes
                 setStep('payment');
+                // Scroll to top of page
+                window.scrollTo({ top: 0, behavior: 'smooth' });
             } else {
                 toast.error('Failed to create donation. Please try again.');
             }
@@ -600,8 +602,8 @@ export default function DonationsPage() {
                                                 <Check className="w-3 h-3 text-white" />
                                             </div>
                                         ) : (
-                                            <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center group-hover:bg-[#5750F1]/10">
-                                                <ArrowRight className="w-3 h-3 text-gray-400 group-hover:text-[#5750F1]" />
+                                            <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+                                                <Check className="w-3 h-3 text-gray-300 dark:text-gray-600" />
                                             </div>
                                         )}
 
