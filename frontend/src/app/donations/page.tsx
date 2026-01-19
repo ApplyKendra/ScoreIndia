@@ -325,14 +325,15 @@ export default function DonationsPage() {
                                     className="block w-full"
                                 >
                                     <Button
-                                        className="w-full py-6 text-lg bg-gradient-to-r from-[#5750F1] to-purple-600 hover:from-[#4a43d6] hover:to-purple-700 rounded-xl shadow-xl"
+                                        className="w-full py-6 text-lg bg-gradient-to-r from-[#5750F1] to-purple-600 hover:from-[#4a43d6] hover:to-purple-700 rounded-xl shadow-xl flex items-center justify-center gap-2"
                                     >
-                                        <Smartphone className="w-5 h-5 mr-2" />
-                                        Pay ₹{finalAmount.toLocaleString()} with UPI App
+                                        <Smartphone className="w-5 h-5" />
+                                        Pay by any UPI app
+                                        <ArrowRight className="w-5 h-5" />
                                     </Button>
                                 </a>
                                 <p className="text-center text-xs text-gray-400">
-                                    Click to open your default UPI app (GPay, PhonePe, Paytm, etc.)
+                                    Click to open GPay, PhonePe, Paytm, BHIM, etc.
                                 </p>
 
                                 {/* UPI ID for manual entry */}
@@ -581,7 +582,7 @@ export default function DonationsPage() {
                             <h2 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">Choose Donation Purpose</h2>
                         </div>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                        <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
                             {DONATION_CATEGORIES.map((category) => {
                                 const Icon = category.icon;
                                 const isSelected = selectedCategory === category.id;
@@ -589,22 +590,26 @@ export default function DonationsPage() {
                                     <button
                                         key={category.id}
                                         onClick={() => setSelectedCategory(category.id)}
-                                        className={`relative text-left p-4 rounded-xl border-2 transition-all duration-300 ${isSelected
+                                        className={`relative text-left p-3 sm:p-4 rounded-xl border-2 transition-all duration-300 group ${isSelected
                                             ? 'border-[#5750F1] bg-[#5750F1]/5 dark:bg-[#5750F1]/10 shadow-lg shadow-[#5750F1]/20'
                                             : 'border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 hover:border-[#5750F1]/50'
                                             }`}
                                     >
-                                        {isSelected && (
+                                        {isSelected ? (
                                             <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-[#5750F1] flex items-center justify-center">
                                                 <Check className="w-3 h-3 text-white" />
                                             </div>
+                                        ) : (
+                                            <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center group-hover:bg-[#5750F1]/10">
+                                                <ArrowRight className="w-3 h-3 text-gray-400 group-hover:text-[#5750F1]" />
+                                            </div>
                                         )}
 
-                                        <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${category.color} flex items-center justify-center mb-2`}>
-                                            <Icon className="w-5 h-5 text-white" />
+                                        <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-gradient-to-br ${category.color} flex items-center justify-center mb-2`}>
+                                            <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                                         </div>
-                                        <h3 className="font-bold text-gray-900 dark:text-white text-sm mb-0.5">{category.title}</h3>
-                                        <p className="text-xs text-gray-500 dark:text-gray-400">{category.description}</p>
+                                        <h3 className="font-bold text-gray-900 dark:text-white text-xs sm:text-sm mb-0.5 pr-5">{category.title}</h3>
+                                        <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 line-clamp-2">{category.description}</p>
                                     </button>
                                 );
                             })}
@@ -698,7 +703,7 @@ export default function DonationsPage() {
                                 </div>
                                 <div className="space-y-1.5">
                                     <Label htmlFor="pan" className="text-gray-900 dark:text-white font-medium">
-                                        PAN Number <span className="text-gray-400 text-xs">(80G coming soon)</span>
+                                        PAN Number <span className="text-gray-400 text-xs">(Optional)</span>
                                     </Label>
                                     <Input
                                         id="pan"
