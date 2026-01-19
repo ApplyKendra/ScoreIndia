@@ -19,16 +19,15 @@ import { RegisterDto, LoginDto } from './dto';
 import { Public, CurrentUser } from '../common/decorators';
 
 // Cookie options for secure token storage
-// With api.iskconburla.com subdomain, cookies are now same-site
-// Setting domain to '.iskconburla.com' allows cookie sharing between subdomains
+// IMPORTANT: For cross-domain (different origins like iskconburla.com + iskconburla-api.onrender.com)
+// - sameSite must be 'none' (allows cross-site requests)
+// - secure must be true (required when sameSite is 'none')
+// - No domain setting (each domain manages its own cookies)
 const getCookieOptions = () => ({
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production', // true for HTTPS
-    sameSite: 'lax' as const, // 'lax' works for same-site navigation
+    secure: true, // Always true for cross-domain
+    sameSite: 'none' as const, // Required for cross-origin requests
     path: '/',
-    // Set domain in production to share cookies across subdomains
-    // .iskconburla.com works for both iskconburla.com and api.iskconburla.com
-    ...(process.env.NODE_ENV === 'production' ? { domain: '.iskconburla.com' } : {}),
 });
 
 const COOKIE_OPTIONS = getCookieOptions();
