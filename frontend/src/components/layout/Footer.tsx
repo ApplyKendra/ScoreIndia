@@ -120,8 +120,8 @@ export function Footer() {
                                     <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-md sm:rounded-lg bg-white/10 flex items-center justify-center flex-shrink-0">
                                         <MapPin className="w-3 h-3 sm:w-4 sm:h-4" />
                                     </div>
-                                    <span className="hidden sm:inline">Near VSS University, Burla</span>
-                                    <span className="sm:hidden">Burla, Odisha</span>
+                                    <span className="hidden sm:inline">Near Siphon, PC Bridge, Burla, Sambalpur</span>
+                                    <span className="sm:hidden">Burla, Sambalpur</span>
                                 </div>
                                 <div className="flex items-center gap-2 text-white/70 text-xs sm:text-sm group hover:text-white transition-colors">
                                     <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-md sm:rounded-lg bg-white/10 flex items-center justify-center flex-shrink-0">

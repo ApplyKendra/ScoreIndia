@@ -127,7 +127,7 @@ export default function ContactUsPage() {
                                     <div>
                                         <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Address</h3>
                                         <p className="text-gray-600 dark:text-gray-400 whitespace-pre-line">
-                                            {data?.address || 'ISKCON Burla, Odisha'}
+                                            {data?.address || 'ISKCON Burla, near Siphon, PC Bridge, Burla, Sambalpur, Odisha, 768019'}
                                         </p>
                                     </div>
                                 </div>
@@ -142,7 +142,7 @@ export default function ContactUsPage() {
                                     <div>
                                         <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Phone</h3>
                                         <div className="space-y-1">
-                                            {(data?.phoneNumbers || ['+91 9876543210']).map((phone, idx) => (
+                                            {(data?.phoneNumbers || ['+91 87630 25178']).map((phone, idx) => (
                                                 <a
                                                     key={idx}
                                                     href={`tel:${phone}`}
