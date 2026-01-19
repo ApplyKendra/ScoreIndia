@@ -1,0 +1,19 @@
+# ISKCON Burla - Robots.txt
+# https://www.iskconburla.com
+
+User-agent: *
+Allow: /
+
+# Disallow private/admin areas
+Disallow: /admin/
+Disallow: /api/
+Disallow: /login
+Disallow: /register
+Disallow: /profile
+Disallow: /my-donations
+Disallow: /orders
+Disallow: /cart
+Disallow: /setup-2fa
+
+# Sitemap location
+Sitemap: https://www.iskconburla.com/sitemap.xml
