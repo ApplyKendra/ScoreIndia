@@ -57,8 +57,8 @@ export default function TermsOfServicePage() {
                         </p>
                         <p className="text-gray-600 dark:text-gray-300">
                             <strong>ISKCON Burla</strong><br />
-                            Email: info@iskconburla.org<br />
-                            Phone: +91 98765 43210
+                            Email: info@iskconburla.com<br />
+                            Phone: +91 87630 25178
                         </p>
                     </section>
                 </div>

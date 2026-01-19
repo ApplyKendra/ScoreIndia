@@ -267,7 +267,7 @@ export default function AdminContactUsPage() {
                             value={email}
                             onChange={(e) => updateEmail(idx, e.target.value)}
                             className="flex-1 px-3 py-2 border rounded-lg dark:bg-gray-800 dark:border-gray-700"
-                            placeholder="info@iskconburla.org"
+                            placeholder="info@iskconburla.com"
                         />
                         {data.emails.length > 1 && (
                             <Button variant="ghost" size="icon" onClick={() => removeEmail(idx)} className="text-red-500">

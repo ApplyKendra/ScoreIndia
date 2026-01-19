@@ -127,13 +127,13 @@ export function Footer() {
                                     <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-md sm:rounded-lg bg-white/10 flex items-center justify-center flex-shrink-0">
                                         <Phone className="w-3 h-3 sm:w-4 sm:h-4" />
                                     </div>
-                                    <span>+91 98765 43210</span>
+                                    <span>+91 87630 25178</span>
                                 </div>
                                 <div className="flex items-center gap-2 text-white/70 text-xs sm:text-sm group hover:text-white transition-colors">
                                     <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-md sm:rounded-lg bg-white/10 flex items-center justify-center flex-shrink-0">
                                         <Mail className="w-3 h-3 sm:w-4 sm:h-4" />
                                     </div>
-                                    <span className="truncate">info@iskconburla.org</span>
+                                    <span className="truncate">info@iskconburla.com</span>
                                 </div>
                             </div>
 

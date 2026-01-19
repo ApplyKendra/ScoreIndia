@@ -165,7 +165,7 @@ export default function ContactUsPage() {
                                     <div>
                                         <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Email</h3>
                                         <div className="space-y-1">
-                                            {(data?.emails || ['info@iskconburla.org']).map((email, idx) => (
+                                            {(data?.emails || ['info@iskconburla.com']).map((email, idx) => (
                                                 <a
                                                     key={idx}
                                                     href={`mailto:${email}`}
