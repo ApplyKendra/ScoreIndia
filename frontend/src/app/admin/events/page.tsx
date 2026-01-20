@@ -510,10 +510,13 @@ export default function AdminEventsPage() {
                                     <div className="p-4">
                                         <h3 className="font-semibold line-clamp-1">{event.title}</h3>
                                         <p className="text-sm text-muted-foreground mb-2">{formatDate(event.date)} • {event.location}</p>
-                                        <div className="flex items-center gap-2 text-sm text-emerald-600 mb-3">
+                                        <button
+                                            onClick={() => viewRegistrations(event)}
+                                            className="flex items-center gap-2 text-sm text-emerald-600 hover:text-emerald-700 hover:underline mb-3"
+                                        >
                                             <UsersIcon className="w-4 h-4" />
                                             {event._count?.registrations || 0} registered
-                                        </div>
+                                        </button>
                                         <div className="flex gap-2">
                                             <Button variant="outline" size="sm" className="flex-1" onClick={() => openEditDialog(event)}>
                                                 <Pencil className="h-3 w-3 mr-1" />Edit
@@ -691,15 +694,21 @@ export default function AdminEventsPage() {
                                         <TableHead>Name</TableHead>
                                         <TableHead>Email</TableHead>
                                         <TableHead>Phone</TableHead>
+                                        <TableHead>Type</TableHead>
                                         <TableHead>Status</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
                                     {registrations.map((reg) => (
                                         <TableRow key={reg.id}>
-                                            <TableCell>{reg.user?.name}</TableCell>
-                                            <TableCell>{reg.user?.email}</TableCell>
-                                            <TableCell>{reg.phone || '-'}</TableCell>
+                                            <TableCell>{reg.user?.name || reg.guestName || '-'}</TableCell>
+                                            <TableCell>{reg.user?.email || reg.guestEmail || '-'}</TableCell>
+                                            <TableCell>{reg.phone || reg.user?.phone || '-'}</TableCell>
+                                            <TableCell>
+                                                <Badge variant={reg.userId ? 'default' : 'outline'}>
+                                                    {reg.userId ? 'Member' : 'Guest'}
+                                                </Badge>
+                                            </TableCell>
                                             <TableCell>
                                                 <Badge variant={reg.isConfirmed ? 'default' : 'secondary'}>
                                                     {reg.isConfirmed ? 'Confirmed' : 'Pending'}
