@@ -156,7 +156,7 @@ model PrasadamOrder {
   orderNumber     String        @unique // Human-readable order number
   
   userId          String
-  user            User          @relation(fields: [userId], references: [id])
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   
   status          OrderStatus   @default(PENDING)
   deliveryType    DeliveryType
@@ -288,7 +288,7 @@ model YouthEventRegistration {
   
   // For logged-in users
   userId       String?
-  user         User?      @relation(fields: [userId], references: [id])
+  user         User?      @relation(fields: [userId], references: [id], onDelete: SetNull)
   
   // For guest registrations (when no user account)
   guestName    String?
@@ -560,7 +560,7 @@ model SevaRegistration {
   
   // User info (logged-in or guest)
   userId    String?
-  user      User?    @relation(fields: [userId], references: [id])
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
   name      String
   email     String
   phone     String
@@ -651,7 +651,7 @@ model Donation {
   
   // Donor info (can be guest or logged-in user)
   userId          String?
-  user            User?                  @relation(fields: [userId], references: [id])
+  user            User?                  @relation(fields: [userId], references: [id], onDelete: SetNull)
   name            String
   email           String
   phone           String
