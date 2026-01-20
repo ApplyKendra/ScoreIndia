@@ -451,17 +451,17 @@ export default function EventsPage() {
                                                         </div>
 
                                                         {isRegisteredForEvent(event.id) ? (
-                                                            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
-                                                                <span className="inline-flex items-center px-3 py-1.5 rounded-lg bg-green-100 text-green-700 text-xs sm:text-sm font-medium whitespace-nowrap">
+                                                            <div className="flex flex-wrap items-center gap-2">
+                                                                <span className="inline-flex items-center px-3 py-1.5 rounded-lg bg-green-100 text-green-700 text-xs sm:text-sm font-medium">
                                                                     ✓ You're Registered
                                                                 </span>
                                                                 <Button
-                                                                    onClick={() => handleRegisterClick(event)}
+                                                                    onClick={(e) => { e.stopPropagation(); handleRegisterClick(event); }}
                                                                     variant="outline"
                                                                     size="sm"
-                                                                    className="border-[#5750F1] text-[#5750F1] hover:bg-[#5750F1]/10 whitespace-nowrap"
+                                                                    className="border-[#5750F1] text-[#5750F1] hover:bg-[#5750F1]/10 text-xs sm:text-sm"
                                                                 >
-                                                                    <Users className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+                                                                    <Users className="w-3 h-3 mr-1" />
                                                                     Register Others
                                                                 </Button>
                                                             </div>
@@ -811,13 +811,13 @@ export default function EventsPage() {
                                 Register for Someone Else
                             </Button>
 
-                            {selectedEvent?.registrationFee ? (
+                            {selectedEvent?.registrationFee && selectedEvent.registrationFee > 0 ? (
                                 <div className="p-3 bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-300 rounded-lg text-sm border border-amber-200 dark:border-amber-800">
                                     <strong>Note:</strong> Registration fee of ₹{selectedEvent.registrationFee} is payable at the venue.
                                 </div>
                             ) : (
                                 <div className="p-3 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 rounded-lg text-sm border border-emerald-200 dark:border-emerald-800">
-                                    <strong>Free Entry!</strong> No registration fee required.
+                                    <strong>🙏 Free Entry!</strong> We never charge any fee for our events. Join us with an open heart.
                                 </div>
                             )}
                         </div>

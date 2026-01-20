@@ -24,6 +24,9 @@ export class YouthService {
         return this.prisma.youthEvent.findMany({
             where: status ? { status } : { status: { in: [EventStatus.UPCOMING, EventStatus.ONGOING] } },
             orderBy: { date: 'asc' },
+            include: {
+                _count: { select: { registrations: true } },
+            },
         });
     }
 
