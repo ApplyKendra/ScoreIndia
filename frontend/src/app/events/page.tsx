@@ -8,7 +8,7 @@ import { toast } from 'sonner';
 import {
     Calendar, MapPin, Users, Clock, ArrowRight, Star, Sparkles,
     ChevronRight, PartyPopper, Filter, Search, Heart, Loader2, X,
-    CalendarDays, Timer, Ticket, TrendingUp
+    CalendarDays, Timer, Ticket, TrendingUp, User
 } from 'lucide-react';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -53,7 +53,15 @@ export default function EventsPage() {
     const [hoveredEvent, setHoveredEvent] = useState<string | null>(null);
     const [selectedEvent, setSelectedEvent] = useState<YouthEvent | null>(null);
     const [registerDialogOpen, setRegisterDialogOpen] = useState(false);
+    const [showGuestForm, setShowGuestForm] = useState(false);
     const [regForm, setRegForm] = useState({
+        phone: '',
+        emergencyContact: '',
+        dietaryReq: '',
+    });
+    const [guestForm, setGuestForm] = useState({
+        guestName: '',
+        guestEmail: '',
         phone: '',
         emergencyContact: '',
         dietaryReq: '',
@@ -104,24 +112,34 @@ export default function EventsPage() {
         return preJoined + actualRegistrations;
     };
 
-    // Quick registration - auto-register logged-in users
-    const handleRegisterClick = async (event: YouthEvent) => {
+    // Show registration options modal
+    const handleRegisterClick = (event: YouthEvent) => {
+        setSelectedEvent(event);
+        setShowGuestForm(false);
+        setGuestForm({ guestName: '', guestEmail: '', phone: '', emergencyContact: '', dietaryReq: '' });
+        setRegisterDialogOpen(true);
+    };
+
+    // Quick self-registration for logged-in users
+    const handleSelfRegister = async () => {
+        if (!selectedEvent) return;
+
         if (!isAuthenticated) {
-            toast.error('Please login to register for events');
+            toast.error('Please login to register for yourself');
             router.push(`/login?redirect=/events`);
             return;
         }
 
-        // Auto-register directly without dialog
         setRegistering(true);
         try {
-            await youthApi.registerForEvent(event.id, {
+            await youthApi.registerForEvent(selectedEvent.id, {
                 phone: user?.phone || '',
                 emergencyContact: '',
                 dietaryReq: ''
             });
-            toast.success(`Successfully registered for "${event.title}"!`);
-            // Refresh events to update registration count
+            toast.success(`Successfully registered for "${selectedEvent.title}"!`);
+            setRegisterDialogOpen(false);
+            // Refresh events
             const data = await youthApi.getEvents();
             setEvents(data);
             setFilteredEvents(data.filter((e: YouthEvent) =>
@@ -138,19 +156,28 @@ export default function EventsPage() {
         }
     };
 
-    const handleRegisterSubmit = async () => {
+    // Guest registration (register for someone else)
+    const handleGuestRegister = async () => {
         if (!selectedEvent) return;
 
-        if (!regForm.phone) {
-            toast.error('Phone number is required');
+        if (!guestForm.guestName || !guestForm.guestEmail || !guestForm.phone) {
+            toast.error('Please fill in all required fields');
             return;
         }
 
         setRegistering(true);
         try {
-            await youthApi.registerForEvent(selectedEvent.id, regForm);
-            toast.success('Successfully registered for event!');
+            await youthApi.guestRegisterForEvent(selectedEvent.id, guestForm);
+            toast.success(`Successfully registered ${guestForm.guestName} for "${selectedEvent.title}"!`);
             setRegisterDialogOpen(false);
+            setShowGuestForm(false);
+            setGuestForm({ guestName: '', guestEmail: '', phone: '', emergencyContact: '', dietaryReq: '' });
+            // Refresh events
+            const data = await youthApi.getEvents();
+            setEvents(data);
+            setFilteredEvents(data.filter((e: YouthEvent) =>
+                activeFilter === 'all' || e.status.toLowerCase() === activeFilter
+            ));
         } catch (error: any) {
             toast.error(error.response?.data?.message || 'Failed to register');
         } finally {
@@ -670,7 +697,10 @@ export default function EventsPage() {
             </section>
 
             {/* Registration Dialog */}
-            <Dialog open={registerDialogOpen} onOpenChange={setRegisterDialogOpen}>
+            <Dialog open={registerDialogOpen} onOpenChange={(open) => {
+                setRegisterDialogOpen(open);
+                if (!open) setShowGuestForm(false);
+            }}>
                 <DialogContent className="max-w-md">
                     <DialogHeader>
                         <DialogTitle className="text-xl">Register for Event</DialogTitle>
@@ -679,73 +709,121 @@ export default function EventsPage() {
                         </DialogDescription>
                     </DialogHeader>
 
-                    <div className="space-y-4 py-4">
-                        <div className="p-4 bg-[#5750F1]/5 rounded-xl border border-[#5750F1]/20">
-                            <div className="flex items-center gap-2 text-sm text-[#5750F1]">
-                                <Calendar className="w-4 h-4" />
-                                <span className="font-medium">{selectedEvent && formatDate(selectedEvent.date)}</span>
-                            </div>
-                            <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 mt-2">
-                                <MapPin className="w-4 h-4 text-[#5750F1]" />
-                                <span>{selectedEvent?.location}</span>
-                            </div>
+                    {/* Event Info */}
+                    <div className="p-4 bg-[#5750F1]/5 rounded-xl border border-[#5750F1]/20">
+                        <div className="flex items-center gap-2 text-sm text-[#5750F1]">
+                            <Calendar className="w-4 h-4" />
+                            <span className="font-medium">{selectedEvent && formatDate(selectedEvent.date)}</span>
                         </div>
-
-                        <div className="space-y-2">
-                            <Label htmlFor="phone">Phone Number *</Label>
-                            <Input
-                                id="phone"
-                                value={regForm.phone}
-                                onChange={(e) => setRegForm({ ...regForm, phone: e.target.value })}
-                                placeholder="Required for event updates"
-                                className="focus-visible:ring-[#5750F1]"
-                            />
+                        <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 mt-2">
+                            <MapPin className="w-4 h-4 text-[#5750F1]" />
+                            <span>{selectedEvent?.location}</span>
                         </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="emergency">Emergency Contact (Optional)</Label>
-                            <Input
-                                id="emergency"
-                                value={regForm.emergencyContact}
-                                onChange={(e) => setRegForm({ ...regForm, emergencyContact: e.target.value })}
-                                placeholder="Name & Phone"
-                                className="focus-visible:ring-[#5750F1]"
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="dietary">Dietary Requirements (Optional)</Label>
-                            <Textarea
-                                id="dietary"
-                                value={regForm.dietaryReq}
-                                onChange={(e) => setRegForm({ ...regForm, dietaryReq: e.target.value })}
-                                placeholder="Allergies, preferences, etc."
-                                className="focus-visible:ring-[#5750F1]"
-                            />
-                        </div>
-
-                        {selectedEvent?.registrationFee ? (
-                            <div className="p-3 bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-300 rounded-lg text-sm border border-amber-200 dark:border-amber-800">
-                                <strong>Note:</strong> Registration fee of ₹{selectedEvent.registrationFee} is payable at the venue or via UPI.
-                            </div>
-                        ) : (
-                            <div className="p-3 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 rounded-lg text-sm border border-emerald-200 dark:border-emerald-800">
-                                <strong>Free Entry!</strong> No registration fee required.
-                            </div>
-                        )}
                     </div>
 
-                    <DialogFooter>
-                        <Button variant="outline" onClick={() => setRegisterDialogOpen(false)}>
-                            Cancel
-                        </Button>
-                        <Button
-                            onClick={handleRegisterSubmit}
-                            disabled={registering}
-                            className="bg-[#5750F1] hover:bg-[#4a43d6]"
-                        >
-                            {registering && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-                            Confirm Registration
-                        </Button>
-                    </DialogFooter>
+                    {!showGuestForm ? (
+                        /* Option Selection */
+                        <div className="space-y-3 py-2">
+                            <p className="text-sm text-gray-500 text-center">How would you like to register?</p>
+
+                            {/* Register for yourself */}
+                            <Button
+                                onClick={handleSelfRegister}
+                                disabled={registering}
+                                className="w-full h-14 bg-[#5750F1] hover:bg-[#4a43d6] text-white rounded-xl shadow-lg shadow-[#5750F1]/25"
+                            >
+                                {registering ? (
+                                    <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                                ) : (
+                                    <User className="h-5 w-5 mr-2" />
+                                )}
+                                Register for Yourself
+                            </Button>
+
+                            {/* Register for someone else */}
+                            <Button
+                                variant="outline"
+                                onClick={() => setShowGuestForm(true)}
+                                disabled={registering}
+                                className="w-full h-14 border-2 border-gray-200 dark:border-gray-700 hover:border-[#5750F1] rounded-xl"
+                            >
+                                <Users className="h-5 w-5 mr-2" />
+                                Register for Someone Else
+                            </Button>
+
+                            {selectedEvent?.registrationFee ? (
+                                <div className="p-3 bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-300 rounded-lg text-sm border border-amber-200 dark:border-amber-800">
+                                    <strong>Note:</strong> Registration fee of ₹{selectedEvent.registrationFee} is payable at the venue.
+                                </div>
+                            ) : (
+                                <div className="p-3 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 rounded-lg text-sm border border-emerald-200 dark:border-emerald-800">
+                                    <strong>Free Entry!</strong> No registration fee required.
+                                </div>
+                            )}
+                        </div>
+                    ) : (
+                        /* Guest Registration Form */
+                        <div className="space-y-4 py-2">
+                            <div className="flex items-center gap-2 mb-2">
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => setShowGuestForm(false)}
+                                    className="h-8 px-2"
+                                >
+                                    <ArrowRight className="h-4 w-4 rotate-180 mr-1" />
+                                    Back
+                                </Button>
+                                <span className="text-sm font-medium">Register Someone Else</span>
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="guestName">Full Name *</Label>
+                                <Input
+                                    id="guestName"
+                                    value={guestForm.guestName}
+                                    onChange={(e) => setGuestForm({ ...guestForm, guestName: e.target.value })}
+                                    placeholder="Enter full name"
+                                    className="focus-visible:ring-[#5750F1]"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="guestEmail">Email Address *</Label>
+                                <Input
+                                    id="guestEmail"
+                                    type="email"
+                                    value={guestForm.guestEmail}
+                                    onChange={(e) => setGuestForm({ ...guestForm, guestEmail: e.target.value })}
+                                    placeholder="Enter email address"
+                                    className="focus-visible:ring-[#5750F1]"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="guestPhone">Phone Number *</Label>
+                                <Input
+                                    id="guestPhone"
+                                    value={guestForm.phone}
+                                    onChange={(e) => setGuestForm({ ...guestForm, phone: e.target.value })}
+                                    placeholder="Enter phone number"
+                                    className="focus-visible:ring-[#5750F1]"
+                                />
+                            </div>
+
+                            <DialogFooter className="pt-2">
+                                <Button variant="outline" onClick={() => setShowGuestForm(false)}>
+                                    Cancel
+                                </Button>
+                                <Button
+                                    onClick={handleGuestRegister}
+                                    disabled={registering}
+                                    className="bg-[#5750F1] hover:bg-[#4a43d6]"
+                                >
+                                    {registering && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                                    Register
+                                </Button>
+                            </DialogFooter>
+                        </div>
+                    )}
                 </DialogContent>
             </Dialog>
         </div>

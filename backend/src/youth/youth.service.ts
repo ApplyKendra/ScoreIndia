@@ -147,6 +147,47 @@ export class YouthService {
         return { message: 'Registration cancelled successfully' };
     }
 
+    async guestRegisterForEvent(eventId: string, dto: { guestName: string; guestEmail: string; phone: string; emergencyContact?: string; dietaryReq?: string }) {
+        const event = await this.prisma.youthEvent.findUnique({
+            where: { id: eventId },
+            include: { _count: { select: { registrations: true } } },
+        });
+
+        if (!event) {
+            throw new NotFoundException('Event not found');
+        }
+
+        // Check if event is still open for registration
+        if (event.status !== EventStatus.UPCOMING) {
+            throw new BadRequestException('Event is not open for registration');
+        }
+
+        if (event.registrationEnd && new Date(event.registrationEnd) < new Date()) {
+            throw new BadRequestException('Registration deadline has passed');
+        }
+
+        // Check max participants
+        if (event.maxParticipants && event._count.registrations >= event.maxParticipants) {
+            throw new BadRequestException('Event is fully booked');
+        }
+
+        const registration = await this.prisma.youthEventRegistration.create({
+            data: {
+                eventId,
+                guestName: dto.guestName,
+                guestEmail: dto.guestEmail,
+                phone: dto.phone,
+                emergencyContact: dto.emergencyContact,
+                dietaryReq: dto.dietaryReq,
+            },
+            include: { event: { select: { title: true, date: true, location: true } } },
+        });
+
+        this.logger.log(`Guest ${dto.guestName} (${dto.guestEmail}) registered for event ${event.title}`);
+
+        return registration;
+    }
+
     // ============================================
     // ADMIN
     // ============================================

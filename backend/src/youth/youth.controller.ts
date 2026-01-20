@@ -11,7 +11,7 @@ import {
 } from '@nestjs/common';
 import { Role, EventStatus } from '@prisma/client';
 import { YouthService } from './youth.service';
-import { CreateEventDto, UpdateEventDto, RegisterEventDto } from './dto';
+import { CreateEventDto, UpdateEventDto, RegisterEventDto, GuestRegisterEventDto } from './dto';
 import { Public, Roles, CurrentUser } from '../common/decorators';
 import { RolesGuard } from '../common/guards';
 
@@ -45,6 +45,16 @@ export class YouthController {
     @Get('events/slug/:slug')
     getEventBySlug(@Param('slug') slug: string) {
         return this.youthService.getEventBySlug(slug);
+    }
+
+    // Public guest registration (for registering others without login)
+    @Public()
+    @Post('events/:id/guest-register')
+    guestRegisterForEvent(
+        @Param('id') eventId: string,
+        @Body() dto: GuestRegisterEventDto,
+    ) {
+        return this.youthService.guestRegisterForEvent(eventId, dto);
     }
 
     // ============================================

@@ -24,7 +24,9 @@ export interface YouthEvent {
 export interface EventRegistration {
     id: string;
     eventId: string;
-    userId: string;
+    userId?: string;
+    guestName?: string;
+    guestEmail?: string;
     phone?: string;
     emergencyContact?: string;
     dietaryReq?: string;
@@ -71,6 +73,12 @@ export const youthApi = {
     // User
     registerForEvent: async (eventId: string, data: { phone?: string; emergencyContact?: string; dietaryReq?: string }): Promise<EventRegistration> => {
         const response = await apiClient.post(`/youth/events/${eventId}/register`, data);
+        return response.data;
+    },
+
+    // Guest registration (no auth required)
+    guestRegisterForEvent: async (eventId: string, data: { guestName: string; guestEmail: string; phone: string; emergencyContact?: string; dietaryReq?: string }): Promise<EventRegistration> => {
+        const response = await apiClient.post(`/youth/events/${eventId}/guest-register`, data);
         return response.data;
     },
 

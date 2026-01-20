@@ -286,8 +286,13 @@ model YouthEventRegistration {
   eventId      String
   event        YouthEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
   
-  userId       String
-  user         User       @relation(fields: [userId], references: [id])
+  // For logged-in users
+  userId       String?
+  user         User?      @relation(fields: [userId], references: [id])
+  
+  // For guest registrations (when no user account)
+  guestName    String?
+  guestEmail   String?
   
   // Registration details
   phone        String?
@@ -303,7 +308,7 @@ model YouthEventRegistration {
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
   
-  @@unique([eventId, userId]) // One registration per user per event
+  @@unique([eventId, userId]) // One registration per user per event (for logged-in users)
   @@index([eventId])
   @@index([userId])
 }

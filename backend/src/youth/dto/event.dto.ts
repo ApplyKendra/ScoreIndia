@@ -135,3 +135,22 @@ export class RegisterEventDto {
     @IsOptional()
     dietaryReq?: string;
 }
+
+export class GuestRegisterEventDto {
+    @IsString()
+    guestName: string;
+
+    @IsString()
+    guestEmail: string;
+
+    @IsString()
+    phone: string;
+
+    @IsString()
+    @IsOptional()
+    emergencyContact?: string;
+
+    @IsString()
+    @IsOptional()
+    dietaryReq?: string;
+}
