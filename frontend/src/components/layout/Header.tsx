@@ -88,8 +88,8 @@ export function Header() {
     return (
         <header
             className={`sticky top-0 z-50 w-full transition-all duration-300 ${scrolled
-                ? 'bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl shadow-lg shadow-black/5 border-b border-gray-200/80 dark:border-gray-800/80'
-                : 'bg-white dark:bg-gray-900 backdrop-blur-md shadow-sm border-b border-gray-200/60 dark:border-gray-800/60'
+                ? 'bg-white/95 dark:bg-[#0d1117]/95 backdrop-blur-xl shadow-lg shadow-black/5 dark:shadow-black/20 border-b border-gray-200/80 dark:border-gray-700/50'
+                : 'bg-white dark:bg-[#0d1117] backdrop-blur-md shadow-sm border-b border-gray-200/60 dark:border-gray-700/40'
                 }`}
         >
             <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -107,21 +107,30 @@ export function Header() {
                         </button>
 
                         {/* Logo */}
-                        <Link href="/" className="flex items-center gap-2.5 shrink-0">
+                        <Link href="/" className="flex items-center gap-2 shrink-0">
+                            {/* Light mode logo */}
                             <Image
                                 src="/logo.svg"
                                 alt="ISKCON Burla"
-                                width={40}
-                                height={40}
-                                className="h-9 w-9 lg:h-10 lg:w-10"
+                                width={48}
+                                height={48}
+                                className="h-10 w-10 lg:h-11 lg:w-11 dark:hidden"
                             />
-                            <div className="hidden sm:block">
-                                <h1 className="text-base lg:text-lg font-bold leading-tight">
-                                    <span className="bg-gradient-to-r from-gray-900 via-[#5750F1] to-gray-900 dark:from-white dark:via-[#5750F1] dark:to-white bg-clip-text text-transparent bg-[length:200%_100%] animate-gradient-shift">
+                            {/* Dark mode logo */}
+                            <Image
+                                src="/logo-white.svg"
+                                alt="ISKCON Burla"
+                                width={48}
+                                height={48}
+                                className="h-10 w-10 lg:h-11 lg:w-11 hidden dark:block"
+                            />
+                            <div>
+                                <h1 className="text-sm sm:text-base lg:text-lg font-bold leading-tight">
+                                    <span className="bg-gradient-to-r from-gray-900 via-[#5750F1] to-gray-900 dark:from-white dark:via-[#8B83F7] dark:to-white bg-clip-text text-transparent bg-[length:200%_100%] animate-gradient-shift">
                                         ISKCON Burla
                                     </span>
                                 </h1>
-                                <div className="flex items-center gap-1.5">
+                                <div className="hidden sm:flex items-center gap-1.5">
                                     <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
                                     <span className="text-[10px] lg:text-xs font-medium text-gray-500 dark:text-gray-400">
                                         Digital Temple

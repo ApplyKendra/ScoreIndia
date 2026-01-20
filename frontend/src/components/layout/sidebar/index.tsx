@@ -135,7 +135,7 @@ export function Sidebar() {
 
             <aside
                 className={cn(
-                    "fixed bottom-0 top-0 z-50 w-[300px] min-w-[300px] max-w-[300px] overflow-hidden overscroll-y-contain border-r border-gray-200/60 bg-white shadow-lg transition-transform duration-200 ease-out dark:border-gray-800/60 dark:bg-gray-900",
+                    "fixed bottom-0 top-0 z-50 w-[300px] min-w-[300px] max-w-[300px] overflow-hidden overscroll-y-contain border-r border-gray-200/60 bg-white shadow-lg transition-transform duration-200 ease-out dark:border-gray-700/50 dark:bg-[#0d1117]",
                     isOpen ? "translate-x-0" : "-translate-x-full",
                 )}
                 style={{
