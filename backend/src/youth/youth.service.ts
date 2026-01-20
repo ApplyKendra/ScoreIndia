@@ -150,7 +150,7 @@ export class YouthService {
         return { message: 'Registration cancelled successfully' };
     }
 
-    async guestRegisterForEvent(eventId: string, dto: { guestName: string; guestEmail: string; phone: string; emergencyContact?: string; dietaryReq?: string }) {
+    async guestRegisterForEvent(eventId: string, dto: { guestName: string; guestEmail?: string; phone: string; emergencyContact?: string; dietaryReq?: string }) {
         const event = await this.prisma.youthEvent.findUnique({
             where: { id: eventId },
             include: { _count: { select: { registrations: true } } },
