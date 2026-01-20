@@ -209,7 +209,7 @@ export default function RegisterPage() {
                                 ].map((feature, i) => (
                                     <div key={i} className="flex items-center gap-4 group">
                                         <div className="w-11 h-11 rounded-xl bg-white/10 border border-white/10 flex items-center justify-center group-hover:bg-white/20 transition-all">
-                                            <feature.icon className="h-5 w-5 text-[#5750F1]" />
+                                            <feature.icon className="h-5 w-5 text-cyan-400" />
                                         </div>
                                         <span className="text-white/70 group-hover:text-white transition-colors">{feature.text}</span>
                                     </div>
@@ -309,7 +309,7 @@ export default function RegisterPage() {
                                         {/* Phone with Country Code */}
                                         <div className="space-y-2">
                                             <Label htmlFor="phone" className="text-sm font-medium text-gray-700">
-                                                Phone Number <span className="text-gray-400">(optional)</span>
+                                                Phone Number
                                             </Label>
                                             <div className="flex gap-2">
                                                 {/* Country Code Selector */}
