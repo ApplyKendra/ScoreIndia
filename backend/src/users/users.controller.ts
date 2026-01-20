@@ -17,6 +17,7 @@ import { Roles, CurrentUser } from '../common/decorators';
 import { RolesGuard } from '../common/guards';
 import { TwoFactorService } from '../auth/two-factor.service';
 import { OtpService } from '../auth/otp.service';
+import { PrismaService } from '../prisma/prisma.service';
 
 @Controller('users')
 @UseGuards(RolesGuard)
@@ -25,7 +26,29 @@ export class UsersController {
         private usersService: UsersService,
         private twoFactorService: TwoFactorService,
         private otpService: OtpService,
+        private prisma: PrismaService,
     ) { }
+
+    /**
+     * Helper method to verify 2FA code for a user
+     */
+    private async verify2FA(userId: string, code: string): Promise<boolean> {
+        const user = await this.prisma.user.findUnique({
+            where: { id: userId },
+            select: { twoFactorSecret: true, twoFactorEnabled: true },
+        });
+
+        if (!user || !user.twoFactorEnabled || !user.twoFactorSecret) {
+            return false;
+        }
+
+        try {
+            const decryptedSecret = this.twoFactorService.decryptSecret(user.twoFactorSecret);
+            return this.twoFactorService.verifyToken(code, decryptedSecret);
+        } catch {
+            return false;
+        }
+    }
 
     @Roles(Role.SUPER_ADMIN)
     @Get()
@@ -58,7 +81,7 @@ export class UsersController {
         @CurrentUser('email') creatorEmail: string,
     ) {
         // Verify 2FA code
-        const is2FAValid = await this.twoFactorService.verifyToken(creatorId, body.twoFactorCode);
+        const is2FAValid = await this.verify2FA(creatorId, body.twoFactorCode);
         if (!is2FAValid) {
             throw new BadRequestException('Invalid 2FA code');
         }
@@ -115,7 +138,7 @@ export class UsersController {
         @CurrentUser('id') adminId: string,
     ) {
         // Verify 2FA
-        const is2FAValid = await this.twoFactorService.verifyToken(adminId, body.twoFactorCode);
+        const is2FAValid = await this.verify2FA(adminId, body.twoFactorCode);
         if (!is2FAValid) {
             throw new BadRequestException('Invalid 2FA code');
         }
@@ -142,7 +165,7 @@ export class UsersController {
         @CurrentUser('id') adminId: string,
     ) {
         // Verify 2FA
-        const is2FAValid = await this.twoFactorService.verifyToken(adminId, body.twoFactorCode);
+        const is2FAValid = await this.verify2FA(adminId, body.twoFactorCode);
         if (!is2FAValid) {
             throw new BadRequestException('Invalid 2FA code');
         }
