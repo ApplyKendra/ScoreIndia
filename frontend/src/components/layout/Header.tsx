@@ -107,7 +107,7 @@ export function Header() {
                         </button>
 
                         {/* Logo */}
-                        <Link href="/" className="flex items-center gap-2 shrink-0">
+                        <Link href="/" className="flex items-center gap-1.5 sm:gap-2 shrink-0">
                             {/* Light mode logo */}
                             <Image
                                 src="/logo.svg"
@@ -124,15 +124,15 @@ export function Header() {
                                 height={48}
                                 className="h-10 w-10 lg:h-11 lg:w-11 hidden dark:block"
                             />
-                            <div>
-                                <h1 className="text-sm sm:text-base lg:text-lg font-bold leading-tight">
+                            <div className="text-left">
+                                <h1 className="text-xs sm:text-base lg:text-lg font-bold leading-tight">
                                     <span className="bg-gradient-to-r from-gray-900 via-[#5750F1] to-gray-900 dark:from-white dark:via-[#8B83F7] dark:to-white bg-clip-text text-transparent bg-[length:200%_100%] animate-gradient-shift">
                                         ISKCON Burla
                                     </span>
                                 </h1>
-                                <div className="hidden sm:flex items-center gap-1.5">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-                                    <span className="text-[10px] lg:text-xs font-medium text-gray-500 dark:text-gray-400">
+                                <div className="flex items-center gap-1">
+                                    <span className="w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full bg-green-500 animate-pulse" />
+                                    <span className="text-[8px] sm:text-[10px] lg:text-xs font-medium text-gray-500 dark:text-gray-400">
                                         Digital Temple
                                     </span>
                                 </div>
