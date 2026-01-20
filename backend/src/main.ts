@@ -20,6 +20,9 @@ async function bootstrap() {
 
     // In production, also allow both www and non-www versions
     if (isProduction) {
+      // Add Vercel deployment URL
+      origins.push('https://iskcon-burla-frontend.vercel.app');
+
       // If frontendUrl is https://iskconburla.com, also add https://www.iskconburla.com
       if (frontendUrl.includes('://iskconburla.com')) {
         origins.push('https://www.iskconburla.com');
