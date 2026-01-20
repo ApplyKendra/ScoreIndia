@@ -19,28 +19,38 @@ import { RegisterDto, LoginDto } from './dto';
 import { Public, CurrentUser } from '../common/decorators';
 
 // Cookie options for secure token storage
-// IMPORTANT: For cross-domain (different origins like iskconburla.com + iskconburla-api.onrender.com)
+// IMPORTANT: For cross-subdomain (api.iskconburla.com ↔ www.iskconburla.com)
+// - domain must be set to ".iskconburla.com" to share cookies across subdomains
 // - sameSite must be 'none' (allows cross-site requests)
 // - secure must be true (required when sameSite is 'none')
-// - No domain setting (each domain manages its own cookies)
-const getCookieOptions = () => ({
+const getCookieOptions = (isProduction: boolean) => ({
     httpOnly: true,
     secure: true, // Always true for cross-domain
     sameSite: 'none' as const, // Required for cross-origin requests
     path: '/',
+    // Set domain for production to share cookies across subdomains
+    // e.g., ".iskconburla.com" allows both api.iskconburla.com and www.iskconburla.com
+    ...(isProduction ? { domain: '.iskconburla.com' } : {}),
 });
-
-const COOKIE_OPTIONS = getCookieOptions();
 
 const ACCESS_TOKEN_MAX_AGE = 15 * 60 * 1000; // 15 minutes
 const REFRESH_TOKEN_MAX_AGE = 7 * 24 * 60 * 60 * 1000; // 7 days
 
 @Controller('auth')
 export class AuthController {
+    private readonly cookieOptions: ReturnType<typeof getCookieOptions>;
+
     constructor(
         private authService: AuthService,
         private configService: ConfigService,
-    ) { }
+    ) {
+        const isProduction = this.configService.get<string>('app.nodeEnv') === 'production';
+        this.cookieOptions = getCookieOptions(isProduction);
+        console.log('[AUTH] Cookie options initialized:', {
+            isProduction,
+            domain: this.cookieOptions.domain || 'not set (dev)',
+        });
+    }
 
     // ============================================
     // REGISTRATION & LOGIN
@@ -61,11 +71,11 @@ export class AuthController {
 
         // Set tokens in HttpOnly cookies
         res.cookie('accessToken', result.accessToken, {
-            ...COOKIE_OPTIONS,
+            ...this.cookieOptions,
             maxAge: accessMaxAge,
         });
         res.cookie('refreshToken', result.refreshToken, {
-            ...COOKIE_OPTIONS,
+            ...this.cookieOptions,
             maxAge: refreshMaxAge,
         });
 
@@ -111,11 +121,11 @@ export class AuthController {
         const refreshMaxAge = (result.sessionConfig?.refreshTokenExpiry || 604800) * 1000;
 
         res.cookie('accessToken', result.accessToken, {
-            ...COOKIE_OPTIONS,
+            ...this.cookieOptions,
             maxAge: accessMaxAge,
         });
         res.cookie('refreshToken', result.refreshToken, {
-            ...COOKIE_OPTIONS,
+            ...this.cookieOptions,
             maxAge: refreshMaxAge,
         });
 
@@ -157,11 +167,11 @@ export class AuthController {
         const refreshMaxAge = (result.sessionConfig?.refreshTokenExpiry || 604800) * 1000;
 
         res.cookie('accessToken', result.accessToken, {
-            ...COOKIE_OPTIONS,
+            ...this.cookieOptions,
             maxAge: accessMaxAge,
         });
         res.cookie('refreshToken', result.refreshToken, {
-            ...COOKIE_OPTIONS,
+            ...this.cookieOptions,
             maxAge: refreshMaxAge,
         });
 
@@ -198,11 +208,11 @@ export class AuthController {
         const refreshMaxAge = (result.sessionConfig?.refreshTokenExpiry || 604800) * 1000;
 
         res.cookie('accessToken', result.accessToken, {
-            ...COOKIE_OPTIONS,
+            ...this.cookieOptions,
             maxAge: accessMaxAge,
         });
         res.cookie('refreshToken', result.refreshToken, {
-            ...COOKIE_OPTIONS,
+            ...this.cookieOptions,
             maxAge: refreshMaxAge,
         });
 
@@ -307,11 +317,11 @@ export class AuthController {
 
         // Set cookies
         res.cookie('accessToken', result.accessToken, {
-            ...COOKIE_OPTIONS,
+            ...this.cookieOptions,
             maxAge: accessMaxAge,
         });
         res.cookie('refreshToken', result.refreshToken, {
-            ...COOKIE_OPTIONS,
+            ...this.cookieOptions,
             maxAge: refreshMaxAge,
         });
 
@@ -356,11 +366,11 @@ export class AuthController {
         });
 
         res.cookie('accessToken', result.accessToken, {
-            ...COOKIE_OPTIONS,
+            ...this.cookieOptions,
             maxAge: accessMaxAge,
         });
         res.cookie('refreshToken', result.refreshToken, {
-            ...COOKIE_OPTIONS,
+            ...this.cookieOptions,
             maxAge: refreshMaxAge,
         });
 
