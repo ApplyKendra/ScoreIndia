@@ -334,12 +334,26 @@ export class AuthController {
         @Req() req: express.Request,
         @Res({ passthrough: true }) res: express.Response,
     ) {
+        console.log('[AUTH] Refresh token endpoint called');
+        console.log('[AUTH] Cookies received:', Object.keys(req.cookies || {}));
+        console.log('[AUTH] User ID from JWT:', userId);
+
         const refreshToken = req.cookies?.refreshToken || req.body?.refreshToken;
+
+        if (!refreshToken) {
+            console.error('[AUTH] No refresh token found in cookies or body!');
+        }
+
         const result = await this.authService.refreshTokens(userId, refreshToken);
 
         // Use role-based expiry from session config
         const accessMaxAge = (result.sessionConfig?.accessTokenExpiry || 900) * 1000;
         const refreshMaxAge = (result.sessionConfig?.refreshTokenExpiry || 604800) * 1000;
+
+        console.log('[AUTH] Setting cookies with maxAge:', {
+            accessMaxAge: accessMaxAge / 1000 + 's',
+            refreshMaxAge: refreshMaxAge / 1000 / 60 + 'min',
+        });
 
         res.cookie('accessToken', result.accessToken, {
             ...COOKIE_OPTIONS,

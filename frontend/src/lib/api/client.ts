@@ -44,18 +44,21 @@ api.interceptors.response.use(
 
         // If 401 and not already retried, try to refresh the token
         if (error.response?.status === 401 && !originalRequest._retry && !shouldSkipRefresh) {
+            console.log('[API] 401 received, attempting token refresh for:', requestUrl);
             originalRequest._retry = true;
 
             try {
                 // Cookie-based refresh: the refreshToken cookie is sent automatically
+                console.log('[API] Calling /auth/refresh with credentials...');
                 await axios.post(`${API_BASE_URL}/auth/refresh`, {}, { withCredentials: true });
+                console.log('[API] Token refresh successful, retrying original request');
 
                 // Retry the original request (new accessToken cookie is set automatically)
                 return api(originalRequest);
-            } catch (refreshError) {
+            } catch (refreshError: any) {
                 // Refresh failed - DON'T redirect to login here
                 // Let the calling code handle this gracefully
-                console.warn('Token refresh failed');
+                console.error('[API] Token refresh FAILED:', refreshError.response?.status, refreshError.message);
             }
         }
 
