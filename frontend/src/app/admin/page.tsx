@@ -4,62 +4,109 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Users, ShoppingBag, Calendar, UtensilsCrossed, TrendingUp, ArrowUpRight, Activity, DollarSign, ArrowRight, Clock, CheckCircle2 } from 'lucide-react';
+import { Users, ShoppingBag, Calendar, UtensilsCrossed, TrendingUp, ArrowUpRight, Activity, DollarSign, ArrowRight, Clock, CheckCircle2, Heart, Loader2 } from 'lucide-react';
 import { useAuthStore } from '@/lib/stores/auth-store';
+import api from '@/lib/api/client';
+
+interface DashboardStats {
+    stats: {
+        totalUsers: { value: number; trend: string; trendLabel: string };
+        todayOrders: { value: number; trend: string; trendLabel: string };
+        todayDonations: { value: number; trend: string; trendLabel: string };
+        activeEvents: { value: number; trend: string; trendLabel: string };
+    };
+    recentActivities: Array<{
+        id: string;
+        type: 'order' | 'donation' | 'registration';
+        title: string;
+        description: string;
+        time: string;
+        status: string;
+    }>;
+}
 
 export default function AdminDashboard() {
     const { user } = useAuthStore();
     const [currentTime, setCurrentTime] = useState(new Date());
+    const [dashboardData, setDashboardData] = useState<DashboardStats | null>(null);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const timer = setInterval(() => setCurrentTime(new Date()), 1000);
         return () => clearInterval(timer);
     }, []);
 
+    useEffect(() => {
+        fetchDashboardStats();
+    }, []);
+
+    const fetchDashboardStats = async () => {
+        try {
+            const response = await api.get('/admin/stats');
+            setDashboardData(response.data);
+        } catch (error) {
+            console.error('Failed to fetch dashboard stats:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const formatTimeAgo = (dateStr: string) => {
+        const date = new Date(dateStr);
+        const now = new Date();
+        const diffMs = now.getTime() - date.getTime();
+        const diffMins = Math.floor(diffMs / 60000);
+        const diffHours = Math.floor(diffMs / 3600000);
+        const diffDays = Math.floor(diffMs / 86400000);
+
+        if (diffMins < 1) return 'Just now';
+        if (diffMins < 60) return `${diffMins}m ago`;
+        if (diffHours < 24) return `${diffHours}h ago`;
+        return `${diffDays}d ago`;
+    };
+
     const statCards = [
         {
             title: 'Total Users',
-            value: '150+',
+            value: dashboardData?.stats.totalUsers.value ?? '-',
             icon: Users,
             description: 'Active community members',
-            trend: '+12%',
-            trendLabel: 'from last month',
+            trend: dashboardData?.stats.totalUsers.trend ?? '-',
+            trendLabel: dashboardData?.stats.totalUsers.trendLabel ?? '',
             color: 'from-[#5750F1] to-[#867EF9]',
         },
         {
             title: 'Prasadam Orders',
-            value: '24',
+            value: dashboardData?.stats.todayOrders.value ?? '-',
             icon: UtensilsCrossed,
-            description: 'Fresh orders today',
-            trend: '+5%',
-            trendLabel: 'from yesterday',
+            description: 'Orders placed today',
+            trend: dashboardData?.stats.todayOrders.trend ?? '-',
+            trendLabel: dashboardData?.stats.todayOrders.trendLabel ?? '',
             color: 'from-[#7C3AED] to-[#A78BFA]',
         },
         {
-            title: 'Store Revenue',
-            value: '₹12,450',
-            icon: DollarSign,
-            description: 'Total sales today',
-            trend: '+18%',
-            trendLabel: 'from last week',
+            title: 'Donations Today',
+            value: typeof dashboardData?.stats.todayDonations.value === 'number'
+                ? `₹${dashboardData.stats.todayDonations.value.toLocaleString()}`
+                : '-',
+            icon: Heart,
+            description: 'Verified donations today',
+            trend: dashboardData?.stats.todayDonations.trend ?? '-',
+            trendLabel: dashboardData?.stats.todayDonations.trendLabel ?? '',
             color: 'from-[#059669] to-[#34D399]',
         },
         {
             title: 'Active Events',
-            value: '3',
+            value: dashboardData?.stats.activeEvents.value ?? '-',
             icon: Calendar,
             description: 'Upcoming programs',
-            trend: 'Next',
-            trendLabel: 'Sunday Feast',
+            trend: dashboardData?.stats.activeEvents.trend ?? '-',
+            trendLabel: dashboardData?.stats.activeEvents.trendLabel ?? '',
             color: 'from-[#D97706] to-[#FBBF24]',
         },
     ];
 
-    const recentActivities = [
-        { id: 1, title: 'New Order #ORD-001', description: 'Ram Das ordered Govinda\'s Thali', time: '2m ago', status: 'new' },
-        { id: 2, title: 'Order Completed #ORD-098', description: 'Delivery confirmed by Radha Dasi', time: '15m ago', status: 'completed' },
-        { id: 3, title: 'New Registration', description: 'Govind Kumar joined as devotee', time: '32m ago', status: 'new' },
-    ];
+    const recentActivities = dashboardData?.recentActivities ?? [];
 
     const quickLinks = [
         { label: 'Manage Users', href: '/admin/users', icon: Users },
@@ -102,7 +149,9 @@ export default function AdminDashboard() {
                             </div>
                         </CardHeader>
                         <CardContent>
-                            <div className="text-3xl font-bold mb-2 text-foreground">{stat.value}</div>
+                            <div className="text-3xl font-bold mb-2 text-foreground">
+                                {loading ? <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /> : stat.value}
+                            </div>
                             <div className="flex items-center text-xs">
                                 <span className={`flex items-center gap-1 font-medium ${stat.trend.includes('+') ? 'text-green-600' : 'text-muted-foreground'}`}>
                                     {stat.trend.includes('+') && <TrendingUp className="w-3 h-3" />}
@@ -137,32 +186,43 @@ export default function AdminDashboard() {
                         </div>
                     </CardHeader>
                     <CardContent>
-                        <div className="space-y-4">
-                            {recentActivities.map((activity, i) => (
-                                <div key={activity.id} className="flex items-start gap-4 group">
-                                    {/* Timeline indicator */}
-                                    <div className="relative flex flex-col items-center">
-                                        <div className={`w-3 h-3 rounded-full transition-colors ${activity.status === 'new' ? 'bg-[#5750F1] ring-4 ring-[#5750F1]/20' : 'bg-green-500 ring-4 ring-green-500/20'}`} />
-                                        {i < recentActivities.length - 1 && (
-                                            <div className="w-0.5 h-12 bg-border/50 mt-1" />
-                                        )}
-                                    </div>
-
-                                    {/* Content */}
-                                    <div className="flex-1 bg-muted/30 hover:bg-muted/50 p-4 rounded-xl transition-colors -mt-1">
-                                        <div className="flex items-center justify-between mb-1">
-                                            <p className="text-sm font-medium text-foreground">
-                                                {activity.title}
-                                            </p>
-                                            <span className="text-xs text-muted-foreground">{activity.time}</span>
+                        {loading ? (
+                            <div className="flex items-center justify-center py-8">
+                                <Loader2 className="h-8 w-8 animate-spin text-[#5750F1]" />
+                            </div>
+                        ) : recentActivities.length === 0 ? (
+                            <p className="text-center text-muted-foreground py-8">No recent activity</p>
+                        ) : (
+                            <div className="space-y-4">
+                                {recentActivities.slice(0, 5).map((activity, i) => (
+                                    <div key={activity.id} className="flex items-start gap-4 group">
+                                        {/* Timeline indicator */}
+                                        <div className="relative flex flex-col items-center">
+                                            <div className={`w-3 h-3 rounded-full transition-colors ${activity.type === 'order' ? 'bg-[#5750F1] ring-4 ring-[#5750F1]/20' :
+                                                    activity.type === 'donation' ? 'bg-green-500 ring-4 ring-green-500/20' :
+                                                        'bg-blue-500 ring-4 ring-blue-500/20'
+                                                }`} />
+                                            {i < recentActivities.slice(0, 5).length - 1 && (
+                                                <div className="w-0.5 h-12 bg-border/50 mt-1" />
+                                            )}
                                         </div>
-                                        <p className="text-sm text-muted-foreground">
-                                            {activity.description}
-                                        </p>
+
+                                        {/* Content */}
+                                        <div className="flex-1 bg-muted/30 hover:bg-muted/50 p-4 rounded-xl transition-colors -mt-1">
+                                            <div className="flex items-center justify-between mb-1">
+                                                <p className="text-sm font-medium text-foreground">
+                                                    {activity.title}
+                                                </p>
+                                                <span className="text-xs text-muted-foreground">{formatTimeAgo(activity.time)}</span>
+                                            </div>
+                                            <p className="text-sm text-muted-foreground">
+                                                {activity.description}
+                                            </p>
+                                        </div>
                                     </div>
-                                </div>
-                            ))}
-                        </div>
+                                ))}
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
 
@@ -187,14 +247,16 @@ export default function AdminDashboard() {
                             </div>
                         </div>
 
-                        {/* Storage Usage */}
+                        {/* API Connection */}
                         <div className="space-y-3">
                             <div className="flex items-center justify-between text-sm">
-                                <span className="text-muted-foreground">Storage Usage</span>
-                                <span className="font-medium text-foreground">45%</span>
+                                <span className="text-muted-foreground">API Connection</span>
+                                <span className="font-medium text-foreground">
+                                    {loading ? 'Checking...' : dashboardData ? 'Connected' : 'Error'}
+                                </span>
                             </div>
                             <div className="h-2.5 bg-muted rounded-full overflow-hidden">
-                                <div className="h-full bg-gradient-to-r from-[#5750F1] to-[#867EF9] w-[45%] rounded-full" />
+                                <div className={`h-full rounded-full transition-all ${dashboardData ? 'bg-gradient-to-r from-[#5750F1] to-[#867EF9] w-full' : 'bg-red-500 w-1/4'}`} />
                             </div>
                         </div>
 

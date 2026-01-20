@@ -22,6 +22,7 @@ import { AuditModule } from './audit/audit.module';
 import { RedisModule } from './redis';
 import { NotificationModule } from './notification/notification.module';
 import { DonationModule } from './donation';
+import { StatsModule } from './stats/stats.module';
 
 // Guards
 import { JwtAuthGuard } from './common/guards';
@@ -65,6 +66,7 @@ import { JwtAuthGuard } from './common/guards';
     PagesModule,
     NotificationModule,
     DonationModule,
+    StatsModule,
   ],
   providers: [
     // Global JWT authentication guard
