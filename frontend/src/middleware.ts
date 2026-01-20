@@ -4,11 +4,10 @@ import type { NextRequest } from 'next/server';
 // DEBUG: Log middleware execution
 const DEBUG = true;
 
-// Routes that require authentication
-//  - /admin routes need auth
-//  - /cart is PUBLIC (auth checked client-side on checkout)
-//  - /checkout needs auth
-const protectedRoutes = ['/admin', '/checkout'];
+// IMPORTANT: Due to cross-domain cookies (api.iskconburla.com → vercel frontend),
+// we CANNOT check cookies in middleware. Auth is handled client-side.
+// Only /checkout remains protected as it's a critical payment flow.
+const protectedRoutes = ['/checkout'];
 
 // Routes only for unauthenticated users
 const authRoutes = ['/login', '/register'];
@@ -56,10 +55,9 @@ export function middleware(request: NextRequest) {
 export const config = {
     matcher: [
         // Apply middleware to these routes
-        '/admin/:path*',
+        // NOTE: /admin removed - cookies aren't visible cross-domain
         '/checkout/:path*',
         '/login',
         '/register',
-        // NOTE: /cart removed - it's handled client-side
     ],
 };

@@ -37,7 +37,7 @@ export default function AdminLayout({
 }) {
     const router = useRouter();
     const pathname = usePathname();
-    const { user, isAuthenticated, isLoading, logout } = useAuthStore();
+    const { user, isAuthenticated, isLoading, _sessionVerified, logout } = useAuthStore();
     const [isClient, setIsClient] = useState(false);
     const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -45,15 +45,16 @@ export default function AdminLayout({
         setIsClient(true);
     }, []);
 
+    // Wait for session verification before redirecting
     useEffect(() => {
-        if (isClient && !isLoading) {
+        if (isClient && _sessionVerified && !isLoading) {
             if (!isAuthenticated || !user) {
                 router.push('/login');
             } else if (user.role !== 'SUPER_ADMIN' && user.role !== 'SUB_ADMIN') {
                 router.push('/');
             }
         }
-    }, [isClient, isLoading, isAuthenticated, user, router]);
+    }, [isClient, _sessionVerified, isLoading, isAuthenticated, user, router]);
 
     const handleLogout = async () => {
         try {
