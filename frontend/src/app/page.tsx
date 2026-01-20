@@ -600,10 +600,10 @@ export default function LandingPage() {
             </p>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
             {/* New Temple Construction Card */}
             <Link href="/temple-construction" className="group">
-              <div className="relative overflow-hidden rounded-xl sm:rounded-2xl bg-gradient-to-br from-[#5750F1] to-[#7C3AED] p-3 sm:p-5 h-28 sm:h-40 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-[#5750F1]/30">
+              <div className="relative overflow-hidden rounded-xl sm:rounded-2xl bg-gradient-to-br from-[#5750F1] to-[#7C3AED] p-3 sm:p-5 h-28 sm:h-40 lg:h-48 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-[#5750F1]/30">
                 {/* Decorative corner */}
                 <div className="absolute top-0 right-0 w-16 sm:w-24 h-16 sm:h-24 rounded-bl-full bg-white/10" />
 
@@ -628,7 +628,7 @@ export default function LandingPage() {
 
             {/* Seva Opportunities Card */}
             <Link href="/seva-opportunities" className="group">
-              <div className="relative overflow-hidden rounded-xl sm:rounded-2xl bg-gradient-to-br from-amber-500 to-yellow-600 p-3 sm:p-5 h-28 sm:h-40 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-amber-500/30">
+              <div className="relative overflow-hidden rounded-xl sm:rounded-2xl bg-gradient-to-br from-amber-500 to-yellow-600 p-3 sm:p-5 h-28 sm:h-40 lg:h-48 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-amber-500/30">
                 {/* Decorative corner */}
                 <div className="absolute top-0 right-0 w-16 sm:w-24 h-16 sm:h-24 rounded-bl-full bg-white/10" />
 
@@ -651,8 +651,8 @@ export default function LandingPage() {
               </div>
             </Link>
 
-            {/* Nitya Sevak Card - Featured */}
-            <Link href="/nitya-sevak" className="group col-span-2">
+            {/* Nitya Sevak Card - Featured (col-span-2 on mobile, col-span-1 on lg) */}
+            <Link href="/nitya-sevak" className="group col-span-2 lg:col-span-1">
               <div className="relative overflow-hidden rounded-xl sm:rounded-2xl bg-gradient-to-br from-[#0f0c29] via-[#302b63] to-[#24243e] p-4 sm:p-6 h-32 sm:h-48 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-[#5750F1]/20">
                 <div className="absolute top-[-20%] right-[-10%] w-32 sm:w-64 h-32 sm:h-64 rounded-full bg-[#5750F1]/30 blur-3xl" />
                 <div className="absolute bottom-[-20%] left-[-10%] w-24 sm:w-48 h-24 sm:h-48 rounded-full bg-amber-500/20 blur-2xl" />
@@ -672,8 +672,8 @@ export default function LandingPage() {
                     </span>
                   </div>
                   <div>
-                    <h3 className="text-base sm:text-2xl font-bold text-white mb-0.5 sm:mb-1">Become a Nitya Sevak</h3>
-                    <p className="text-white/70 text-[10px] sm:text-sm">Join our exclusive life patron membership</p>
+                    <h3 className="text-base sm:text-2xl lg:text-xl font-bold text-white mb-0.5 sm:mb-1">Become a Nitya Sevak</h3>
+                    <p className="text-white/70 text-[10px] sm:text-sm lg:text-xs">Join our exclusive life patron membership</p>
                   </div>
                 </div>
               </div>
