@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -52,6 +52,7 @@ export default function RegisterPage() {
     const [selectedCountry, setSelectedCountry] = useState(COUNTRY_CODES[0]); // India default
     const [showCountryDropdown, setShowCountryDropdown] = useState(false);
     const [phoneNumber, setPhoneNumber] = useState('');
+    const dropdownRef = useRef<HTMLDivElement>(null);
     const router = useRouter();
     const { login } = useAuthStore();
 
@@ -83,6 +84,23 @@ export default function RegisterPage() {
             setValue('phone', `${selectedCountry.code}${trimmedValue}`);
         }
     }, [selectedCountry, phoneNumber, setValue]);
+
+    // Handle click outside to close dropdown
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+                setShowCountryDropdown(false);
+            }
+        };
+
+        if (showCountryDropdown) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [showCountryDropdown]);
 
     const onSubmit = async (data: RegisterFormData) => {
         setIsLoading(true);
@@ -295,7 +313,7 @@ export default function RegisterPage() {
                                             </Label>
                                             <div className="flex gap-2">
                                                 {/* Country Code Selector */}
-                                                <div className="relative">
+                                                <div className="relative" ref={dropdownRef}>
                                                     <button
                                                         type="button"
                                                         onClick={() => setShowCountryDropdown(!showCountryDropdown)}
@@ -445,13 +463,7 @@ export default function RegisterPage() {
                 </div>
             </div>
 
-            {/* Click outside to close dropdown */}
-            {showCountryDropdown && (
-                <div
-                    className="fixed inset-0 z-[55]"
-                    onClick={() => setShowCountryDropdown(false)}
-                />
-            )}
+
         </div>
     );
 }
