@@ -308,16 +308,21 @@ export default function RegisterPage() {
 
                                                     {/* Dropdown */}
                                                     {showCountryDropdown && (
-                                                        <div className="absolute top-full left-0 mt-2 w-64 max-h-60 overflow-y-auto bg-white border border-gray-200 rounded-xl shadow-2xl z-[60]">
+                                                        <div
+                                                            className="absolute top-full left-0 mt-2 w-64 max-h-60 overflow-y-auto bg-white border border-gray-200 rounded-xl shadow-2xl z-[100]"
+                                                            onClick={(e) => e.stopPropagation()}
+                                                            onMouseDown={(e) => e.stopPropagation()}
+                                                        >
                                                             {COUNTRY_CODES.map((country) => (
                                                                 <button
                                                                     key={country.code}
                                                                     type="button"
-                                                                    onClick={() => {
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
                                                                         setSelectedCountry(country);
                                                                         setShowCountryDropdown(false);
                                                                     }}
-                                                                    className={`w-full px-4 py-3 flex items-center gap-3 hover:bg-gray-50 transition-colors text-left ${selectedCountry.code === country.code ? 'bg-[#5750F1]/5' : ''}`}
+                                                                    className={`w-full px-4 py-3 flex items-center gap-3 hover:bg-gray-100 transition-colors text-left cursor-pointer ${selectedCountry.code === country.code ? 'bg-[#5750F1]/10' : ''}`}
                                                                 >
                                                                     <span className="text-lg">{country.flag}</span>
                                                                     <span className="text-gray-700 text-sm flex-1">{country.country}</span>
