@@ -63,7 +63,7 @@ export function Sidebar() {
     const { setIsOpen, isOpen, isMobile, toggleSidebar } = useSidebarContext();
     const { user, isAuthenticated, logout } = useAuthStore();
     const itemCount = useCartStore((state) => state.getItemCount());
-    const [expandedItems, setExpandedItems] = useState<string[]>(["Main"]);
+    const [expandedItems, setExpandedItems] = useState<string[]>(["Main", "Account"]);
     const [searchQuery, setSearchQuery] = useState("");
     const [isDarkMode, setIsDarkMode] = useState(false);
 

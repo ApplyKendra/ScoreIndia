@@ -423,4 +423,14 @@ export class AuthController {
     ) {
         return this.authService.changePasswordWithOtp(userId, body.otp, body.newPassword);
     }
+
+    // Simple password update - requires authentication and current password
+    @Post('update-password')
+    @HttpCode(HttpStatus.OK)
+    async updatePassword(
+        @CurrentUser('id') userId: string,
+        @Body() body: { currentPassword: string; newPassword: string },
+    ) {
+        return this.authService.updatePassword(userId, body.currentPassword, body.newPassword);
+    }
 }

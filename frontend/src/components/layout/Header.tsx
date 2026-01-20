@@ -239,6 +239,14 @@ export function Header() {
                                     </div>
 
                                     <DropdownMenuItem asChild className="rounded-lg cursor-pointer">
+                                        <Link href="/profile" className="flex items-center gap-2">
+                                            <div className="h-8 w-8 rounded-lg bg-[#5750F1]/10 flex items-center justify-center">
+                                                <User className="h-4 w-4 text-[#5750F1]" />
+                                            </div>
+                                            <span>My Profile</span>
+                                        </Link>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem asChild className="rounded-lg cursor-pointer">
                                         <Link href="/orders" className="flex items-center gap-2">
                                             <div className="h-8 w-8 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
                                                 <ShoppingCart className="h-4 w-4 text-emerald-600" />

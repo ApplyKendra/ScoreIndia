@@ -459,6 +459,44 @@ export class AuthService {
         return { message: 'Password changed successfully' };
     }
 
+    // Simple password update - no OTP required, just current password verification
+    async updatePassword(userId: string, currentPassword: string, newPassword: string) {
+        const user = await this.prisma.user.findUnique({
+            where: { id: userId },
+        });
+
+        if (!user) {
+            throw new BadRequestException('User not found');
+        }
+
+        // Verify current password
+        const isPasswordValid = await bcrypt.compare(currentPassword, user.password);
+        if (!isPasswordValid) {
+            throw new UnauthorizedException('Current password is incorrect');
+        }
+
+        // Validate new password strength
+        if (newPassword.length < 8) {
+            throw new BadRequestException('New password must be at least 8 characters');
+        }
+
+        // Hash new password
+        const hashedPassword = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
+
+        // Update password
+        await this.prisma.user.update({
+            where: { id: userId },
+            data: { password: hashedPassword },
+        });
+
+        // Audit log
+        await this.auditService.logAuth('PASSWORD_CHANGED', userId, user.email);
+
+        this.logger.log(`Password updated for user: ${user.email}`);
+
+        return { message: 'Password updated successfully' };
+    }
+
     // Keep old method for backward compatibility (but deprecate)
     async changePasswordWithOtp(userId: string, otp: string, newPassword: string) {
         const user = await this.prisma.user.findUnique({
