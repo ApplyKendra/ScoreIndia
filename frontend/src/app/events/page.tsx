@@ -451,16 +451,17 @@ export default function EventsPage() {
                                                         </div>
 
                                                         {isRegisteredForEvent(event.id) ? (
-                                                            <div className="flex items-center gap-2">
-                                                                <span className="inline-flex items-center px-3 py-1.5 rounded-lg bg-green-100 text-green-700 text-sm font-medium">
-                                                                    ✓ Registered
+                                                            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
+                                                                <span className="inline-flex items-center px-3 py-1.5 rounded-lg bg-green-100 text-green-700 text-xs sm:text-sm font-medium whitespace-nowrap">
+                                                                    ✓ You're Registered
                                                                 </span>
                                                                 <Button
                                                                     onClick={() => handleRegisterClick(event)}
                                                                     variant="outline"
-                                                                    className="border-[#5750F1] text-[#5750F1] hover:bg-[#5750F1]/10"
+                                                                    size="sm"
+                                                                    className="border-[#5750F1] text-[#5750F1] hover:bg-[#5750F1]/10 whitespace-nowrap"
                                                                 >
-                                                                    <Users className="w-4 h-4 mr-2" />
+                                                                    <Users className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
                                                                     Register Others
                                                                 </Button>
                                                             </div>
@@ -774,19 +775,30 @@ export default function EventsPage() {
                         <div className="space-y-3 py-2">
                             <p className="text-sm text-gray-500 text-center">How would you like to register?</p>
 
-                            {/* Register for yourself */}
-                            <Button
-                                onClick={handleSelfRegister}
-                                disabled={registering}
-                                className="w-full h-14 bg-[#5750F1] hover:bg-[#4a43d6] text-white rounded-xl shadow-lg shadow-[#5750F1]/25"
-                            >
-                                {registering ? (
-                                    <Loader2 className="h-5 w-5 animate-spin mr-2" />
-                                ) : (
-                                    <User className="h-5 w-5 mr-2" />
-                                )}
-                                Register for Yourself
-                            </Button>
+                            {/* Show if user is already registered for this event */}
+                            {selectedEvent && isRegisteredForEvent(selectedEvent.id) ? (
+                                <div className="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl text-center">
+                                    <div className="flex items-center justify-center gap-2 text-green-700 dark:text-green-300">
+                                        <span className="text-xl">✓</span>
+                                        <span className="font-medium">You're Already Registered!</span>
+                                    </div>
+                                    <p className="text-sm text-green-600 dark:text-green-400 mt-1">You can still register others for this event below.</p>
+                                </div>
+                            ) : (
+                                /* Register for yourself - only show if not registered */
+                                <Button
+                                    onClick={handleSelfRegister}
+                                    disabled={registering}
+                                    className="w-full h-14 bg-[#5750F1] hover:bg-[#4a43d6] text-white rounded-xl shadow-lg shadow-[#5750F1]/25"
+                                >
+                                    {registering ? (
+                                        <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                                    ) : (
+                                        <User className="h-5 w-5 mr-2" />
+                                    )}
+                                    Register for Yourself
+                                </Button>
+                            )}
 
                             {/* Register for someone else */}
                             <Button
