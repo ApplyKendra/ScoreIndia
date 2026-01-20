@@ -154,12 +154,21 @@ export function Sidebar() {
                             className="flex items-center gap-3 group"
                         >
                             <div className="relative">
+                                {/* Light mode logo */}
                                 <Image
                                     src="/logo.svg"
                                     alt="ISKCON Burla"
                                     width={48}
                                     height={48}
-                                    className="h-10 w-10"
+                                    className="h-10 w-10 dark:hidden"
+                                />
+                                {/* Dark mode logo */}
+                                <Image
+                                    src="/logo-white.svg"
+                                    alt="ISKCON Burla"
+                                    width={48}
+                                    height={48}
+                                    className="h-10 w-10 hidden dark:block"
                                 />
                             </div>
                             <div className="flex flex-col">
