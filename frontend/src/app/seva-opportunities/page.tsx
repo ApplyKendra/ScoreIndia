@@ -10,6 +10,7 @@ import {
     X,
     CheckCircle,
     User,
+    Users,
 } from 'lucide-react';
 import Image from 'next/image';
 import { useAuthStore } from '@/lib/stores/auth-store';
@@ -35,13 +36,36 @@ export default function SevaOpportunitiesPage() {
     const [loading, setLoading] = useState(true);
     const [selectedCategory, setSelectedCategory] = useState('All');
     const [registering, setRegistering] = useState<string | null>(null);
-    const [showSuccess, setShowSuccess] = useState<string | null>(null);
 
-    // Guest registration modal state
-    const [showGuestModal, setShowGuestModal] = useState(false);
+    // Track user's registered sevas (persisted in localStorage)
+    const [registeredSevas, setRegisteredSevas] = useState<Set<string>>(new Set());
+
+    // Modal states
+    const [showModal, setShowModal] = useState(false);
+    const [modalType, setModalType] = useState<'self' | 'others'>('self');
     const [selectedSeva, setSelectedSeva] = useState<SevaOpportunity | null>(null);
-    const [guestForm, setGuestForm] = useState({ name: '', email: '', phone: '' });
-    const [guestSubmitting, setGuestSubmitting] = useState(false);
+    const [formData, setFormData] = useState({ name: '', email: '', phone: '' });
+    const [submitting, setSubmitting] = useState(false);
+
+    // Load registered sevas from localStorage on mount
+    useEffect(() => {
+        const saved = localStorage.getItem('registeredSevas');
+        if (saved) {
+            try {
+                setRegisteredSevas(new Set(JSON.parse(saved)));
+            } catch {
+                // Ignore parse errors
+            }
+        }
+    }, []);
+
+    // Save registered sevas to localStorage when changed
+    const addRegisteredSeva = (sevaId: string) => {
+        const newSet = new Set(registeredSevas);
+        newSet.add(sevaId);
+        setRegisteredSevas(newSet);
+        localStorage.setItem('registeredSevas', JSON.stringify([...newSet]));
+    };
 
     useEffect(() => {
         const fetchData = async () => {
@@ -60,16 +84,17 @@ export default function SevaOpportunitiesPage() {
         fetchData();
     }, []);
 
-    const handleRegister = async (seva: SevaOpportunity) => {
+    const handleRegisterForSelf = async (seva: SevaOpportunity) => {
         if (!isAuthenticated || !user) {
-            // Show guest registration modal
+            // Show form modal for non-logged-in users
             setSelectedSeva(seva);
-            setGuestForm({ name: '', email: '', phone: '' });
-            setShowGuestModal(true);
+            setModalType('self');
+            setFormData({ name: '', email: '', phone: '' });
+            setShowModal(true);
             return;
         }
 
-        // Logged-in user - register with their profile data
+        // Logged-in user - register automatically
         setRegistering(seva.id);
         try {
             const res = await fetch(`${API_URL}/pages/seva/${seva.id}/register`, {
@@ -84,8 +109,7 @@ export default function SevaOpportunitiesPage() {
             });
 
             if (res.ok) {
-                setShowSuccess(seva.id);
-                setTimeout(() => setShowSuccess(null), 3000);
+                addRegisteredSeva(seva.id);
             }
         } catch (error) {
             console.error('Registration failed:', error);
@@ -94,27 +118,37 @@ export default function SevaOpportunitiesPage() {
         }
     };
 
-    const handleGuestSubmit = async (e: React.FormEvent) => {
+    const handleRegisterForOthers = (seva: SevaOpportunity) => {
+        setSelectedSeva(seva);
+        setModalType('others');
+        setFormData({ name: '', email: '', phone: '' });
+        setShowModal(true);
+    };
+
+    const handleFormSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!selectedSeva) return;
 
-        setGuestSubmitting(true);
+        setSubmitting(true);
         try {
             const res = await fetch(`${API_URL}/pages/seva/${selectedSeva.id}/register`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(guestForm),
+                credentials: 'include',
+                body: JSON.stringify(formData),
             });
 
             if (res.ok) {
-                setShowGuestModal(false);
-                setShowSuccess(selectedSeva.id);
-                setTimeout(() => setShowSuccess(null), 3000);
+                setShowModal(false);
+                // Only mark as registered for self registration
+                if (modalType === 'self') {
+                    addRegisteredSeva(selectedSeva.id);
+                }
             }
         } catch (error) {
             console.error('Registration failed:', error);
         } finally {
-            setGuestSubmitting(false);
+            setSubmitting(false);
         }
     };
 
@@ -206,79 +240,96 @@ export default function SevaOpportunitiesPage() {
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                            {filteredItems.map((item) => (
-                                <Card key={item.id} className="group relative overflow-hidden border-0 bg-white dark:bg-gray-900 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 rounded-2xl">
-                                    {/* Image - Larger */}
-                                    <div className="relative h-56 bg-gradient-to-br from-orange-500 to-amber-500 overflow-hidden">
-                                        {item.imageUrl ? (
-                                            <Image
-                                                src={item.imageUrl}
-                                                alt={item.title}
-                                                fill
-                                                className="object-cover transition-transform duration-500 group-hover:scale-110"
-                                            />
-                                        ) : (
-                                            <div className="absolute inset-0 flex items-center justify-center">
-                                                <Heart className="w-20 h-20 text-white/30" />
-                                            </div>
-                                        )}
-                                        {/* Gradient Overlay */}
-                                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                            {filteredItems.map((item) => {
+                                const isRegistered = registeredSevas.has(item.id);
 
-                                        {/* Category & Recurring Badges */}
-                                        <div className="absolute top-4 left-4 flex gap-2">
-                                            <span className="px-3 py-1.5 bg-white/95 text-gray-800 text-xs font-semibold rounded-full shadow-lg">
-                                                {item.category}
-                                            </span>
-                                            {item.isRecurring && (
-                                                <span className="px-3 py-1.5 bg-emerald-500 text-white text-xs font-semibold rounded-full flex items-center gap-1 shadow-lg">
-                                                    <RefreshCw className="w-3 h-3" />
-                                                    Recurring
+                                return (
+                                    <Card key={item.id} className="group relative overflow-hidden border-0 bg-white dark:bg-gray-900 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 rounded-2xl">
+                                        {/* Image - Larger */}
+                                        <div className="relative h-56 bg-gradient-to-br from-orange-500 to-amber-500 overflow-hidden">
+                                            {item.imageUrl ? (
+                                                <Image
+                                                    src={item.imageUrl}
+                                                    alt={item.title}
+                                                    fill
+                                                    className="object-cover transition-transform duration-500 group-hover:scale-110"
+                                                />
+                                            ) : (
+                                                <div className="absolute inset-0 flex items-center justify-center">
+                                                    <Heart className="w-20 h-20 text-white/30" />
+                                                </div>
+                                            )}
+                                            {/* Gradient Overlay */}
+                                            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+
+                                            {/* Category & Recurring Badges */}
+                                            <div className="absolute top-4 left-4 flex gap-2">
+                                                <span className="px-3 py-1.5 bg-white/95 text-gray-800 text-xs font-semibold rounded-full shadow-lg">
+                                                    {item.category}
                                                 </span>
+                                                {item.isRecurring && (
+                                                    <span className="px-3 py-1.5 bg-emerald-500 text-white text-xs font-semibold rounded-full flex items-center gap-1 shadow-lg">
+                                                        <RefreshCw className="w-3 h-3" />
+                                                        Recurring
+                                                    </span>
+                                                )}
+                                            </div>
+
+                                            {/* Amount Badge */}
+                                            {item.amount && (
+                                                <div className="absolute bottom-4 left-4">
+                                                    <span className="text-3xl font-bold text-white drop-shadow-lg">
+                                                        ₹{Number(item.amount).toLocaleString()}
+                                                    </span>
+                                                </div>
                                             )}
                                         </div>
 
-                                        {/* Amount Badge */}
-                                        {item.amount && (
-                                            <div className="absolute bottom-4 left-4">
-                                                <span className="text-3xl font-bold text-white drop-shadow-lg">
-                                                    ₹{Number(item.amount).toLocaleString()}
-                                                </span>
-                                            </div>
-                                        )}
-                                    </div>
+                                        {/* Content */}
+                                        <div className="p-6">
+                                            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2 group-hover:text-[#5750F1] transition-colors">
+                                                {item.title}
+                                            </h3>
+                                            <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2 mb-5 leading-relaxed">
+                                                {item.description}
+                                            </p>
 
-                                    {/* Content */}
-                                    <div className="p-6">
-                                        <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2 group-hover:text-[#5750F1] transition-colors">
-                                            {item.title}
-                                        </h3>
-                                        <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2 mb-5 leading-relaxed">
-                                            {item.description}
-                                        </p>
-
-                                        {/* Success State */}
-                                        {showSuccess === item.id ? (
-                                            <div className="flex items-center justify-center gap-2 py-3 bg-emerald-50 dark:bg-emerald-900/30 rounded-xl text-emerald-600 dark:text-emerald-400 font-medium">
-                                                <CheckCircle className="w-5 h-5" />
-                                                Registered Successfully!
-                                            </div>
-                                        ) : (
-                                            <Button
-                                                onClick={() => handleRegister(item)}
-                                                disabled={registering === item.id}
-                                                className="w-full bg-[#5750F1] hover:bg-[#4a43d6] rounded-xl py-6 text-base font-semibold"
-                                            >
-                                                {registering === item.id ? (
-                                                    <Loader2 className="w-5 h-5 animate-spin" />
-                                                ) : (
-                                                    'Register'
-                                                )}
-                                            </Button>
-                                        )}
-                                    </div>
-                                </Card>
-                            ))}
+                                            {/* Registered State */}
+                                            {isRegistered ? (
+                                                <div className="flex items-center justify-center gap-2 py-3.5 bg-emerald-50 dark:bg-emerald-900/30 rounded-xl text-emerald-600 dark:text-emerald-400 font-semibold">
+                                                    <CheckCircle className="w-5 h-5" />
+                                                    Registered
+                                                </div>
+                                            ) : (
+                                                <div className="flex gap-2">
+                                                    <Button
+                                                        onClick={() => handleRegisterForSelf(item)}
+                                                        disabled={registering === item.id}
+                                                        className="flex-1 bg-[#5750F1] hover:bg-[#4a43d6] rounded-xl py-5 text-sm font-semibold"
+                                                    >
+                                                        {registering === item.id ? (
+                                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                                        ) : (
+                                                            <>
+                                                                <User className="w-4 h-4 mr-1.5" />
+                                                                For Yourself
+                                                            </>
+                                                        )}
+                                                    </Button>
+                                                    <Button
+                                                        onClick={() => handleRegisterForOthers(item)}
+                                                        variant="outline"
+                                                        className="flex-1 border-[#5750F1] text-[#5750F1] hover:bg-[#5750F1]/10 rounded-xl py-5 text-sm font-semibold"
+                                                    >
+                                                        <Users className="w-4 h-4 mr-1.5" />
+                                                        For Others
+                                                    </Button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </Card>
+                                );
+                            })}
                         </div>
                     )}
                 </div>
@@ -312,30 +363,38 @@ export default function SevaOpportunitiesPage() {
                 </div>
             </section>
 
-            {/* Guest Registration Modal */}
-            {showGuestModal && selectedSeva && (
+            {/* Registration Modal */}
+            {showModal && selectedSeva && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
                     <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
                         <div className="flex items-center justify-between p-6 border-b dark:border-gray-800 bg-gradient-to-r from-[#5750F1] to-[#867EF9]">
                             <div>
-                                <h2 className="text-xl font-bold text-white">Register for Seva</h2>
+                                <h2 className="text-xl font-bold text-white">
+                                    {modalType === 'self' ? 'Register for Yourself' : 'Register for Someone Else'}
+                                </h2>
                                 <p className="text-sm text-white/80">{selectedSeva.title}</p>
                             </div>
                             <Button
                                 variant="ghost"
                                 size="icon"
-                                onClick={() => setShowGuestModal(false)}
+                                onClick={() => setShowModal(false)}
                                 className="text-white hover:bg-white/20"
                             >
                                 <X className="h-5 w-5" />
                             </Button>
                         </div>
 
-                        <form onSubmit={handleGuestSubmit} className="p-6 space-y-4">
+                        <form onSubmit={handleFormSubmit} className="p-6 space-y-4">
                             <div className="text-center mb-4">
-                                <User className="w-12 h-12 mx-auto text-[#5750F1] mb-2" />
+                                {modalType === 'self' ? (
+                                    <User className="w-12 h-12 mx-auto text-[#5750F1] mb-2" />
+                                ) : (
+                                    <Users className="w-12 h-12 mx-auto text-[#5750F1] mb-2" />
+                                )}
                                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                                    Enter your details to register for this seva
+                                    {modalType === 'self'
+                                        ? 'Enter your details to register for this seva'
+                                        : 'Enter the details of the person you are registering'}
                                 </p>
                             </div>
 
@@ -344,10 +403,10 @@ export default function SevaOpportunitiesPage() {
                                 <input
                                     type="text"
                                     required
-                                    value={guestForm.name}
-                                    onChange={(e) => setGuestForm({ ...guestForm, name: e.target.value })}
+                                    value={formData.name}
+                                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                                     className="w-full px-4 py-3 border border-gray-300 dark:border-gray-700 rounded-xl dark:bg-gray-800 focus:ring-2 focus:ring-[#5750F1] focus:border-transparent transition-all"
-                                    placeholder="Enter your full name"
+                                    placeholder="Enter full name"
                                 />
                             </div>
 
@@ -356,10 +415,10 @@ export default function SevaOpportunitiesPage() {
                                 <input
                                     type="email"
                                     required
-                                    value={guestForm.email}
-                                    onChange={(e) => setGuestForm({ ...guestForm, email: e.target.value })}
+                                    value={formData.email}
+                                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                                     className="w-full px-4 py-3 border border-gray-300 dark:border-gray-700 rounded-xl dark:bg-gray-800 focus:ring-2 focus:ring-[#5750F1] focus:border-transparent transition-all"
-                                    placeholder="Enter your email"
+                                    placeholder="Enter email"
                                 />
                             </div>
 
@@ -368,10 +427,10 @@ export default function SevaOpportunitiesPage() {
                                 <input
                                     type="tel"
                                     required
-                                    value={guestForm.phone}
-                                    onChange={(e) => setGuestForm({ ...guestForm, phone: e.target.value })}
+                                    value={formData.phone}
+                                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                                     className="w-full px-4 py-3 border border-gray-300 dark:border-gray-700 rounded-xl dark:bg-gray-800 focus:ring-2 focus:ring-[#5750F1] focus:border-transparent transition-all"
-                                    placeholder="Enter your phone number"
+                                    placeholder="Enter phone number"
                                 />
                             </div>
 
@@ -379,17 +438,17 @@ export default function SevaOpportunitiesPage() {
                                 <Button
                                     type="button"
                                     variant="outline"
-                                    onClick={() => setShowGuestModal(false)}
+                                    onClick={() => setShowModal(false)}
                                     className="flex-1 py-6 rounded-xl"
                                 >
                                     Cancel
                                 </Button>
                                 <Button
                                     type="submit"
-                                    disabled={guestSubmitting}
+                                    disabled={submitting}
                                     className="flex-1 bg-[#5750F1] hover:bg-[#4a43d6] py-6 rounded-xl"
                                 >
-                                    {guestSubmitting ? (
+                                    {submitting ? (
                                         <Loader2 className="w-5 h-5 animate-spin" />
                                     ) : (
                                         'Register'

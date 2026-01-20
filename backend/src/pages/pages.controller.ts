@@ -92,6 +92,37 @@ export class PagesController {
         return this.pagesService.getAllSeva(includeInactive === 'true');
     }
 
+    // NOTE: These routes MUST come BEFORE 'seva/:id' to prevent 'registrations' being matched as an ID
+    // ============================================
+    // Seva Registrations (placed before :id routes)
+    // ============================================
+
+    // Admin: Get all registrations with optional filters
+    @Get('seva/registrations')
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles('SUPER_ADMIN', 'SUB_ADMIN')
+    getSevaRegistrations(
+        @Query('sevaId') sevaId?: string,
+        @Query('status') status?: string,
+    ) {
+        return this.pagesService.getSevaRegistrations(sevaId, status);
+    }
+
+    // Admin: Update registration status
+    @Patch('seva/registrations/:id')
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles('SUPER_ADMIN', 'SUB_ADMIN')
+    updateSevaRegistrationStatus(
+        @Param('id') id: string,
+        @Body() dto: UpdateSevaRegistrationStatusDto,
+    ) {
+        return this.pagesService.updateSevaRegistrationStatus(id, dto);
+    }
+
+    // ============================================
+    // Seva CRUD (with :id param routes)
+    // ============================================
+
     @Get('seva/:id')
     @UseGuards(JwtAuthGuard, RolesGuard)
     @Roles('SUPER_ADMIN', 'SUB_ADMIN')
@@ -120,10 +151,6 @@ export class PagesController {
         return this.pagesService.deleteSeva(id);
     }
 
-    // ============================================
-    // Seva Registrations
-    // ============================================
-
     // Register for a seva - works for both logged-in and guest users
     @Public()
     @Post('seva/:id/register')
@@ -135,28 +162,6 @@ export class PagesController {
         // If user is logged in, pass their userId
         const userId = req.user?.id;
         return this.pagesService.registerForSeva(id, dto, userId);
-    }
-
-    // Admin: Get all registrations with optional filters
-    @Get('seva/registrations')
-    @UseGuards(JwtAuthGuard, RolesGuard)
-    @Roles('SUPER_ADMIN', 'SUB_ADMIN')
-    getSevaRegistrations(
-        @Query('sevaId') sevaId?: string,
-        @Query('status') status?: string,
-    ) {
-        return this.pagesService.getSevaRegistrations(sevaId, status);
-    }
-
-    // Admin: Update registration status
-    @Patch('seva/registrations/:id')
-    @UseGuards(JwtAuthGuard, RolesGuard)
-    @Roles('SUPER_ADMIN', 'SUB_ADMIN')
-    updateSevaRegistrationStatus(
-        @Param('id') id: string,
-        @Body() dto: UpdateSevaRegistrationStatusDto,
-    ) {
-        return this.pagesService.updateSevaRegistrationStatus(id, dto);
     }
 
     // ============================================
