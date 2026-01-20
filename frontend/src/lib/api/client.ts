@@ -14,7 +14,7 @@ export const api = axios.create({
 });
 
 // Track which URLs should NOT trigger token refresh on 401
-// These are endpoints involved in the authentication flow
+// These are endpoints involved in the authentication flow itself
 const noRefreshUrls = [
     '/auth/login',
     '/auth/register',
@@ -25,7 +25,7 @@ const noRefreshUrls = [
     '/auth/2fa/verify-setup',
     '/auth/otp/verify-login',
     '/auth/otp/resend-login',
-    '/auth/profile',
+    // NOTE: /auth/profile is NOT here - we want 401 on profile to trigger refresh
     '/auth/refresh',
     '/auth/logout',
     '/auth/verify-email',

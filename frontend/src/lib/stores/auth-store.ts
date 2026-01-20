@@ -7,8 +7,10 @@ import axios from 'axios';
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 
 // Token refresh interval - refresh before access token expires
-// Access token for admins is 15 min, so refresh at 10 min
-const TOKEN_REFRESH_INTERVAL = 10 * 60 * 1000; // 10 minutes
+// USER access token is 30 min, so refresh at 25 min
+// Admin access token is 15 min, so refresh at 10 min
+const USER_TOKEN_REFRESH_INTERVAL = 25 * 60 * 1000; // 25 minutes
+const ADMIN_TOKEN_REFRESH_INTERVAL = 10 * 60 * 1000; // 10 minutes
 
 export interface User {
     id: string;
@@ -72,10 +74,8 @@ export const useAuthStore = create<AuthState>()(
                     isLoading: false,
                     _sessionVerified: true,
                 });
-                // Start proactive token refresh for admins
-                if (user.role === 'SUPER_ADMIN' || user.role === 'SUB_ADMIN') {
-                    get().startTokenRefresh();
-                }
+                // Start proactive token refresh for ALL authenticated users
+                get().startTokenRefresh();
             },
 
             logout: async () => {
@@ -133,15 +133,21 @@ export const useAuthStore = create<AuthState>()(
                 // Refresh immediately to ensure we have a fresh token
                 get().refreshToken();
 
-                // Then refresh every 10 minutes
+                // Determine refresh interval based on role
+                const currentState = get();
+                const isAdmin = currentState.user?.role === 'SUPER_ADMIN' || currentState.user?.role === 'SUB_ADMIN';
+                const refreshInterval = isAdmin ? ADMIN_TOKEN_REFRESH_INTERVAL : USER_TOKEN_REFRESH_INTERVAL;
+
+                console.log(`[AUTH-STORE] Token refresh scheduled every ${refreshInterval / 60000} minutes`);
+
                 const interval = setInterval(() => {
-                    const currentState = get();
-                    if (currentState.isAuthenticated && currentState.user) {
+                    const state = get();
+                    if (state.isAuthenticated && state.user) {
                         get().refreshToken();
                     } else {
                         get().stopTokenRefresh();
                     }
-                }, TOKEN_REFRESH_INTERVAL);
+                }, refreshInterval);
 
                 set({ _refreshInterval: interval });
             },
@@ -187,10 +193,8 @@ export const useAuthStore = create<AuthState>()(
                             _sessionVerified: true,
                         });
 
-                        // Start proactive refresh for admins
-                        if (data.role === 'SUPER_ADMIN' || data.role === 'SUB_ADMIN') {
-                            get().startTokenRefresh();
-                        }
+                        // Start proactive refresh for ALL users
+                        get().startTokenRefresh();
 
                         return true;
                     } catch (e: any) {
@@ -226,10 +230,8 @@ export const useAuthStore = create<AuthState>()(
                         _sessionVerified: true,
                     });
 
-                    // Start proactive refresh for admins
-                    if (data.role === 'SUPER_ADMIN' || data.role === 'SUB_ADMIN') {
-                        get().startTokenRefresh();
-                    }
+                    // Start proactive refresh for ALL users
+                    get().startTokenRefresh();
                 } catch (e) {
                     set({
                         user: null,
