@@ -9,7 +9,11 @@ import {
     UpdateNityaSevakPageDto,
     CreateNityaSevakApplicationDto,
     UpdateApplicationStatusDto,
+    CreateSevaRegistrationDto,
+    UpdateSevaRegistrationStatusDto,
 } from './dto';
+// Define type inline since Prisma client generates at build time
+type SevaRegistrationStatus = 'PENDING' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED';
 
 @Injectable()
 export class PagesService {
@@ -158,6 +162,55 @@ export class PagesService {
     }
 
     // ============================================
+    // Seva Registrations
+    // ============================================
+
+    async registerForSeva(sevaId: string, dto: CreateSevaRegistrationDto, userId?: string) {
+        // Verify seva exists
+        const seva = await this.getSevaById(sevaId);
+
+        return (this.prisma as any).sevaRegistration.create({
+            data: {
+                sevaId,
+                userId,
+                name: dto.name,
+                email: dto.email,
+                phone: dto.phone,
+            },
+            include: {
+                seva: { select: { title: true } },
+            },
+        });
+    }
+
+    async getSevaRegistrations(sevaId?: string, status?: string) {
+        return (this.prisma as any).sevaRegistration.findMany({
+            where: {
+                ...(sevaId ? { sevaId } : {}),
+                ...(status ? { status } : {}),
+            },
+            include: {
+                seva: { select: { id: true, title: true, category: true } },
+                user: { select: { id: true, name: true, email: true } },
+            },
+            orderBy: { createdAt: 'desc' },
+        });
+    }
+
+    async updateSevaRegistrationStatus(id: string, dto: UpdateSevaRegistrationStatusDto) {
+        const registration = await (this.prisma as any).sevaRegistration.findUnique({ where: { id } });
+        if (!registration) throw new NotFoundException('Registration not found');
+
+        return (this.prisma as any).sevaRegistration.update({
+            where: { id },
+            data: { status: dto.status as any },
+            include: {
+                seva: { select: { title: true } },
+            },
+        });
+    }
+
+    // ============================================
     // Nitya Sevak
     // ============================================
 
@@ -228,3 +281,4 @@ export class PagesService {
         });
     }
 }
+

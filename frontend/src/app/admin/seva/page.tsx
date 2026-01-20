@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Plus, Pencil, Trash2, Eye, EyeOff, X, Save, Image as ImageIcon } from 'lucide-react';
+import { Plus, Pencil, Trash2, Eye, EyeOff, X, Save, Image as ImageIcon, Users, Settings, CheckCircle, Clock, XCircle } from 'lucide-react';
 
 interface SevaOpportunity {
     id: string;
@@ -17,10 +17,31 @@ interface SevaOpportunity {
     isActive: boolean;
 }
 
+interface SevaRegistration {
+    id: string;
+    sevaId: string;
+    seva: { id: string; title: string; category: string };
+    user: { id: string; name: string; email: string } | null;
+    name: string;
+    email: string;
+    phone: string;
+    status: 'PENDING' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED';
+    createdAt: string;
+}
+
 const CATEGORIES = ['Daily', 'Festival', 'Special', 'Monthly', 'Annual'];
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const STATUS_COLORS = {
+    PENDING: 'bg-yellow-100 text-yellow-700',
+    CONFIRMED: 'bg-blue-100 text-blue-700',
+    COMPLETED: 'bg-green-100 text-green-700',
+    CANCELLED: 'bg-red-100 text-red-700',
+};
 
 export default function AdminSevaPage() {
+    const [activeTab, setActiveTab] = useState<'manage' | 'registrations'>('manage');
+
+    // Manage Sevas state
     const [items, setItems] = useState<SevaOpportunity[]>([]);
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -39,9 +60,21 @@ export default function AdminSevaPage() {
     const [imagePreview, setImagePreview] = useState('');
     const [uploading, setUploading] = useState(false);
 
+    // Registrations state
+    const [registrations, setRegistrations] = useState<SevaRegistration[]>([]);
+    const [registrationsLoading, setRegistrationsLoading] = useState(false);
+    const [statusFilter, setStatusFilter] = useState<string>('');
+    const [sevaFilter, setSevaFilter] = useState<string>('');
+
     useEffect(() => {
         fetchItems();
     }, []);
+
+    useEffect(() => {
+        if (activeTab === 'registrations') {
+            fetchRegistrations();
+        }
+    }, [activeTab, statusFilter, sevaFilter]);
 
     const fetchItems = async () => {
         try {
@@ -56,6 +89,43 @@ export default function AdminSevaPage() {
             console.error('Failed to fetch:', error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const fetchRegistrations = async () => {
+        setRegistrationsLoading(true);
+        try {
+            let url = `${API_URL}/pages/seva/registrations`;
+            const params = new URLSearchParams();
+            if (statusFilter) params.append('status', statusFilter);
+            if (sevaFilter) params.append('sevaId', sevaFilter);
+            if (params.toString()) url += `?${params.toString()}`;
+
+            const res = await fetch(url, { credentials: 'include' });
+            if (res.ok) {
+                const data = await res.json();
+                setRegistrations(data);
+            }
+        } catch (error) {
+            console.error('Failed to fetch registrations:', error);
+        } finally {
+            setRegistrationsLoading(false);
+        }
+    };
+
+    const updateRegistrationStatus = async (id: string, status: string) => {
+        try {
+            const res = await fetch(`${API_URL}/pages/seva/registrations/${id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ status }),
+            });
+            if (res.ok) {
+                fetchRegistrations();
+            }
+        } catch (error) {
+            console.error('Failed to update status:', error);
         }
     };
 
@@ -196,6 +266,16 @@ export default function AdminSevaPage() {
         }
     };
 
+    const formatDate = (dateString: string) => {
+        return new Date(dateString).toLocaleDateString('en-IN', {
+            day: 'numeric',
+            month: 'short',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+        });
+    };
+
     if (loading) {
         return (
             <div className="flex items-center justify-center py-20">
@@ -209,80 +289,235 @@ export default function AdminSevaPage() {
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Seva Opportunities</h1>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Manage temple seva and donation options</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Manage sevas and view registrations</p>
                 </div>
-                <Button onClick={() => openModal()} className="bg-[#5750F1] hover:bg-[#4a43d6]">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Seva
-                </Button>
-            </div>
-
-            {/* Items Grid */}
-            <div className="grid gap-4">
-                {items.length === 0 ? (
-                    <Card className="p-12 text-center">
-                        <ImageIcon className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-                        <h3 className="text-lg font-medium text-gray-900 dark:text-white">No seva opportunities yet</h3>
-                        <p className="text-gray-500 mt-1">Add your first seva option</p>
-                        <Button onClick={() => openModal()} className="mt-4 bg-[#5750F1] hover:bg-[#4a43d6]">
-                            <Plus className="h-4 w-4 mr-2" />
-                            Add Seva
-                        </Button>
-                    </Card>
-                ) : (
-                    items.map((item) => (
-                        <Card key={item.id} className={`p-4 ${!item.isActive ? 'opacity-60' : ''}`}>
-                            <div className="flex items-center gap-4">
-                                <div className="h-16 w-24 rounded-lg bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center overflow-hidden">
-                                    {item.imageUrl ? (
-                                        <img src={item.imageUrl} alt={item.title} className="h-full w-full object-cover" />
-                                    ) : (
-                                        <ImageIcon className="h-6 w-6 text-white/60" />
-                                    )}
-                                </div>
-                                <div className="flex-1">
-                                    <div className="flex items-center gap-2">
-                                        <h3 className="font-semibold text-gray-900 dark:text-white">{item.title}</h3>
-                                        <span className="text-xs px-2 py-0.5 bg-[#5750F1]/10 text-[#5750F1] rounded-full">
-                                            {item.category}
-                                        </span>
-                                        {item.isRecurring && (
-                                            <span className="text-xs px-2 py-0.5 bg-green-100 text-green-600 rounded-full">
-                                                Recurring
-                                            </span>
-                                        )}
-                                    </div>
-                                    <p className="text-sm text-gray-500 line-clamp-1">{item.description}</p>
-                                    {item.amount && (
-                                        <p className="text-sm font-medium text-[#5750F1] mt-1">₹{item.amount.toLocaleString()}</p>
-                                    )}
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        onClick={() => toggleActive(item)}
-                                        className={item.isActive ? 'text-green-500' : 'text-gray-400'}
-                                    >
-                                        {item.isActive ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
-                                    </Button>
-                                    <Button variant="ghost" size="icon" onClick={() => openModal(item)}>
-                                        <Pencil className="h-4 w-4" />
-                                    </Button>
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="text-red-500 hover:text-red-600"
-                                        onClick={() => handleDelete(item.id)}
-                                    >
-                                        <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                </div>
-                            </div>
-                        </Card>
-                    ))
+                {activeTab === 'manage' && (
+                    <Button onClick={() => openModal()} className="bg-[#5750F1] hover:bg-[#4a43d6]">
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Seva
+                    </Button>
                 )}
             </div>
+
+            {/* Tabs */}
+            <div className="flex gap-2 border-b dark:border-gray-800">
+                <button
+                    onClick={() => setActiveTab('manage')}
+                    className={`flex items-center gap-2 px-4 py-3 font-medium text-sm border-b-2 transition-colors ${activeTab === 'manage'
+                            ? 'border-[#5750F1] text-[#5750F1]'
+                            : 'border-transparent text-gray-500 hover:text-gray-700'
+                        }`}
+                >
+                    <Settings className="h-4 w-4" />
+                    Manage Sevas
+                </button>
+                <button
+                    onClick={() => setActiveTab('registrations')}
+                    className={`flex items-center gap-2 px-4 py-3 font-medium text-sm border-b-2 transition-colors ${activeTab === 'registrations'
+                            ? 'border-[#5750F1] text-[#5750F1]'
+                            : 'border-transparent text-gray-500 hover:text-gray-700'
+                        }`}
+                >
+                    <Users className="h-4 w-4" />
+                    Registrations
+                </button>
+            </div>
+
+            {/* Manage Sevas Tab */}
+            {activeTab === 'manage' && (
+                <div className="grid gap-4">
+                    {items.length === 0 ? (
+                        <Card className="p-12 text-center">
+                            <ImageIcon className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+                            <h3 className="text-lg font-medium text-gray-900 dark:text-white">No seva opportunities yet</h3>
+                            <p className="text-gray-500 mt-1">Add your first seva option</p>
+                            <Button onClick={() => openModal()} className="mt-4 bg-[#5750F1] hover:bg-[#4a43d6]">
+                                <Plus className="h-4 w-4 mr-2" />
+                                Add Seva
+                            </Button>
+                        </Card>
+                    ) : (
+                        items.map((item) => (
+                            <Card key={item.id} className={`p-4 ${!item.isActive ? 'opacity-60' : ''}`}>
+                                <div className="flex items-center gap-4">
+                                    <div className="h-16 w-24 rounded-lg bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center overflow-hidden">
+                                        {item.imageUrl ? (
+                                            <img src={item.imageUrl} alt={item.title} className="h-full w-full object-cover" />
+                                        ) : (
+                                            <ImageIcon className="h-6 w-6 text-white/60" />
+                                        )}
+                                    </div>
+                                    <div className="flex-1">
+                                        <div className="flex items-center gap-2">
+                                            <h3 className="font-semibold text-gray-900 dark:text-white">{item.title}</h3>
+                                            <span className="text-xs px-2 py-0.5 bg-[#5750F1]/10 text-[#5750F1] rounded-full">
+                                                {item.category}
+                                            </span>
+                                            {item.isRecurring && (
+                                                <span className="text-xs px-2 py-0.5 bg-green-100 text-green-600 rounded-full">
+                                                    Recurring
+                                                </span>
+                                            )}
+                                        </div>
+                                        <p className="text-sm text-gray-500 line-clamp-1">{item.description}</p>
+                                        {item.amount && (
+                                            <p className="text-sm font-medium text-[#5750F1] mt-1">₹{item.amount.toLocaleString()}</p>
+                                        )}
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            onClick={() => toggleActive(item)}
+                                            className={item.isActive ? 'text-green-500' : 'text-gray-400'}
+                                        >
+                                            {item.isActive ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                                        </Button>
+                                        <Button variant="ghost" size="icon" onClick={() => openModal(item)}>
+                                            <Pencil className="h-4 w-4" />
+                                        </Button>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="text-red-500 hover:text-red-600"
+                                            onClick={() => handleDelete(item.id)}
+                                        >
+                                            <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                </div>
+                            </Card>
+                        ))
+                    )}
+                </div>
+            )}
+
+            {/* Registrations Tab */}
+            {activeTab === 'registrations' && (
+                <div className="space-y-4">
+                    {/* Filters */}
+                    <Card className="p-4">
+                        <div className="flex flex-wrap gap-4">
+                            <div>
+                                <label className="block text-sm font-medium mb-1">Filter by Seva</label>
+                                <select
+                                    value={sevaFilter}
+                                    onChange={(e) => setSevaFilter(e.target.value)}
+                                    className="px-3 py-2 border rounded-lg dark:bg-gray-800 dark:border-gray-700 min-w-[200px]"
+                                >
+                                    <option value="">All Sevas</option>
+                                    {items.map((item) => (
+                                        <option key={item.id} value={item.id}>{item.title}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium mb-1">Filter by Status</label>
+                                <select
+                                    value={statusFilter}
+                                    onChange={(e) => setStatusFilter(e.target.value)}
+                                    className="px-3 py-2 border rounded-lg dark:bg-gray-800 dark:border-gray-700 min-w-[150px]"
+                                >
+                                    <option value="">All Status</option>
+                                    <option value="PENDING">Pending</option>
+                                    <option value="CONFIRMED">Confirmed</option>
+                                    <option value="COMPLETED">Completed</option>
+                                    <option value="CANCELLED">Cancelled</option>
+                                </select>
+                            </div>
+                        </div>
+                    </Card>
+
+                    {/* Registrations Table */}
+                    {registrationsLoading ? (
+                        <div className="flex items-center justify-center py-12">
+                            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#5750F1]"></div>
+                        </div>
+                    ) : registrations.length === 0 ? (
+                        <Card className="p-12 text-center">
+                            <Users className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+                            <h3 className="text-lg font-medium text-gray-900 dark:text-white">No registrations yet</h3>
+                            <p className="text-gray-500 mt-1">Registrations will appear here when users sign up for sevas</p>
+                        </Card>
+                    ) : (
+                        <Card className="overflow-hidden">
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-sm">
+                                    <thead className="bg-gray-50 dark:bg-gray-800 border-b dark:border-gray-700">
+                                        <tr>
+                                            <th className="text-left p-4 font-medium text-gray-600 dark:text-gray-300">Name</th>
+                                            <th className="text-left p-4 font-medium text-gray-600 dark:text-gray-300">Email</th>
+                                            <th className="text-left p-4 font-medium text-gray-600 dark:text-gray-300">Phone</th>
+                                            <th className="text-left p-4 font-medium text-gray-600 dark:text-gray-300">Seva</th>
+                                            <th className="text-left p-4 font-medium text-gray-600 dark:text-gray-300">Status</th>
+                                            <th className="text-left p-4 font-medium text-gray-600 dark:text-gray-300">Date</th>
+                                            <th className="text-left p-4 font-medium text-gray-600 dark:text-gray-300">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y dark:divide-gray-700">
+                                        {registrations.map((reg) => (
+                                            <tr key={reg.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                                                <td className="p-4">
+                                                    <div className="font-medium text-gray-900 dark:text-white">{reg.name}</div>
+                                                    {reg.user && <span className="text-xs text-[#5750F1]">Registered User</span>}
+                                                </td>
+                                                <td className="p-4 text-gray-600 dark:text-gray-400">{reg.email}</td>
+                                                <td className="p-4 text-gray-600 dark:text-gray-400">{reg.phone}</td>
+                                                <td className="p-4">
+                                                    <span className="text-gray-900 dark:text-white">{reg.seva.title}</span>
+                                                    <span className="block text-xs text-gray-500">{reg.seva.category}</span>
+                                                </td>
+                                                <td className="p-4">
+                                                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${STATUS_COLORS[reg.status]}`}>
+                                                        {reg.status}
+                                                    </span>
+                                                </td>
+                                                <td className="p-4 text-gray-600 dark:text-gray-400 text-xs">
+                                                    {formatDate(reg.createdAt)}
+                                                </td>
+                                                <td className="p-4">
+                                                    <div className="flex gap-1">
+                                                        {reg.status === 'PENDING' && (
+                                                            <Button
+                                                                size="sm"
+                                                                variant="ghost"
+                                                                className="text-blue-500 hover:text-blue-600"
+                                                                onClick={() => updateRegistrationStatus(reg.id, 'CONFIRMED')}
+                                                            >
+                                                                <CheckCircle className="h-4 w-4" />
+                                                            </Button>
+                                                        )}
+                                                        {reg.status === 'CONFIRMED' && (
+                                                            <Button
+                                                                size="sm"
+                                                                variant="ghost"
+                                                                className="text-green-500 hover:text-green-600"
+                                                                onClick={() => updateRegistrationStatus(reg.id, 'COMPLETED')}
+                                                            >
+                                                                <CheckCircle className="h-4 w-4" />
+                                                            </Button>
+                                                        )}
+                                                        {reg.status !== 'CANCELLED' && reg.status !== 'COMPLETED' && (
+                                                            <Button
+                                                                size="sm"
+                                                                variant="ghost"
+                                                                className="text-red-500 hover:text-red-600"
+                                                                onClick={() => updateRegistrationStatus(reg.id, 'CANCELLED')}
+                                                            >
+                                                                <XCircle className="h-4 w-4" />
+                                                            </Button>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </Card>
+                    )}
+                </div>
+            )}
 
             {/* Modal */}
             {isModalOpen && (

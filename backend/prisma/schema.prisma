@@ -87,6 +87,7 @@ model User {
   addresses       UserAddress[]
   auditLogs       AuditLog[]  @relation("UserAuditLogs")
   donations       Donation[]
+  sevaRegistrations SevaRegistration[]
   
   @@index([email])
   @@index([role])
@@ -533,9 +534,39 @@ model SevaOpportunity {
   updatedAt    DateTime @updatedAt
   createdBy    String?
   
+  registrations SevaRegistration[]
+  
   @@index([isActive])
   @@index([category])
   @@index([displayOrder])
+}
+
+enum SevaRegistrationStatus {
+  PENDING
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+}
+
+model SevaRegistration {
+  id        String   @id @default(uuid())
+  sevaId    String
+  seva      SevaOpportunity @relation(fields: [sevaId], references: [id], onDelete: Cascade)
+  
+  // User info (logged-in or guest)
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+  name      String
+  email     String
+  phone     String
+  
+  status    SevaRegistrationStatus @default(PENDING)
+  createdAt DateTime @default(now())
+  
+  @@index([sevaId])
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
 }
 
 model NityaSevakPage {

@@ -308,3 +308,23 @@ export class UpdateApplicationStatusDto {
     @IsString()
     status: 'PENDING' | 'APPROVED' | 'REJECTED';
 }
+
+// ============================================
+// Seva Registration DTOs
+// ============================================
+
+export class CreateSevaRegistrationDto {
+    @IsString()
+    name: string;
+
+    @IsString()
+    email: string;
+
+    @IsString()
+    phone: string;
+}
+
+export class UpdateSevaRegistrationStatusDto {
+    @IsString()
+    status: 'PENDING' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED';
+}

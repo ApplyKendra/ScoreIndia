@@ -20,6 +20,8 @@ import {
     UpdateNityaSevakPageDto,
     CreateNityaSevakApplicationDto,
     UpdateApplicationStatusDto,
+    CreateSevaRegistrationDto,
+    UpdateSevaRegistrationStatusDto,
 } from './dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
@@ -119,6 +121,45 @@ export class PagesController {
     }
 
     // ============================================
+    // Seva Registrations
+    // ============================================
+
+    // Register for a seva - works for both logged-in and guest users
+    @Public()
+    @Post('seva/:id/register')
+    registerForSeva(
+        @Param('id') id: string,
+        @Body() dto: CreateSevaRegistrationDto,
+        @Request() req: any,
+    ) {
+        // If user is logged in, pass their userId
+        const userId = req.user?.id;
+        return this.pagesService.registerForSeva(id, dto, userId);
+    }
+
+    // Admin: Get all registrations with optional filters
+    @Get('seva/registrations')
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles('SUPER_ADMIN', 'SUB_ADMIN')
+    getSevaRegistrations(
+        @Query('sevaId') sevaId?: string,
+        @Query('status') status?: string,
+    ) {
+        return this.pagesService.getSevaRegistrations(sevaId, status);
+    }
+
+    // Admin: Update registration status
+    @Patch('seva/registrations/:id')
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles('SUPER_ADMIN', 'SUB_ADMIN')
+    updateSevaRegistrationStatus(
+        @Param('id') id: string,
+        @Body() dto: UpdateSevaRegistrationStatusDto,
+    ) {
+        return this.pagesService.updateSevaRegistrationStatus(id, dto);
+    }
+
+    // ============================================
     // Nitya Sevak
     // ============================================
 
@@ -155,3 +196,4 @@ export class PagesController {
         return this.pagesService.updateApplicationStatus(id, dto);
     }
 }
+
