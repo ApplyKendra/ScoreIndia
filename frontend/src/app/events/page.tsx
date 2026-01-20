@@ -67,6 +67,7 @@ export default function EventsPage() {
         dietaryReq: '',
     });
     const [registering, setRegistering] = useState(false);
+    const [myRegistrations, setMyRegistrations] = useState<string[]>([]); // Array of event IDs user is registered for
 
     useEffect(() => {
         const fetchEvents = async () => {
@@ -83,6 +84,21 @@ export default function EventsPage() {
         };
         fetchEvents();
     }, []);
+
+    // Fetch user's registrations when authenticated
+    useEffect(() => {
+        const fetchMyRegistrations = async () => {
+            if (isAuthenticated) {
+                try {
+                    const regs = await youthApi.getMyRegistrations();
+                    setMyRegistrations(regs.map(r => r.eventId));
+                } catch (error) {
+                    console.error('Failed to fetch user registrations:', error);
+                }
+            }
+        };
+        fetchMyRegistrations();
+    }, [isAuthenticated]);
 
     useEffect(() => {
         let filtered = [...events];
@@ -139,7 +155,9 @@ export default function EventsPage() {
             });
             toast.success(`Successfully registered for "${selectedEvent.title}"!`);
             setRegisterDialogOpen(false);
-            // Refresh events
+            // Add to user's registrations list
+            setMyRegistrations(prev => [...prev, selectedEvent.id]);
+            // Refresh events to update counts
             const data = await youthApi.getEvents();
             setEvents(data);
             setFilteredEvents(data.filter((e: YouthEvent) =>
@@ -215,6 +233,29 @@ export default function EventsPage() {
 
     const featuredEvents = events.filter(e => e.isFeatured && e.status === 'UPCOMING');
     const upcomingCount = events.filter(e => e.status === 'UPCOMING').length;
+
+    // Check if user is registered for an event
+    const isRegisteredForEvent = (eventId: string) => myRegistrations.includes(eventId);
+
+    // Get event status based on actual date (for display badge)
+    const getEventStatusByDate = (event: YouthEvent) => {
+        const now = new Date();
+        const eventDate = new Date(event.date);
+        const endDate = event.endDate ? new Date(event.endDate) : eventDate;
+
+        // Set both dates to midnight for fair comparison
+        const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const eventStart = new Date(eventDate.getFullYear(), eventDate.getMonth(), eventDate.getDate());
+        const eventEnd = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+
+        if (todayStart > eventEnd) {
+            return { status: 'PAST', color: 'bg-gray-500', label: 'Past' };
+        } else if (todayStart >= eventStart && todayStart <= eventEnd) {
+            return { status: 'ONGOING', color: 'bg-green-500', label: 'Ongoing' };
+        } else {
+            return { status: 'UPCOMING', color: 'bg-blue-500', label: 'Upcoming' };
+        }
+    };
 
     if (loading) {
         return (
@@ -427,18 +468,27 @@ export default function EventsPage() {
                                                             {event._count && (
                                                                 <div className="flex items-center gap-1.5">
                                                                     <Users className="w-4 h-4 text-[#5750F1]" />
-                                                                    {event._count.registrations} registered
+                                                                    {getTotalJoined(event)} joined
                                                                 </div>
                                                             )}
                                                         </div>
 
-                                                        <Button
-                                                            onClick={() => handleRegisterClick(event)}
-                                                            className="bg-[#5750F1] hover:bg-[#4a43d6] shadow-lg shadow-[#5750F1]/30"
-                                                        >
-                                                            Register Now
-                                                            <ArrowRight className="w-4 h-4 ml-2" />
-                                                        </Button>
+                                                        {isRegisteredForEvent(event.id) ? (
+                                                            <Button
+                                                                disabled
+                                                                className="bg-green-600 hover:bg-green-600 cursor-default"
+                                                            >
+                                                                ✓ Registered
+                                                            </Button>
+                                                        ) : (
+                                                            <Button
+                                                                onClick={() => handleRegisterClick(event)}
+                                                                className="bg-[#5750F1] hover:bg-[#4a43d6] shadow-lg shadow-[#5750F1]/30"
+                                                            >
+                                                                Register Now
+                                                                <ArrowRight className="w-4 h-4 ml-2" />
+                                                            </Button>
+                                                        )}
                                                     </div>
                                                 </div>
                                             </CardContent>
@@ -504,7 +554,9 @@ export default function EventsPage() {
                         {filteredEvents.map((event) => {
                             const dateInfo = formatShortDate(event.date);
                             const isHovered = hoveredEvent === event.id;
-                            const isUpcoming = event.status === 'UPCOMING';
+                            const eventStatus = getEventStatusByDate(event);
+                            const isUpcoming = eventStatus.status === 'UPCOMING';
+                            const userRegistered = isRegisteredForEvent(event.id);
 
                             return (
                                 <div
@@ -548,13 +600,13 @@ export default function EventsPage() {
                                                         Free
                                                     </span>
                                                 )}
-                                                <span className={`ml-auto inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold ${isUpcoming
+                                                <span className={`ml-auto inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold ${eventStatus.status === 'UPCOMING'
                                                     ? 'bg-[#5750F1]/10 text-[#5750F1]'
-                                                    : event.status === 'ONGOING'
-                                                        ? 'bg-blue-100 text-blue-700'
+                                                    : eventStatus.status === 'ONGOING'
+                                                        ? 'bg-green-100 text-green-700'
                                                         : 'bg-gray-100 text-gray-500'
                                                     }`}>
-                                                    {event.status}
+                                                    {eventStatus.label}
                                                 </span>
                                             </div>
 
@@ -623,14 +675,16 @@ export default function EventsPage() {
                                             )}
 
                                             <button
-                                                className={`inline-flex items-center text-sm font-medium transition-colors ${isUpcoming
-                                                    ? 'text-[#5750F1] group-hover:text-[#4a43d6]'
-                                                    : 'text-gray-400 cursor-not-allowed'
+                                                className={`inline-flex items-center text-sm font-medium transition-colors ${userRegistered
+                                                    ? 'text-green-600'
+                                                    : isUpcoming
+                                                        ? 'text-[#5750F1] group-hover:text-[#4a43d6]'
+                                                        : 'text-gray-400 cursor-not-allowed'
                                                     }`}
-                                                disabled={!isUpcoming}
+                                                disabled={!isUpcoming || userRegistered}
                                             >
-                                                {isUpcoming ? 'Register' : 'Closed'}
-                                                <ChevronRight className={`w-4 h-4 ml-0.5 transition-transform ${isHovered && isUpcoming ? 'translate-x-1' : ''}`} />
+                                                {userRegistered ? '✓ Registered' : isUpcoming ? 'Register' : 'Closed'}
+                                                {!userRegistered && <ChevronRight className={`w-4 h-4 ml-0.5 transition-transform ${isHovered && isUpcoming ? 'translate-x-1' : ''}`} />}
                                             </button>
                                         </div>
                                     </div>

@@ -375,6 +375,51 @@ export default function AdminEventsPage() {
                 </Card>
             </div>
 
+            {/* Registrations Overview Section */}
+            <Card>
+                <CardContent className="pt-6">
+                    <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-2">
+                            <UsersIcon className="h-5 w-5 text-purple-600" />
+                            <h2 className="text-lg font-semibold">All Registrations by Event</h2>
+                        </div>
+                        <span className="text-sm text-muted-foreground">{totalRegistrations} total registrations</span>
+                    </div>
+
+                    {events.length === 0 ? (
+                        <p className="text-center text-muted-foreground py-6">No events to show registrations for</p>
+                    ) : (
+                        <div className="space-y-3">
+                            {events.map((event) => (
+                                <div key={event.id} className="border rounded-lg overflow-hidden">
+                                    <button
+                                        onClick={() => viewRegistrations(event)}
+                                        className="w-full flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors text-left"
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
+                                                <Calendar className="w-5 h-5 text-emerald-600" />
+                                            </div>
+                                            <div>
+                                                <h3 className="font-medium">{event.title}</h3>
+                                                <p className="text-sm text-muted-foreground">{formatDate(event.date)} • {event.location}</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-3">
+                                            <Badge variant={event._count?.registrations ? 'default' : 'secondary'} className="bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">
+                                                <UsersIcon className="w-3 h-3 mr-1" />
+                                                {event._count?.registrations || 0} {event._count?.registrations === 1 ? 'person' : 'people'}
+                                            </Badge>
+                                            <span className="text-muted-foreground text-sm">Click to view →</span>
+                                        </div>
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
+
             <Card>
                 <CardContent className="p-0">
                     {loading ? (
