@@ -65,7 +65,7 @@ export default function AdminSlideshowPage() {
 
     const fetchSlides = async () => {
         try {
-            const res = await fetch(`${API_URL}/hero-slides?includeInactive=true`, {
+            const res = await fetch(`${API_URL}/api/hero-slides?includeInactive=true`, {
                 credentials: 'include',
             });
             if (res.ok) {
@@ -200,8 +200,8 @@ export default function AdminSlideshowPage() {
 
         try {
             const url = editingSlide
-                ? `${API_URL}/hero-slides/${editingSlide.id}`
-                : `${API_URL}/hero-slides`;
+                ? `${API_URL}/api/hero-slides/${editingSlide.id}`
+                : `${API_URL}/api/hero-slides`;
 
             const res = await fetch(url, {
                 method: editingSlide ? 'PATCH' : 'POST',
@@ -228,7 +228,7 @@ export default function AdminSlideshowPage() {
         if (!confirm('Are you sure you want to delete this slide?')) return;
 
         try {
-            const res = await fetch(`${API_URL}/hero-slides/${id}`, {
+            const res = await fetch(`${API_URL}/api/hero-slides/${id}`, {
                 method: 'DELETE',
                 credentials: 'include',
             });
@@ -242,7 +242,7 @@ export default function AdminSlideshowPage() {
 
     const toggleActive = async (slide: HeroSlide) => {
         try {
-            const res = await fetch(`${API_URL}/hero-slides/${slide.id}`, {
+            const res = await fetch(`${API_URL}/api/hero-slides/${slide.id}`, {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',
