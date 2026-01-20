@@ -39,6 +39,11 @@ export const useAuthStore = create<AuthState>()(
             _sessionVerified: false,
 
             setHasHydrated: () => {
+                const state = get();
+                console.log('[AUTH-STORE] Hydration complete', {
+                    user: state.user?.email,
+                    isAuthenticated: state.isAuthenticated,
+                });
                 set({ _hasHydrated: true });
                 // After hydration, validate session with server
                 get().validateSession();
@@ -76,17 +81,26 @@ export const useAuthStore = create<AuthState>()(
             validateSession: async () => {
                 const state = get();
 
+                console.log('[AUTH-STORE] validateSession called', {
+                    _sessionVerified: state._sessionVerified,
+                    isAuthenticated: state.isAuthenticated,
+                    user: state.user?.email,
+                });
+
                 // If we've already verified this session, skip
                 if (state._sessionVerified) {
+                    console.log('[AUTH-STORE] Session already verified, skipping');
                     set({ isLoading: false });
                     return true;
                 }
 
                 // If localStorage says we're authenticated, verify with server
                 if (state.isAuthenticated && state.user) {
+                    console.log('[AUTH-STORE] Verifying session with server...');
                     set({ isLoading: true });
                     try {
                         const { data } = await api.get('/auth/profile');
+                        console.log('[AUTH-STORE] Session verified successfully', { email: data.email });
                         set({
                             user: data,
                             isAuthenticated: true,
@@ -94,9 +108,12 @@ export const useAuthStore = create<AuthState>()(
                             _sessionVerified: true,
                         });
                         return true;
-                    } catch (e) {
+                    } catch (e: any) {
                         // Cookies are invalid - clear localStorage state
-                        console.warn('Session validation failed - clearing auth state');
+                        console.error('[AUTH-STORE] Session validation FAILED', {
+                            status: e.response?.status,
+                            message: e.response?.data?.message || e.message,
+                        });
                         set({
                             user: null,
                             isAuthenticated: false,
