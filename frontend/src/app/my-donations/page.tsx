@@ -82,7 +82,7 @@ export default function MyDonationsPage() {
     const fetchDonations = async (isRefresh = false) => {
         if (isRefresh) setRefreshing(true);
         try {
-            const res = await fetch(`${API_URL}/api/donations/my`, {
+            const res = await fetch(`${API_URL}/donations/my`, {
                 credentials: 'include',
             });
             if (res.ok) {

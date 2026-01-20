@@ -61,7 +61,7 @@ export default function AdminDonationsPage() {
     const fetchDonations = async () => {
         setLoading(true);
         try {
-            const res = await fetch(`${API_URL}/api/donations${filter !== 'all' ? `?status=${filter}` : ''}`, {
+            const res = await fetch(`${API_URL}/donations${filter !== 'all' ? `?status=${filter}` : ''}`, {
                 credentials: 'include',
             });
             if (res.ok) {
@@ -82,7 +82,7 @@ export default function AdminDonationsPage() {
     const handleVerify = async (donationId: string, status: 'VERIFIED' | 'REJECTED', reason?: string) => {
         setVerifying(true);
         try {
-            const res = await fetch(`${API_URL}/api/donations/${donationId}/verify`, {
+            const res = await fetch(`${API_URL}/donations/${donationId}/verify`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',

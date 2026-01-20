@@ -64,7 +64,7 @@ export default function AdminNityaSevakPage() {
         setLoading(true);
         try {
             // Fetch page content
-            const pageRes = await fetch(`${API_URL}/api/pages/nitya-sevak`);
+            const pageRes = await fetch(`${API_URL}/pages/nitya-sevak`);
             if (pageRes.ok) {
                 const data = await pageRes.json();
                 setPageData({
@@ -75,7 +75,7 @@ export default function AdminNityaSevakPage() {
             }
 
             // Fetch applications
-            const appsRes = await fetch(`${API_URL}/api/pages/nitya-sevak/applications`, {
+            const appsRes = await fetch(`${API_URL}/pages/nitya-sevak/applications`, {
                 credentials: 'include',
             });
             if (appsRes.ok) {
@@ -113,7 +113,7 @@ export default function AdminNityaSevakPage() {
     const handleSave = async () => {
         setSaving(true);
         try {
-            const res = await fetch(`${API_URL}/api/pages/nitya-sevak`, {
+            const res = await fetch(`${API_URL}/pages/nitya-sevak`, {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',
@@ -136,7 +136,7 @@ export default function AdminNityaSevakPage() {
 
     const updateApplicationStatus = async (id: string, status: 'APPROVED' | 'REJECTED') => {
         try {
-            const res = await fetch(`${API_URL}/api/pages/nitya-sevak/applications/${id}`, {
+            const res = await fetch(`${API_URL}/pages/nitya-sevak/applications/${id}`, {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',

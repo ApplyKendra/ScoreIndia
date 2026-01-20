@@ -35,7 +35,7 @@ export default function SevaOpportunitiesPage() {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const res = await fetch(`${API_URL}/api/pages/seva`);
+                const res = await fetch(`${API_URL}/pages/seva`);
                 if (res.ok) {
                     const data = await res.json();
                     setItems(data);

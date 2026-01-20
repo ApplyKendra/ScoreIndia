@@ -51,7 +51,7 @@ export default function AdminTempleConstructionPage() {
 
     const fetchData = async () => {
         try {
-            const res = await fetch(`${API_URL}/api/pages/temple-construction`);
+            const res = await fetch(`${API_URL}/pages/temple-construction`);
             if (res.ok) {
                 const result = await res.json();
                 setData({
@@ -99,7 +99,7 @@ export default function AdminTempleConstructionPage() {
     const handleSave = async () => {
         setSaving(true);
         try {
-            const res = await fetch(`${API_URL}/api/pages/temple-construction`, {
+            const res = await fetch(`${API_URL}/pages/temple-construction`, {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',

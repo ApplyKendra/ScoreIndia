@@ -64,7 +64,7 @@ export default function DonationReceiptPage() {
 
     const fetchReceipt = async () => {
         try {
-            const res = await fetch(`${API_URL}/api/donations/public/${donationId}`, {
+            const res = await fetch(`${API_URL}/donations/public/${donationId}`, {
                 credentials: 'include',
             });
             if (res.ok) {

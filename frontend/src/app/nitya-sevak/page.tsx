@@ -52,7 +52,7 @@ export default function NityaSevakPage() {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const res = await fetch(`${API_URL}/api/pages/nitya-sevak`);
+                const res = await fetch(`${API_URL}/pages/nitya-sevak`);
                 if (res.ok) {
                     const result = await res.json();
                     setData(result);
@@ -72,7 +72,7 @@ export default function NityaSevakPage() {
 
         setSubmitting(true);
         try {
-            const res = await fetch(`${API_URL}/api/pages/nitya-sevak/apply`, {
+            const res = await fetch(`${API_URL}/pages/nitya-sevak/apply`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

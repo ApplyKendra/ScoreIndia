@@ -42,7 +42,7 @@ export default function AdminContactUsPage() {
 
     const fetchData = async () => {
         try {
-            const res = await fetch(`${API_URL}/api/pages/contact-us`);
+            const res = await fetch(`${API_URL}/pages/contact-us`);
             if (res.ok) {
                 const result = await res.json();
                 setData({
@@ -84,7 +84,7 @@ export default function AdminContactUsPage() {
     const handleSave = async () => {
         setSaving(true);
         try {
-            const res = await fetch(`${API_URL}/api/pages/contact-us`, {
+            const res = await fetch(`${API_URL}/pages/contact-us`, {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',

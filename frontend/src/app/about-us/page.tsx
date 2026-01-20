@@ -37,7 +37,7 @@ export default function AboutUsPage() {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const res = await fetch(`${API_URL}/api/pages/about-us`);
+                const res = await fetch(`${API_URL}/pages/about-us`);
                 if (res.ok) {
                     const result = await res.json();
                     setData(result);

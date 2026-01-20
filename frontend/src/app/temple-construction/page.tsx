@@ -45,7 +45,7 @@ export default function TempleConstructionPage() {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const res = await fetch(`${API_URL}/api/pages/temple-construction`);
+                const res = await fetch(`${API_URL}/pages/temple-construction`);
                 if (res.ok) {
                     const result = await res.json();
                     setData(result);

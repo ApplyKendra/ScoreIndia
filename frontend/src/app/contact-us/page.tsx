@@ -43,7 +43,7 @@ export default function ContactUsPage() {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const res = await fetch(`${API_URL}/api/pages/contact-us`);
+                const res = await fetch(`${API_URL}/pages/contact-us`);
                 if (res.ok) {
                     const result = await res.json();
                     setData(result);

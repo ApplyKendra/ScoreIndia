@@ -46,7 +46,7 @@ export default function AdminAboutUsPage() {
 
     const fetchData = async () => {
         try {
-            const res = await fetch(`${API_URL}/api/pages/about-us`);
+            const res = await fetch(`${API_URL}/pages/about-us`);
             if (res.ok) {
                 const result = await res.json();
                 setData(result);
@@ -88,7 +88,7 @@ export default function AdminAboutUsPage() {
     const handleSave = async () => {
         setSaving(true);
         try {
-            const res = await fetch(`${API_URL}/api/pages/about-us`, {
+            const res = await fetch(`${API_URL}/pages/about-us`, {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',

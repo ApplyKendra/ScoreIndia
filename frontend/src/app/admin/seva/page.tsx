@@ -45,7 +45,7 @@ export default function AdminSevaPage() {
 
     const fetchItems = async () => {
         try {
-            const res = await fetch(`${API_URL}/api/pages/seva?includeInactive=true`, {
+            const res = await fetch(`${API_URL}/pages/seva?includeInactive=true`, {
                 credentials: 'include',
             });
             if (res.ok) {
@@ -142,8 +142,8 @@ export default function AdminSevaPage() {
 
         try {
             const url = editingItem
-                ? `${API_URL}/api/pages/seva/${editingItem.id}`
-                : `${API_URL}/api/pages/seva`;
+                ? `${API_URL}/pages/seva/${editingItem.id}`
+                : `${API_URL}/pages/seva`;
 
             const res = await fetch(url, {
                 method: editingItem ? 'PATCH' : 'POST',
@@ -170,7 +170,7 @@ export default function AdminSevaPage() {
     const handleDelete = async (id: string) => {
         if (!confirm('Are you sure you want to delete this seva opportunity?')) return;
         try {
-            const res = await fetch(`${API_URL}/api/pages/seva/${id}`, {
+            const res = await fetch(`${API_URL}/pages/seva/${id}`, {
                 method: 'DELETE',
                 credentials: 'include',
             });
@@ -182,7 +182,7 @@ export default function AdminSevaPage() {
 
     const toggleActive = async (item: SevaOpportunity) => {
         try {
-            const res = await fetch(`${API_URL}/api/pages/seva/${item.id}`, {
+            const res = await fetch(`${API_URL}/pages/seva/${item.id}`, {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',
