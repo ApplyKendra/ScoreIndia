@@ -196,19 +196,98 @@
 .animate-orb-1 {
   animation: orb-float-1 20s infinite ease-in-out;
   will-change: transform;
+  transform: translateZ(0);
+  backface-visibility: hidden;
 }
 
 .animate-orb-2 {
   animation: orb-float-2 25s infinite ease-in-out reverse;
   will-change: transform;
+  transform: translateZ(0);
+  backface-visibility: hidden;
 }
 
 .animate-orb-3 {
   animation: orbFloat3 12s ease-in-out infinite;
+  will-change: transform;
+  transform: translateZ(0);
 }
 
 .animate-orb-4 {
   animation: orbFloat4 9s ease-in-out infinite;
+  will-change: transform;
+  transform: translateZ(0);
+}
+
+/* ===== Mobile Performance Optimizations ===== */
+/* Disable heavy animations on mobile devices for better performance */
+@media (max-width: 768px) {
+
+  .animate-orb-1,
+  .animate-orb-2,
+  .animate-orb-3,
+  .animate-orb-4,
+  .animate-particle-float,
+  .animate-diamond-float,
+  .animate-hexagon-float,
+  .animate-ring-pulse,
+  .animate-circle-pulse,
+  .animate-shimmer {
+    animation: none !important;
+  }
+
+  /* Reduce blur on mobile for better GPU performance */
+  .blur-3xl {
+    filter: blur(32px) !important;
+    /* Reduced from 64px */
+  }
+
+  .blur-2xl {
+    filter: blur(24px) !important;
+    /* Reduced from 40px */
+  }
+
+  /* Hide decorative orbs on very small screens */
+  .animate-orb-1,
+  .animate-orb-2 {
+    opacity: 0.3 !important;
+  }
+}
+
+/* Even more aggressive optimization for very small screens */
+@media (max-width: 480px) {
+
+  .blur-3xl,
+  .blur-2xl {
+    filter: blur(16px) !important;
+  }
+
+  .animate-orb-1,
+  .animate-orb-2,
+  .animate-orb-3 {
+    display: none !important;
+    /* Hide completely on smallest screens */
+  }
+
+  /* Disable backdrop blur on mobile for better scroll performance */
+  .backdrop-blur-xl,
+  .backdrop-blur-2xl,
+  .backdrop-blur-md {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+}
+
+/* Respect user's motion preferences */
+@media (prefers-reduced-motion: reduce) {
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 /* ===== Glow Pulse Animation ===== */
