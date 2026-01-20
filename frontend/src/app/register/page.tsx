@@ -308,7 +308,7 @@ export default function RegisterPage() {
 
                                                     {/* Dropdown */}
                                                     {showCountryDropdown && (
-                                                        <div className="absolute top-full left-0 mt-2 w-64 max-h-60 overflow-y-auto bg-white border border-gray-200 rounded-xl shadow-2xl z-50">
+                                                        <div className="absolute top-full left-0 mt-2 w-64 max-h-60 overflow-y-auto bg-white border border-gray-200 rounded-xl shadow-2xl z-[60]">
                                                             {COUNTRY_CODES.map((country) => (
                                                                 <button
                                                                     key={country.code}
@@ -443,7 +443,7 @@ export default function RegisterPage() {
             {/* Click outside to close dropdown */}
             {showCountryDropdown && (
                 <div
-                    className="fixed inset-0 z-40"
+                    className="fixed inset-0 z-[55]"
                     onClick={() => setShowCountryDropdown(false)}
                 />
             )}

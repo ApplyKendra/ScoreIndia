@@ -294,38 +294,54 @@ export default function SevaOpportunitiesPage() {
                                                 {item.description}
                                             </p>
 
-                                            {/* Registered State */}
-                                            {isRegistered ? (
-                                                <div className="flex items-center justify-center gap-2 py-3.5 bg-emerald-50 dark:bg-emerald-900/30 rounded-xl text-emerald-600 dark:text-emerald-400 font-semibold">
-                                                    <CheckCircle className="w-5 h-5" />
-                                                    Registered
-                                                </div>
-                                            ) : (
-                                                <div className="flex gap-2">
-                                                    <Button
-                                                        onClick={() => handleRegisterForSelf(item)}
-                                                        disabled={registering === item.id}
-                                                        className="flex-1 bg-[#5750F1] hover:bg-[#4a43d6] rounded-xl py-5 text-sm font-semibold"
-                                                    >
-                                                        {registering === item.id ? (
-                                                            <Loader2 className="w-4 h-4 animate-spin" />
-                                                        ) : (
-                                                            <>
-                                                                <User className="w-4 h-4 mr-1.5" />
-                                                                For Yourself
-                                                            </>
-                                                        )}
-                                                    </Button>
-                                                    <Button
-                                                        onClick={() => handleRegisterForOthers(item)}
-                                                        variant="outline"
-                                                        className="flex-1 border-[#5750F1] text-[#5750F1] hover:bg-[#5750F1]/10 rounded-xl py-5 text-sm font-semibold"
-                                                    >
-                                                        <Users className="w-4 h-4 mr-1.5" />
-                                                        For Others
-                                                    </Button>
-                                                </div>
-                                            )}
+                                            {/* Registration Section */}
+                                            <div className="space-y-3">
+                                                <p className="text-xs text-center text-gray-500 dark:text-gray-400 font-medium uppercase tracking-wide">
+                                                    Register here
+                                                </p>
+
+                                                {isRegistered ? (
+                                                    <div className="space-y-2">
+                                                        <div className="flex items-center justify-center gap-2 py-3 bg-emerald-50 dark:bg-emerald-900/30 rounded-xl text-emerald-600 dark:text-emerald-400 font-semibold">
+                                                            <CheckCircle className="w-5 h-5" />
+                                                            Registered
+                                                        </div>
+                                                        <Button
+                                                            onClick={() => handleRegisterForOthers(item)}
+                                                            variant="outline"
+                                                            className="w-full border-[#5750F1] text-[#5750F1] hover:bg-[#5750F1]/10 rounded-xl py-5 text-sm font-semibold"
+                                                        >
+                                                            <Users className="w-4 h-4 mr-1.5" />
+                                                            Register for Others
+                                                        </Button>
+                                                    </div>
+                                                ) : (
+                                                    <div className="flex gap-2">
+                                                        <Button
+                                                            onClick={() => handleRegisterForSelf(item)}
+                                                            disabled={registering === item.id}
+                                                            className="flex-1 bg-[#5750F1] hover:bg-[#4a43d6] rounded-xl py-5 text-sm font-semibold"
+                                                        >
+                                                            {registering === item.id ? (
+                                                                <Loader2 className="w-4 h-4 animate-spin" />
+                                                            ) : (
+                                                                <>
+                                                                    <User className="w-4 h-4 mr-1.5" />
+                                                                    For Yourself
+                                                                </>
+                                                            )}
+                                                        </Button>
+                                                        <Button
+                                                            onClick={() => handleRegisterForOthers(item)}
+                                                            variant="outline"
+                                                            className="flex-1 border-[#5750F1] text-[#5750F1] hover:bg-[#5750F1]/10 rounded-xl py-5 text-sm font-semibold"
+                                                        >
+                                                            <Users className="w-4 h-4 mr-1.5" />
+                                                            For Others
+                                                        </Button>
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
                                     </Card>
                                 );
