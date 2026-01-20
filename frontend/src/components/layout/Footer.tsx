@@ -96,15 +96,13 @@ export function Footer() {
                         {/* Brand */}
                         <div className="col-span-2 lg:col-span-2 space-y-4 sm:space-y-5">
                             <Link href="/" className="flex items-center gap-2 sm:gap-3 group">
-                                <div className="relative h-14 w-14 sm:h-16 sm:w-16 bg-gradient-to-br from-[#5750F1] to-purple-600 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-lg shadow-[#5750F1]/30 group-hover:scale-105 transition-transform">
-                                    <Image
-                                        src="/logo-white.svg"
-                                        alt="ISKCON Logo"
-                                        width={40}
-                                        height={40}
-                                        className="h-8 w-8 sm:h-10 sm:w-10"
-                                    />
-                                </div>
+                                <Image
+                                    src="/logo-white.svg"
+                                    alt="ISKCON Logo"
+                                    width={64}
+                                    height={64}
+                                    className="h-14 w-14 sm:h-16 sm:w-16 group-hover:scale-105 transition-transform"
+                                />
                                 <div>
                                     <span className="font-bold text-lg sm:text-xl text-white">ISKCON Burla</span>
                                     <p className="text-[10px] sm:text-xs text-white/50">Digital Temple Platform</p>
