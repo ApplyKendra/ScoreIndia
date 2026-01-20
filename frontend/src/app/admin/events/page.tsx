@@ -467,6 +467,15 @@ export default function AdminEventsPage() {
                                             </TableCell>
                                             <TableCell>
                                                 <div className="flex gap-1">
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        onClick={() => viewRegistrations(event)}
+                                                        title="View Registrations"
+                                                        className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
+                                                    >
+                                                        <UsersIcon className="h-4 w-4" />
+                                                    </Button>
                                                     <Button variant="ghost" size="icon" onClick={() => openEditDialog(event)}>
                                                         <Pencil className="h-4 w-4" />
                                                     </Button>
@@ -518,6 +527,14 @@ export default function AdminEventsPage() {
                                             {event._count?.registrations || 0} registered
                                         </button>
                                         <div className="flex gap-2">
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                className="flex-1 text-emerald-600 border-emerald-200 hover:bg-emerald-50"
+                                                onClick={() => viewRegistrations(event)}
+                                            >
+                                                <UsersIcon className="h-3 w-3 mr-1" />View
+                                            </Button>
                                             <Button variant="outline" size="sm" className="flex-1" onClick={() => openEditDialog(event)}>
                                                 <Pencil className="h-3 w-3 mr-1" />Edit
                                             </Button>
