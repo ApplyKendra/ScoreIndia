@@ -1,6 +1,14 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import api from '../api/client';
+import axios from 'axios';
+
+// Get API URL for direct refresh calls
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+
+// Token refresh interval - refresh before access token expires
+// Access token for admins is 15 min, so refresh at 10 min
+const TOKEN_REFRESH_INTERVAL = 10 * 60 * 1000; // 10 minutes
 
 export interface User {
     id: string;
@@ -18,15 +26,19 @@ interface AuthState {
     isAuthenticated: boolean;
     isLoading: boolean;
     _hasHydrated: boolean;
-    _sessionVerified: boolean; // NEW: Track if we've verified with server
+    _sessionVerified: boolean;
+    _refreshInterval: NodeJS.Timeout | null;
 
     setUser: (user: User | null) => void;
     login: (user: User) => void;
     logout: () => void;
     setLoading: (loading: boolean) => void;
     checkAuth: () => Promise<void>;
-    validateSession: () => Promise<boolean>; // NEW: Validate with server
+    validateSession: () => Promise<boolean>;
     setHasHydrated: () => void;
+    startTokenRefresh: () => void;
+    stopTokenRefresh: () => void;
+    refreshToken: () => Promise<boolean>;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -37,6 +49,7 @@ export const useAuthStore = create<AuthState>()(
             isLoading: true,
             _hasHydrated: false,
             _sessionVerified: false,
+            _refreshInterval: null,
 
             setHasHydrated: () => {
                 const state = get();
@@ -59,9 +72,16 @@ export const useAuthStore = create<AuthState>()(
                     isLoading: false,
                     _sessionVerified: true,
                 });
+                // Start proactive token refresh for admins
+                if (user.role === 'SUPER_ADMIN' || user.role === 'SUB_ADMIN') {
+                    get().startTokenRefresh();
+                }
             },
 
             logout: async () => {
+                // Stop token refresh
+                get().stopTokenRefresh();
+
                 try {
                     await api.post('/auth/logout');
                 } catch (e) {
@@ -76,6 +96,65 @@ export const useAuthStore = create<AuthState>()(
             },
 
             setLoading: (isLoading) => set({ isLoading }),
+
+            // Proactive token refresh - call /auth/refresh before token expires
+            refreshToken: async () => {
+                try {
+                    console.log('[AUTH-STORE] Proactive token refresh...');
+                    await axios.post(`${API_BASE_URL}/auth/refresh`, {}, { withCredentials: true });
+                    console.log('[AUTH-STORE] Token refreshed successfully');
+                    return true;
+                } catch (error: any) {
+                    console.error('[AUTH-STORE] Proactive refresh failed:', error.response?.status);
+                    // If refresh fails, session is invalid
+                    if (error.response?.status === 401) {
+                        get().stopTokenRefresh();
+                        set({
+                            user: null,
+                            isAuthenticated: false,
+                            _sessionVerified: true,
+                        });
+                    }
+                    return false;
+                }
+            },
+
+            // Start interval for proactive token refresh
+            startTokenRefresh: () => {
+                const state = get();
+
+                // Clear any existing interval
+                if (state._refreshInterval) {
+                    clearInterval(state._refreshInterval);
+                }
+
+                console.log('[AUTH-STORE] Starting proactive token refresh interval');
+
+                // Refresh immediately to ensure we have a fresh token
+                get().refreshToken();
+
+                // Then refresh every 10 minutes
+                const interval = setInterval(() => {
+                    const currentState = get();
+                    if (currentState.isAuthenticated && currentState.user) {
+                        get().refreshToken();
+                    } else {
+                        get().stopTokenRefresh();
+                    }
+                }, TOKEN_REFRESH_INTERVAL);
+
+                set({ _refreshInterval: interval });
+            },
+
+            // Stop the refresh interval
+            stopTokenRefresh: () => {
+                const state = get();
+                if (state._refreshInterval) {
+                    console.log('[AUTH-STORE] Stopping token refresh interval');
+                    clearInterval(state._refreshInterval);
+                    set({ _refreshInterval: null });
+                }
+            },
 
             // Validate session with server - ALWAYS calls the API
             validateSession: async () => {
@@ -107,6 +186,12 @@ export const useAuthStore = create<AuthState>()(
                             isLoading: false,
                             _sessionVerified: true,
                         });
+
+                        // Start proactive refresh for admins
+                        if (data.role === 'SUPER_ADMIN' || data.role === 'SUB_ADMIN') {
+                            get().startTokenRefresh();
+                        }
+
                         return true;
                     } catch (e: any) {
                         // Cookies are invalid - clear localStorage state
@@ -118,7 +203,7 @@ export const useAuthStore = create<AuthState>()(
                             user: null,
                             isAuthenticated: false,
                             isLoading: false,
-                            _sessionVerified: true, // Mark as verified (result: not authenticated)
+                            _sessionVerified: true,
                         });
                         return false;
                     }
@@ -140,6 +225,11 @@ export const useAuthStore = create<AuthState>()(
                         isLoading: false,
                         _sessionVerified: true,
                     });
+
+                    // Start proactive refresh for admins
+                    if (data.role === 'SUPER_ADMIN' || data.role === 'SUB_ADMIN') {
+                        get().startTokenRefresh();
+                    }
                 } catch (e) {
                     set({
                         user: null,
@@ -156,7 +246,7 @@ export const useAuthStore = create<AuthState>()(
             partialize: (state) => ({
                 user: state.user,
                 isAuthenticated: state.isAuthenticated,
-                // Don't persist _sessionVerified - must re-verify on each app load
+                // Don't persist _sessionVerified or _refreshInterval
             }),
             onRehydrateStorage: () => (state) => {
                 if (state) {
