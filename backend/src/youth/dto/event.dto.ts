@@ -141,7 +141,8 @@ export class GuestRegisterEventDto {
     guestName: string;
 
     @IsString()
-    guestEmail: string;
+    @IsOptional()
+    guestEmail?: string;
 
     @IsString()
     phone: string;

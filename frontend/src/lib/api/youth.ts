@@ -77,7 +77,7 @@ export const youthApi = {
     },
 
     // Guest registration (no auth required)
-    guestRegisterForEvent: async (eventId: string, data: { guestName: string; guestEmail: string; phone: string; emergencyContact?: string; dietaryReq?: string }): Promise<EventRegistration> => {
+    guestRegisterForEvent: async (eventId: string, data: { guestName: string; guestEmail?: string; phone: string; emergencyContact?: string; dietaryReq?: string }): Promise<EventRegistration> => {
         const response = await apiClient.post(`/youth/events/${eventId}/guest-register`, data);
         return response.data;
     },

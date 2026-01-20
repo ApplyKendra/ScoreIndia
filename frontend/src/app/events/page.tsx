@@ -61,7 +61,6 @@ export default function EventsPage() {
     });
     const [guestForm, setGuestForm] = useState({
         guestName: '',
-        guestEmail: '',
         phone: '',
         emergencyContact: '',
         dietaryReq: '',
@@ -132,7 +131,7 @@ export default function EventsPage() {
     const handleRegisterClick = (event: YouthEvent) => {
         setSelectedEvent(event);
         setShowGuestForm(false);
-        setGuestForm({ guestName: '', guestEmail: '', phone: '', emergencyContact: '', dietaryReq: '' });
+        setGuestForm({ guestName: '', phone: '', emergencyContact: '', dietaryReq: '' });
         setRegisterDialogOpen(true);
     };
 
@@ -178,7 +177,7 @@ export default function EventsPage() {
     const handleGuestRegister = async () => {
         if (!selectedEvent) return;
 
-        if (!guestForm.guestName || !guestForm.guestEmail || !guestForm.phone) {
+        if (!guestForm.guestName || !guestForm.phone) {
             toast.error('Please fill in all required fields');
             return;
         }
@@ -189,7 +188,7 @@ export default function EventsPage() {
             toast.success(`Successfully registered ${guestForm.guestName} for "${selectedEvent.title}"!`);
             setRegisterDialogOpen(false);
             setShowGuestForm(false);
-            setGuestForm({ guestName: '', guestEmail: '', phone: '', emergencyContact: '', dietaryReq: '' });
+            setGuestForm({ guestName: '', phone: '', emergencyContact: '', dietaryReq: '' });
             // Refresh events
             const data = await youthApi.getEvents();
             setEvents(data);
@@ -848,17 +847,6 @@ export default function EventsPage() {
                                 />
                             </div>
                             <div className="space-y-2">
-                                <Label htmlFor="guestEmail">Email Address *</Label>
-                                <Input
-                                    id="guestEmail"
-                                    type="email"
-                                    value={guestForm.guestEmail}
-                                    onChange={(e) => setGuestForm({ ...guestForm, guestEmail: e.target.value })}
-                                    placeholder="Enter email address"
-                                    className="focus-visible:ring-[#5750F1]"
-                                />
-                            </div>
-                            <div className="space-y-2">
                                 <Label htmlFor="guestPhone">Phone Number *</Label>
                                 <Input
                                     id="guestPhone"
@@ -886,6 +874,6 @@ export default function EventsPage() {
                     )}
                 </DialogContent>
             </Dialog>
-        </div>
+        </div >
     );
 }
