@@ -326,7 +326,6 @@ export default function AdminEventsPage() {
                     </Button>
                 </div>
             </div>
-
             {/* Stats Cards */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 <Card className="p-4">
@@ -375,225 +374,244 @@ export default function AdminEventsPage() {
                 </Card>
             </div>
 
-            {/* Registrations Overview Section */}
-            <Card>
-                <CardContent className="pt-6">
-                    <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center gap-2">
-                            <UsersIcon className="h-5 w-5 text-purple-600" />
-                            <h2 className="text-lg font-semibold">All Registrations by Event</h2>
-                        </div>
-                        <span className="text-sm text-muted-foreground">{totalRegistrations} total registrations</span>
-                    </div>
+            {/* Tabs for Events and Registrations */}
+            <Tabs defaultValue="events" className="w-full">
+                <TabsList className="grid w-full grid-cols-2 max-w-md">
+                    <TabsTrigger value="events" className="flex items-center gap-2">
+                        <Calendar className="h-4 w-4" />
+                        Events
+                    </TabsTrigger>
+                    <TabsTrigger value="registrations" className="flex items-center gap-2">
+                        <UsersIcon className="h-4 w-4" />
+                        Registrations
+                    </TabsTrigger>
+                </TabsList>
 
-                    {events.length === 0 ? (
-                        <p className="text-center text-muted-foreground py-6">No events to show registrations for</p>
-                    ) : (
-                        <div className="space-y-3">
-                            {events.map((event) => (
-                                <div key={event.id} className="border rounded-lg overflow-hidden">
-                                    <button
-                                        onClick={() => viewRegistrations(event)}
-                                        className="w-full flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors text-left"
-                                    >
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
-                                                <Calendar className="w-5 h-5 text-emerald-600" />
-                                            </div>
-                                            <div>
-                                                <h3 className="font-medium">{event.title}</h3>
-                                                <p className="text-sm text-muted-foreground">{formatDate(event.date)} • {event.location}</p>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-center gap-3">
-                                            <Badge variant={event._count?.registrations ? 'default' : 'secondary'} className="bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">
-                                                <UsersIcon className="w-3 h-3 mr-1" />
-                                                {event._count?.registrations || 0} {event._count?.registrations === 1 ? 'person' : 'people'}
-                                            </Badge>
-                                            <span className="text-muted-foreground text-sm">Click to view →</span>
-                                        </div>
-                                    </button>
+                {/* Registrations Tab */}
+                <TabsContent value="registrations" className="mt-6">
+                    <Card>
+                        <CardContent className="pt-6">
+                            <div className="flex items-center justify-between mb-4">
+                                <div className="flex items-center gap-2">
+                                    <UsersIcon className="h-5 w-5 text-purple-600" />
+                                    <h2 className="text-lg font-semibold">All Registrations by Event</h2>
                                 </div>
-                            ))}
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
+                                <span className="text-sm text-muted-foreground">{totalRegistrations} total registrations</span>
+                            </div>
 
-            <Card>
-                <CardContent className="p-0">
-                    {loading ? (
-                        <div className="flex items-center justify-center py-12">
-                            <Loader2 className="h-8 w-8 animate-spin text-emerald-600" />
-                        </div>
-                    ) : events.length === 0 ? (
-                        <div className="text-center py-12">
-                            <Calendar className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-                            <p className="text-muted-foreground mb-4">No events yet. Create your first event!</p>
-                            <Button onClick={openCreateDialog} className="bg-emerald-600 hover:bg-emerald-700">
-                                <Plus className="h-4 w-4 mr-2" />
-                                Create Event
-                            </Button>
-                        </div>
-                    ) : viewMode === 'table' ? (
-                        <div className="overflow-x-auto">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead className="w-16">Image</TableHead>
-                                        <TableHead>Title</TableHead>
-                                        <TableHead>Date</TableHead>
-                                        <TableHead className="hidden sm:table-cell">Location</TableHead>
-                                        <TableHead>Registrations</TableHead>
-                                        <TableHead>Status</TableHead>
-                                        <TableHead>Actions</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
+                            {events.length === 0 ? (
+                                <p className="text-center text-muted-foreground py-6">No events to show registrations for</p>
+                            ) : (
+                                <div className="space-y-3">
                                     {events.map((event) => (
-                                        <TableRow key={event.id}>
-                                            <TableCell>
-                                                <div className="w-12 h-12 rounded-lg bg-emerald-50 border border-emerald-100 overflow-hidden flex items-center justify-center">
-                                                    {event.imageUrl ? (
-                                                        <Image
-                                                            src={event.imageUrl}
-                                                            alt={event.title}
-                                                            width={48}
-                                                            height={48}
-                                                            className="object-cover w-full h-full"
-                                                        />
-                                                    ) : (
-                                                        <Calendar className="w-5 h-5 text-emerald-400" />
-                                                    )}
+                                        <div key={event.id} className="border rounded-lg overflow-hidden">
+                                            <button
+                                                onClick={() => viewRegistrations(event)}
+                                                className="w-full flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors text-left"
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-10 h-10 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
+                                                        <Calendar className="w-5 h-5 text-emerald-600" />
+                                                    </div>
+                                                    <div>
+                                                        <h3 className="font-medium">{event.title}</h3>
+                                                        <p className="text-sm text-muted-foreground">{formatDate(event.date)} • {event.location}</p>
+                                                    </div>
                                                 </div>
-                                            </TableCell>
-                                            <TableCell>
-                                                <div className="flex items-center gap-2">
-                                                    {event.isFeatured && <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />}
-                                                    <span className="font-medium">{event.title}</span>
+                                                <div className="flex items-center gap-3">
+                                                    <Badge variant={event._count?.registrations ? 'default' : 'secondary'} className="bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">
+                                                        <UsersIcon className="w-3 h-3 mr-1" />
+                                                        {event._count?.registrations || 0} {event._count?.registrations === 1 ? 'person' : 'people'}
+                                                    </Badge>
+                                                    <span className="text-muted-foreground text-sm">Click to view →</span>
                                                 </div>
-                                            </TableCell>
-                                            <TableCell>
-                                                <div className="flex items-center gap-1">
-                                                    <Calendar className="h-4 w-4 text-muted-foreground" />
-                                                    {formatDate(event.date)}
-                                                </div>
-                                            </TableCell>
-                                            <TableCell className="hidden sm:table-cell">
-                                                <div className="flex items-center gap-1">
-                                                    <MapPin className="h-4 w-4 text-muted-foreground" />
-                                                    {event.location}
-                                                </div>
-                                            </TableCell>
-                                            <TableCell>
-                                                <Button variant="ghost" size="sm" onClick={() => viewRegistrations(event)}>
-                                                    <UsersIcon className="h-4 w-4 mr-1" />
-                                                    {event._count?.registrations || 0}
-                                                    {event.maxParticipants && ` / ${event.maxParticipants}`}
-                                                </Button>
-                                            </TableCell>
-                                            <TableCell>
-                                                <Select
-                                                    value={event.status}
-                                                    onValueChange={(value) => handleStatusChange(event, value as YouthEvent['status'])}
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+
+                {/* Events Tab */}
+                <TabsContent value="events" className="mt-6">
+                    <Card>
+                        <CardContent className="p-0">
+                            {loading ? (
+                                <div className="flex items-center justify-center py-12">
+                                    <Loader2 className="h-8 w-8 animate-spin text-emerald-600" />
+                                </div>
+                            ) : events.length === 0 ? (
+                                <div className="text-center py-12">
+                                    <Calendar className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+                                    <p className="text-muted-foreground mb-4">No events yet. Create your first event!</p>
+                                    <Button onClick={openCreateDialog} className="bg-emerald-600 hover:bg-emerald-700">
+                                        <Plus className="h-4 w-4 mr-2" />
+                                        Create Event
+                                    </Button>
+                                </div>
+                            ) : viewMode === 'table' ? (
+                                <div className="overflow-x-auto">
+                                    <Table>
+                                        <TableHeader>
+                                            <TableRow>
+                                                <TableHead className="w-16">Image</TableHead>
+                                                <TableHead>Title</TableHead>
+                                                <TableHead>Date</TableHead>
+                                                <TableHead className="hidden sm:table-cell">Location</TableHead>
+                                                <TableHead>Registrations</TableHead>
+                                                <TableHead>Status</TableHead>
+                                                <TableHead>Actions</TableHead>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {events.map((event) => (
+                                                <TableRow key={event.id}>
+                                                    <TableCell>
+                                                        <div className="w-12 h-12 rounded-lg bg-emerald-50 border border-emerald-100 overflow-hidden flex items-center justify-center">
+                                                            {event.imageUrl ? (
+                                                                <Image
+                                                                    src={event.imageUrl}
+                                                                    alt={event.title}
+                                                                    width={48}
+                                                                    height={48}
+                                                                    className="object-cover w-full h-full"
+                                                                />
+                                                            ) : (
+                                                                <Calendar className="w-5 h-5 text-emerald-400" />
+                                                            )}
+                                                        </div>
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <div className="flex items-center gap-2">
+                                                            {event.isFeatured && <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />}
+                                                            <span className="font-medium">{event.title}</span>
+                                                        </div>
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <div className="flex items-center gap-1">
+                                                            <Calendar className="h-4 w-4 text-muted-foreground" />
+                                                            {formatDate(event.date)}
+                                                        </div>
+                                                    </TableCell>
+                                                    <TableCell className="hidden sm:table-cell">
+                                                        <div className="flex items-center gap-1">
+                                                            <MapPin className="h-4 w-4 text-muted-foreground" />
+                                                            {event.location}
+                                                        </div>
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <Button variant="ghost" size="sm" onClick={() => viewRegistrations(event)}>
+                                                            <UsersIcon className="h-4 w-4 mr-1" />
+                                                            {event._count?.registrations || 0}
+                                                            {event.maxParticipants && ` / ${event.maxParticipants}`}
+                                                        </Button>
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <Select
+                                                            value={event.status}
+                                                            onValueChange={(value) => handleStatusChange(event, value as YouthEvent['status'])}
+                                                        >
+                                                            <SelectTrigger className="w-[120px]">
+                                                                <Badge className={`${statusColors[event.status].bg} ${statusColors[event.status].text}`}>
+                                                                    {event.status}
+                                                                </Badge>
+                                                            </SelectTrigger>
+                                                            <SelectContent>
+                                                                <SelectItem value="UPCOMING">Upcoming</SelectItem>
+                                                                <SelectItem value="ONGOING">Ongoing</SelectItem>
+                                                                <SelectItem value="COMPLETED">Completed</SelectItem>
+                                                                <SelectItem value="CANCELLED">Cancelled</SelectItem>
+                                                            </SelectContent>
+                                                        </Select>
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <div className="flex gap-1">
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                onClick={() => viewRegistrations(event)}
+                                                                title="View Registrations"
+                                                                className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
+                                                            >
+                                                                <UsersIcon className="h-4 w-4" />
+                                                            </Button>
+                                                            <Button variant="ghost" size="icon" onClick={() => openEditDialog(event)}>
+                                                                <Pencil className="h-4 w-4" />
+                                                            </Button>
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                className="text-red-500"
+                                                                onClick={() => handleDelete(event)}
+                                                            >
+                                                                <Trash2 className="h-4 w-4" />
+                                                            </Button>
+                                                        </div>
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))}
+                                        </TableBody>
+                                    </Table>
+                                </div>
+                            ) : (
+                                /* Grid View */
+                                <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                    {events.map((event) => (
+                                        <Card key={event.id} className="overflow-hidden">
+                                            <div className="relative h-36 bg-gradient-to-br from-emerald-100 to-teal-100">
+                                                {event.imageUrl ? (
+                                                    <Image src={event.imageUrl} alt={event.title} fill className="object-cover" />
+                                                ) : (
+                                                    <div className="absolute inset-0 flex items-center justify-center">
+                                                        <Calendar className="w-12 h-12 text-emerald-300" />
+                                                    </div>
+                                                )}
+                                                {event.isFeatured && (
+                                                    <Badge className="absolute top-2 left-2 bg-yellow-500">
+                                                        <Star className="w-3 h-3 mr-1 fill-white" />Featured
+                                                    </Badge>
+                                                )}
+                                                <Badge className={`absolute top-2 right-2 ${statusColors[event.status].bg} ${statusColors[event.status].text}`}>
+                                                    {event.status}
+                                                </Badge>
+                                            </div>
+                                            <div className="p-4">
+                                                <h3 className="font-semibold line-clamp-1">{event.title}</h3>
+                                                <p className="text-sm text-muted-foreground mb-2">{formatDate(event.date)} • {event.location}</p>
+                                                <button
+                                                    onClick={() => viewRegistrations(event)}
+                                                    className="flex items-center gap-2 text-sm text-emerald-600 hover:text-emerald-700 hover:underline mb-3"
                                                 >
-                                                    <SelectTrigger className="w-[120px]">
-                                                        <Badge className={`${statusColors[event.status].bg} ${statusColors[event.status].text}`}>
-                                                            {event.status}
-                                                        </Badge>
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        <SelectItem value="UPCOMING">Upcoming</SelectItem>
-                                                        <SelectItem value="ONGOING">Ongoing</SelectItem>
-                                                        <SelectItem value="COMPLETED">Completed</SelectItem>
-                                                        <SelectItem value="CANCELLED">Cancelled</SelectItem>
-                                                    </SelectContent>
-                                                </Select>
-                                            </TableCell>
-                                            <TableCell>
-                                                <div className="flex gap-1">
+                                                    <UsersIcon className="w-4 h-4" />
+                                                    {event._count?.registrations || 0} registered
+                                                </button>
+                                                <div className="flex gap-2">
                                                     <Button
-                                                        variant="ghost"
-                                                        size="icon"
+                                                        variant="outline"
+                                                        size="sm"
+                                                        className="flex-1 text-emerald-600 border-emerald-200 hover:bg-emerald-50"
                                                         onClick={() => viewRegistrations(event)}
-                                                        title="View Registrations"
-                                                        className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
                                                     >
-                                                        <UsersIcon className="h-4 w-4" />
+                                                        <UsersIcon className="h-3 w-3 mr-1" />View
                                                     </Button>
-                                                    <Button variant="ghost" size="icon" onClick={() => openEditDialog(event)}>
-                                                        <Pencil className="h-4 w-4" />
+                                                    <Button variant="outline" size="sm" className="flex-1" onClick={() => openEditDialog(event)}>
+                                                        <Pencil className="h-3 w-3 mr-1" />Edit
                                                     </Button>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        className="text-red-500"
-                                                        onClick={() => handleDelete(event)}
-                                                    >
+                                                    <Button variant="ghost" size="icon" className="text-red-500" onClick={() => handleDelete(event)}>
                                                         <Trash2 className="h-4 w-4" />
                                                     </Button>
                                                 </div>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </div>
-                    ) : (
-                        /* Grid View */
-                        <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {events.map((event) => (
-                                <Card key={event.id} className="overflow-hidden">
-                                    <div className="relative h-36 bg-gradient-to-br from-emerald-100 to-teal-100">
-                                        {event.imageUrl ? (
-                                            <Image src={event.imageUrl} alt={event.title} fill className="object-cover" />
-                                        ) : (
-                                            <div className="absolute inset-0 flex items-center justify-center">
-                                                <Calendar className="w-12 h-12 text-emerald-300" />
                                             </div>
-                                        )}
-                                        {event.isFeatured && (
-                                            <Badge className="absolute top-2 left-2 bg-yellow-500">
-                                                <Star className="w-3 h-3 mr-1 fill-white" />Featured
-                                            </Badge>
-                                        )}
-                                        <Badge className={`absolute top-2 right-2 ${statusColors[event.status].bg} ${statusColors[event.status].text}`}>
-                                            {event.status}
-                                        </Badge>
-                                    </div>
-                                    <div className="p-4">
-                                        <h3 className="font-semibold line-clamp-1">{event.title}</h3>
-                                        <p className="text-sm text-muted-foreground mb-2">{formatDate(event.date)} • {event.location}</p>
-                                        <button
-                                            onClick={() => viewRegistrations(event)}
-                                            className="flex items-center gap-2 text-sm text-emerald-600 hover:text-emerald-700 hover:underline mb-3"
-                                        >
-                                            <UsersIcon className="w-4 h-4" />
-                                            {event._count?.registrations || 0} registered
-                                        </button>
-                                        <div className="flex gap-2">
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                className="flex-1 text-emerald-600 border-emerald-200 hover:bg-emerald-50"
-                                                onClick={() => viewRegistrations(event)}
-                                            >
-                                                <UsersIcon className="h-3 w-3 mr-1" />View
-                                            </Button>
-                                            <Button variant="outline" size="sm" className="flex-1" onClick={() => openEditDialog(event)}>
-                                                <Pencil className="h-3 w-3 mr-1" />Edit
-                                            </Button>
-                                            <Button variant="ghost" size="icon" className="text-red-500" onClick={() => handleDelete(event)}>
-                                                <Trash2 className="h-4 w-4" />
-                                            </Button>
-                                        </div>
-                                    </div>
-                                </Card>
-                            ))}
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
+                                        </Card>
+                                    ))}
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+            </Tabs>
 
             {/* Create/Edit Dialog */}
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -784,6 +802,6 @@ export default function AdminEventsPage() {
                     </div>
                 </DialogContent>
             </Dialog>
-        </div>
+        </div >
     );
 }

@@ -343,29 +343,6 @@ export default function EventsPage() {
                             Experience the joy of devotion together with the ISKCON community.
                         </p>
 
-                        {/* Search Bar */}
-                        <div className="relative max-w-lg mx-auto mb-10">
-                            <div className="relative flex items-center">
-                                <Search className="absolute left-5 w-5 h-5 text-gray-400" />
-                                <Input
-                                    placeholder="Search events, festivals, programs..."
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                    className="pl-14 pr-14 py-6 rounded-2xl bg-white/95 backdrop-blur-sm border-0 shadow-2xl text-gray-900 placeholder:text-gray-500 focus-visible:ring-2 focus-visible:ring-[#5750F1] text-base"
-                                />
-                                {searchQuery && (
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="absolute right-3"
-                                        onClick={() => setSearchQuery('')}
-                                    >
-                                        <X className="h-4 w-4 text-gray-400" />
-                                    </Button>
-                                )}
-                            </div>
-                        </div>
-
                         {/* Stats Grid */}
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 max-w-2xl mx-auto">
                             {eventStats.map((stat) => {
@@ -474,12 +451,19 @@ export default function EventsPage() {
                                                         </div>
 
                                                         {isRegisteredForEvent(event.id) ? (
-                                                            <Button
-                                                                disabled
-                                                                className="bg-green-600 hover:bg-green-600 cursor-default"
-                                                            >
-                                                                ✓ Registered
-                                                            </Button>
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="inline-flex items-center px-3 py-1.5 rounded-lg bg-green-100 text-green-700 text-sm font-medium">
+                                                                    ✓ Registered
+                                                                </span>
+                                                                <Button
+                                                                    onClick={() => handleRegisterClick(event)}
+                                                                    variant="outline"
+                                                                    className="border-[#5750F1] text-[#5750F1] hover:bg-[#5750F1]/10"
+                                                                >
+                                                                    <Users className="w-4 h-4 mr-2" />
+                                                                    Register Others
+                                                                </Button>
+                                                            </div>
                                                         ) : (
                                                             <Button
                                                                 onClick={() => handleRegisterClick(event)}
@@ -674,18 +658,28 @@ export default function EventsPage() {
                                                 <span className="text-xs text-gray-500">Open for all</span>
                                             )}
 
-                                            <button
-                                                className={`inline-flex items-center text-sm font-medium transition-colors ${userRegistered
-                                                    ? 'text-green-600'
-                                                    : isUpcoming
+                                            {userRegistered ? (
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-green-600 text-sm font-medium">✓ Registered</span>
+                                                    <button
+                                                        onClick={(e) => { e.stopPropagation(); handleRegisterClick(event); }}
+                                                        className="text-[#5750F1] text-sm font-medium hover:underline"
+                                                    >
+                                                        Register Others →
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <button
+                                                    className={`inline-flex items-center text-sm font-medium transition-colors ${isUpcoming
                                                         ? 'text-[#5750F1] group-hover:text-[#4a43d6]'
                                                         : 'text-gray-400 cursor-not-allowed'
-                                                    }`}
-                                                disabled={!isUpcoming || userRegistered}
-                                            >
-                                                {userRegistered ? '✓ Registered' : isUpcoming ? 'Register' : 'Closed'}
-                                                {!userRegistered && <ChevronRight className={`w-4 h-4 ml-0.5 transition-transform ${isHovered && isUpcoming ? 'translate-x-1' : ''}`} />}
-                                            </button>
+                                                        }`}
+                                                    disabled={!isUpcoming}
+                                                >
+                                                    {isUpcoming ? 'Register' : 'Closed'}
+                                                    <ChevronRight className={`w-4 h-4 ml-0.5 transition-transform ${isHovered && isUpcoming ? 'translate-x-1' : ''}`} />
+                                                </button>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
