@@ -22,7 +22,7 @@ const DELIVERY_FEE = 50;
 export default function CartPage() {
     const router = useRouter();
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const { isAuthenticated } = useAuthStore();
+    const { isAuthenticated, _sessionVerified, isLoading } = useAuthStore();
 
     const {
         items,
@@ -54,6 +54,12 @@ export default function CartPage() {
     }, [isDeliveryAllowed, deliveryType, setDeliveryType]);
 
     const handleCheckout = async () => {
+        // Wait for session verification before checking auth
+        if (!_sessionVerified || isLoading) {
+            toast.info('Verifying your session...');
+            return;
+        }
+
         if (!isAuthenticated) {
             toast.error('Please login to place an order');
             router.push('/login');

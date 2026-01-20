@@ -60,22 +60,24 @@ const categoryConfig: Record<string, { label: string; icon: any; gradient: strin
 
 export default function MyDonationsPage() {
     const router = useRouter();
-    const { user, isAuthenticated, isLoading } = useAuthStore();
+    const { user, isAuthenticated, isLoading, _sessionVerified } = useAuthStore();
     const [donations, setDonations] = useState<Donation[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
 
+    // Wait for session verification before redirecting
     useEffect(() => {
-        if (!isLoading && !isAuthenticated) {
+        if (_sessionVerified && !isLoading && !isAuthenticated) {
             router.push('/login');
         }
-    }, [isLoading, isAuthenticated, router]);
+    }, [_sessionVerified, isLoading, isAuthenticated, router]);
 
+    // Fetch donations only after session is verified and user is authenticated
     useEffect(() => {
-        if (isAuthenticated) {
+        if (_sessionVerified && isAuthenticated) {
             fetchDonations();
         }
-    }, [isAuthenticated]);
+    }, [_sessionVerified, isAuthenticated]);
 
     const fetchDonations = async (isRefresh = false) => {
         if (isRefresh) setRefreshing(true);

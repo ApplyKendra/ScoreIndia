@@ -18,12 +18,14 @@ interface AuthState {
     isAuthenticated: boolean;
     isLoading: boolean;
     _hasHydrated: boolean;
+    _sessionVerified: boolean; // NEW: Track if we've verified with server
 
     setUser: (user: User | null) => void;
     login: (user: User) => void;
     logout: () => void;
     setLoading: (loading: boolean) => void;
     checkAuth: () => Promise<void>;
+    validateSession: () => Promise<boolean>; // NEW: Validate with server
     setHasHydrated: () => void;
 }
 
@@ -32,22 +34,25 @@ export const useAuthStore = create<AuthState>()(
         (set, get) => ({
             user: null,
             isAuthenticated: false,
-            isLoading: true, // Start as true - we're loading until hydration completes
+            isLoading: true,
             _hasHydrated: false,
+            _sessionVerified: false,
 
             setHasHydrated: () => {
-                set({ _hasHydrated: true, isLoading: false });
+                set({ _hasHydrated: true });
+                // After hydration, validate session with server
+                get().validateSession();
             },
 
             setUser: (user) =>
                 set({ user, isAuthenticated: !!user }),
 
-            // Login stores user data; tokens are in HttpOnly cookies
             login: (user) => {
                 set({
                     user,
                     isAuthenticated: true,
                     isLoading: false,
+                    _sessionVerified: true,
                 });
             },
 
@@ -61,32 +66,69 @@ export const useAuthStore = create<AuthState>()(
                     user: null,
                     isAuthenticated: false,
                     isLoading: false,
+                    _sessionVerified: false,
                 });
             },
 
             setLoading: (isLoading) => set({ isLoading }),
 
-            // Check if user is authenticated by calling profile endpoint
-            checkAuth: async () => {
-                // If we already have auth state, don't re-check
-                if (get()._hasHydrated && get().isAuthenticated) {
-                    return;
+            // Validate session with server - ALWAYS calls the API
+            validateSession: async () => {
+                const state = get();
+
+                // If we've already verified this session, skip
+                if (state._sessionVerified) {
+                    set({ isLoading: false });
+                    return true;
                 }
 
-                set({ isLoading: true });
+                // If localStorage says we're authenticated, verify with server
+                if (state.isAuthenticated && state.user) {
+                    set({ isLoading: true });
+                    try {
+                        const { data } = await api.get('/auth/profile');
+                        set({
+                            user: data,
+                            isAuthenticated: true,
+                            isLoading: false,
+                            _sessionVerified: true,
+                        });
+                        return true;
+                    } catch (e) {
+                        // Cookies are invalid - clear localStorage state
+                        console.warn('Session validation failed - clearing auth state');
+                        set({
+                            user: null,
+                            isAuthenticated: false,
+                            isLoading: false,
+                            _sessionVerified: true, // Mark as verified (result: not authenticated)
+                        });
+                        return false;
+                    }
+                } else {
+                    // Not authenticated in localStorage
+                    set({ isLoading: false, _sessionVerified: true });
+                    return false;
+                }
+            },
 
+            // Check auth - for manual calls (used after login/register)
+            checkAuth: async () => {
+                set({ isLoading: true });
                 try {
                     const { data } = await api.get('/auth/profile');
                     set({
                         user: data,
                         isAuthenticated: true,
                         isLoading: false,
+                        _sessionVerified: true,
                     });
                 } catch (e) {
                     set({
                         user: null,
                         isAuthenticated: false,
                         isLoading: false,
+                        _sessionVerified: true,
                     });
                 }
             },
@@ -97,10 +139,9 @@ export const useAuthStore = create<AuthState>()(
             partialize: (state) => ({
                 user: state.user,
                 isAuthenticated: state.isAuthenticated,
+                // Don't persist _sessionVerified - must re-verify on each app load
             }),
             onRehydrateStorage: () => (state) => {
-                // Mark hydration as complete - this is critical!
-                // This runs AFTER the persisted state has been loaded from localStorage
                 if (state) {
                     state.setHasHydrated();
                 }
