@@ -1,13 +1,8 @@
 @import "tailwindcss";
 @import "../css/satoshi.css";
 
-@custom-variant dark (&:is(.dark *));
 
-@theme {
-  --color-primary: #5750F1;
-  --color-primary-hover: #4a43d6;
-  --font-family-satoshi: "Satoshi", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto;
-}
+
 
 :root {
   --background: 0 0% 100%;
@@ -221,6 +216,37 @@
 }
 
 /* ===== Mobile Performance Optimizations ===== */
+
+/* Scrollbar hide utility for horizontal scrolling elements */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Hero section GPU optimization */
+.hero-section {
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.hero-gradient-1,
+.hero-gradient-2 {
+  will-change: auto;
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+}
+
+/* Smooth touch scrolling */
+.hero-section * {
+  -webkit-tap-highlight-color: transparent;
+}
+
 /* Disable heavy animations on mobile devices for better performance */
 @media (max-width: 768px) {
 
@@ -233,25 +259,31 @@
   .animate-hexagon-float,
   .animate-ring-pulse,
   .animate-circle-pulse,
-  .animate-shimmer {
+  .animate-shimmer,
+  .animate-cricket-ball,
+  .animate-pulse-slow {
     animation: none !important;
   }
 
   /* Reduce blur on mobile for better GPU performance */
   .blur-3xl {
-    filter: blur(32px) !important;
-    /* Reduced from 64px */
+    filter: blur(24px) !important;
   }
 
   .blur-2xl {
-    filter: blur(24px) !important;
-    /* Reduced from 40px */
+    filter: blur(16px) !important;
   }
 
-  /* Hide decorative orbs on very small screens */
-  .animate-orb-1,
-  .animate-orb-2 {
-    opacity: 0.3 !important;
+  /* Reduce shadow complexity on mobile */
+  .shadow-xl,
+  .shadow-2xl {
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15) !important;
+  }
+
+  /* Optimize hero gradients on mobile */
+  .hero-gradient-1,
+  .hero-gradient-2 {
+    opacity: 0.6 !important;
   }
 }
 
@@ -260,22 +292,21 @@
 
   .blur-3xl,
   .blur-2xl {
-    filter: blur(16px) !important;
-  }
-
-  .animate-orb-1,
-  .animate-orb-2,
-  .animate-orb-3 {
-    display: none !important;
-    /* Hide completely on smallest screens */
+    filter: blur(12px) !important;
   }
 
   /* Disable backdrop blur on mobile for better scroll performance */
   .backdrop-blur-xl,
   .backdrop-blur-2xl,
   .backdrop-blur-md {
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
+  }
+
+  /* Reduce hero gradient visibility on smallest screens */
+  .hero-gradient-1,
+  .hero-gradient-2 {
+    opacity: 0.4 !important;
   }
 }
 
@@ -289,6 +320,48 @@
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/* ===== Cricket Ball Animation ===== */
+@keyframes cricketBall {
+
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+
+  25% {
+    transform: translate(15px, -20px) rotate(90deg);
+  }
+
+  50% {
+    transform: translate(0, -10px) rotate(180deg);
+  }
+
+  75% {
+    transform: translate(-15px, -20px) rotate(270deg);
+  }
+}
+
+.animate-cricket-ball {
+  animation: cricketBall 8s ease-in-out infinite;
+}
+
+/* ===== Slow Pulse Animation ===== */
+@keyframes pulseSlow {
+
+  0%,
+  100% {
+    opacity: 0.6;
+  }
+
+  50% {
+    opacity: 0.8;
+  }
+}
+
+.animate-pulse-slow {
+  animation: pulseSlow 4s ease-in-out infinite;
 }
 
 /* ===== Glow Pulse Animation ===== */

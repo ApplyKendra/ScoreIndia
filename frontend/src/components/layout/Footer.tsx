@@ -1,255 +1,138 @@
 'use client';
 
 import Link from 'next/link';
-import Image from 'next/image';
-import { Facebook, Instagram, Youtube, Twitter, MapPin, Phone, Mail, Heart } from 'lucide-react';
+import { Gavel, Mail, Heart } from 'lucide-react';
 
 const footerLinks = {
-    services: [
-        { href: '/prasadam', label: 'Prasadam Ordering' },
-        { href: '/store', label: 'Temple Store' },
-        { href: '/youth', label: 'Youth Programs' },
-        { href: '/darshan', label: 'Live Darshan' },
-        { href: '/events', label: 'Events' },
+    quickLinks: [
+        { href: '/', label: 'Home' },
+        { href: '/auctions', label: 'Live Auction' },
+        { href: '/login', label: 'Team Owners Log-in' },
     ],
-    explore: [
-        { href: '/about-us', label: 'About Us' },
-        { href: '/contact-us', label: 'Contact Us' },
-        { href: '/donations', label: 'Donate' },
-        { href: '/temple-construction', label: 'Temple Construction' },
-        { href: '/seva-opportunities', label: 'Seva Opportunities' },
-        { href: '/nitya-sevak', label: 'Nitya Sevak Program' },
-    ],
-    legal: [
-        { href: '/privacy', label: 'Privacy Policy' },
-        { href: '/terms', label: 'Terms of Service' },
-        { href: '/refund', label: 'Refund Policy' },
+    features: [
+        { label: 'Player Pool' },
+        { label: 'Team Management' },
+        { label: 'Bid History' },
+        { label: 'Budget Tracking' },
     ],
 };
 
-const socialLinks = [
-    { icon: Facebook, href: '#', label: 'Facebook', hoverColor: 'hover:bg-blue-600' },
-    { icon: Instagram, href: '#', label: 'Instagram', hoverColor: 'hover:bg-gradient-to-br hover:from-purple-500 hover:to-pink-500' },
-    { icon: Youtube, href: '#', label: 'YouTube', hoverColor: 'hover:bg-red-600' },
-    { icon: Twitter, href: '#', label: 'Twitter', hoverColor: 'hover:bg-sky-500' },
-];
-
 export function Footer() {
     return (
-        <footer className="relative overflow-hidden">
-            {/* Main Footer with Dark Gradient Background */}
-            <div className="relative bg-gradient-to-br from-[#0f0c29] via-[#302b63] to-[#24243e]">
-                {/* Decorative Background Elements */}
-                <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                    {/* Floating Orbs */}
-                    <div className="absolute top-[-10%] left-[-5%] w-[400px] h-[400px] rounded-full bg-gradient-to-br from-[#5750F1]/20 to-purple-600/10 blur-3xl" />
-                    <div className="absolute bottom-[-20%] right-[-10%] w-[500px] h-[500px] rounded-full bg-gradient-to-br from-cyan-500/15 to-blue-600/10 blur-3xl" />
-                    <div className="absolute top-1/2 right-1/4 w-[200px] h-[200px] rounded-full bg-gradient-to-br from-amber-500/10 to-orange-500/5 blur-2xl" />
+        <footer className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
+            {/* Decorative Background */}
+            <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                <div className="absolute top-[-10%] left-[-5%] w-[400px] h-[400px] rounded-full bg-blue-500/10 blur-3xl" />
+                <div className="absolute bottom-[-20%] right-[-10%] w-[500px] h-[500px] rounded-full bg-cyan-500/10 blur-3xl" />
+            </div>
 
-                    {/* Diagonal Lines Pattern */}
-                    <div
-                        className="absolute inset-0 opacity-[0.02]"
-                        style={{
-                            backgroundImage: `repeating-linear-gradient(
-                                -45deg,
-                                rgba(255,255,255,1) 0px,
-                                rgba(255,255,255,1) 1px,
-                                transparent 1px,
-                                transparent 40px
-                            )`,
-                        }}
-                    />
+            {/* Top Gradient Border */}
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 via-cyan-500 to-purple-500" />
 
-                    {/* Dot Pattern */}
-                    <div
-                        className="absolute inset-0 opacity-[0.03]"
-                        style={{
-                            backgroundImage: `radial-gradient(rgba(255,255,255,0.8) 1px, transparent 1px)`,
-                            backgroundSize: '30px 30px',
-                        }}
-                    />
-
-                    {/* Floating Particles */}
-                    {[...Array(8)].map((_, i) => (
-                        <div
-                            key={i}
-                            className="absolute w-1 h-1 rounded-full bg-white/20"
-                            style={{
-                                left: `${10 + i * 12}%`,
-                                top: `${20 + (i % 4) * 20}%`,
-                                animation: `pulse ${3 + i * 0.5}s ease-in-out infinite`,
-                                animationDelay: `${i * 0.3}s`,
-                            }}
-                        />
-                    ))}
-                </div>
-
-                {/* Wave Top Border */}
-                <div className="absolute top-0 left-0 right-0 overflow-hidden h-4">
-                    <div className="absolute inset-0 bg-gradient-to-r from-[#5750F1] via-purple-500 to-cyan-500" />
-                </div>
-
-                {/* Content */}
-                <div className="relative z-10 container px-3 sm:px-4 pt-10 sm:pt-16 pb-6 sm:pb-8">
-                    {/* Main Footer Grid */}
-                    <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-5 gap-6 sm:gap-8 lg:gap-12 mb-8 sm:mb-12">
-                        {/* Brand */}
-                        <div className="col-span-2 lg:col-span-2 space-y-4 sm:space-y-5">
-                            <Link href="/" className="flex items-center gap-2 sm:gap-3 group">
-                                <Image
-                                    src="/logo-white.svg"
-                                    alt="ISKCON Logo"
-                                    width={64}
-                                    height={64}
-                                    className="h-14 w-14 sm:h-16 sm:w-16 group-hover:scale-105 transition-transform"
-                                />
-                                <div>
-                                    <span className="font-bold text-lg sm:text-xl text-white">ISKCON Burla</span>
-                                    <p className="text-[10px] sm:text-xs text-white/50">Digital Temple Platform</p>
-                                </div>
-                            </Link>
-                            <p className="text-white/60 text-xs sm:text-sm leading-relaxed max-w-md">
-                                Spreading the teachings of Lord Krishna and making devotion accessible to everyone.
-                            </p>
-
-                            {/* Contact Info - Compact for mobile */}
-                            <div className="flex flex-wrap gap-2 sm:flex-col sm:gap-3">
-                                <div className="flex items-center gap-2 text-white/70 text-xs sm:text-sm group hover:text-white transition-colors">
-                                    <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-md sm:rounded-lg bg-white/10 flex items-center justify-center flex-shrink-0">
-                                        <MapPin className="w-3 h-3 sm:w-4 sm:h-4" />
-                                    </div>
-                                    <span className="hidden sm:inline">Near Siphon, PC Bridge, Burla, Sambalpur</span>
-                                    <span className="sm:hidden">Burla, Sambalpur</span>
-                                </div>
-                                <div className="flex items-center gap-2 text-white/70 text-xs sm:text-sm group hover:text-white transition-colors">
-                                    <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-md sm:rounded-lg bg-white/10 flex items-center justify-center flex-shrink-0">
-                                        <Phone className="w-3 h-3 sm:w-4 sm:h-4" />
-                                    </div>
-                                    <span>+91 87630 25178</span>
-                                </div>
-                                <div className="flex items-center gap-2 text-white/70 text-xs sm:text-sm group hover:text-white transition-colors">
-                                    <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-md sm:rounded-lg bg-white/10 flex items-center justify-center flex-shrink-0">
-                                        <Mail className="w-3 h-3 sm:w-4 sm:h-4" />
-                                    </div>
-                                    <span className="truncate">info@iskconburla.com</span>
-                                </div>
-                            </div>
-
-                            {/* Social Links */}
-                            <div className="flex gap-2 sm:gap-3">
-                                {socialLinks.map((social) => (
-                                    <a
-                                        key={social.label}
-                                        href={social.href}
-                                        aria-label={social.label}
-                                        className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-white/10 flex items-center justify-center text-white/70 hover:text-white ${social.hoverColor} transition-all duration-300 hover:scale-110`}
-                                    >
-                                        <social.icon className="w-4 h-4 sm:w-5 sm:h-5" />
-                                    </a>
-                                ))}
-                            </div>
-                        </div>
-
-                        {/* Services */}
-                        <div className="space-y-3 sm:space-y-4">
-                            <h4 className="font-bold text-white text-sm sm:text-lg relative inline-block">
-                                Services
-                                <span className="absolute -bottom-1 left-0 w-6 sm:w-8 h-0.5 bg-gradient-to-r from-[#5750F1] to-transparent rounded-full" />
-                            </h4>
-                            <ul className="space-y-2 sm:space-y-3">
-                                {footerLinks.services.map((link) => (
-                                    <li key={link.href}>
-                                        <Link
-                                            href={link.href}
-                                            className="text-xs sm:text-sm text-white/60 hover:text-white hover:translate-x-1 transition-all duration-200 flex items-center gap-1.5 sm:gap-2 group"
-                                        >
-                                            <span className="w-1 h-1 rounded-full bg-[#5750F1] opacity-0 group-hover:opacity-100 transition-opacity" />
-                                            {link.label}
-                                        </Link>
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
-
-                        {/* Explore */}
-                        <div className="space-y-3 sm:space-y-4">
-                            <h4 className="font-bold text-white text-sm sm:text-lg relative inline-block">
-                                Explore
-                                <span className="absolute -bottom-1 left-0 w-6 sm:w-8 h-0.5 bg-gradient-to-r from-cyan-500 to-transparent rounded-full" />
-                            </h4>
-                            <ul className="space-y-2 sm:space-y-3">
-                                {footerLinks.explore.map((link) => (
-                                    <li key={link.href}>
-                                        <Link
-                                            href={link.href}
-                                            className="text-xs sm:text-sm text-white/60 hover:text-white hover:translate-x-1 transition-all duration-200 flex items-center gap-1.5 sm:gap-2 group"
-                                        >
-                                            <span className="w-1 h-1 rounded-full bg-cyan-500 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                            {link.label}
-                                        </Link>
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
-
-                        {/* Legal */}
-                        <div className="space-y-3 sm:space-y-4 col-span-2 sm:col-span-1">
-                            <h4 className="font-bold text-white text-sm sm:text-lg relative inline-block">
-                                Legal
-                                <span className="absolute -bottom-1 left-0 w-6 sm:w-8 h-0.5 bg-gradient-to-r from-amber-500 to-transparent rounded-full" />
-                            </h4>
-                            <div className="flex sm:block gap-4 flex-wrap">
-                                <ul className="flex sm:block gap-3 sm:gap-0 sm:space-y-2 sm:space-y-3">
-                                    {footerLinks.legal.map((link) => (
-                                        <li key={link.href}>
-                                            <Link
-                                                href={link.href}
-                                                className="text-xs sm:text-sm text-white/60 hover:text-white transition-all duration-200 flex items-center gap-1.5 sm:gap-2 group"
-                                            >
-                                                <span className="w-1 h-1 rounded-full bg-amber-500 opacity-0 group-hover:opacity-100 transition-opacity hidden sm:block" />
-                                                {link.label}
-                                            </Link>
-                                        </li>
-                                    ))}
-                                </ul>
-
-                                {/* Quick Links */}
-                                <div className="sm:pt-4 sm:mt-4 sm:border-t sm:border-white/10">
-                                    <Link
-                                        href="/donations"
-                                        className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs sm:text-sm font-medium rounded-md sm:rounded-lg hover:shadow-lg hover:shadow-amber-500/30 transition-all duration-300"
-                                    >
-                                        <Heart className="w-3 h-3 sm:w-4 sm:h-4" />
-                                        Donate
-                                    </Link>
-                                </div>
-                            </div>
-                        </div>
+            {/* Content */}
+            <div className="relative z-10 container px-4 sm:px-6 pt-12 sm:pt-16 pb-8">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12 mb-12">
+                    {/* Brand */}
+                    <div className="col-span-2 lg:col-span-1 space-y-4">
+                        <Link href="/" className="flex items-center gap-3 group">
+                            <svg className="h-12 w-auto group-hover:scale-105 transition-transform" viewBox="0 0 733 221" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M87.6812 136.887L31.0104 215.832L15.5079 217.032L80.3784 126.663L87.6812 136.887ZM168.067 190.2L136.5 193.162L35.9588 56.9581L67.5275 53.9961L168.067 190.2ZM102.124 157.112L75.3988 194.343L59.8973 195.543L94.8227 146.888L102.124 157.112ZM125.181 124.994L117.879 114.771L199.41 1.19965L214.912 -2.6843e-06L125.181 124.994ZM110.737 104.77L103.435 94.5458L139.774 43.9281L155.276 42.7285L110.737 104.77Z" fill="url(#paint0_linear_164_221)" />
+                                <path d="M212.042 177.658C204.282 177.658 197.282 176.058 191.042 172.858C184.802 169.658 179.842 164.938 176.162 158.698C172.562 152.458 170.762 144.858 170.762 135.898C170.762 129.178 171.842 123.218 174.002 118.018C176.242 112.818 179.282 108.458 183.122 104.938C187.042 101.338 191.522 98.6577 196.562 96.8977C201.602 95.0577 206.962 94.1377 212.642 94.1377C217.042 94.1377 221.162 94.6577 225.002 95.6977C228.842 96.6577 232.522 98.0977 236.042 100.018L236.522 115.738H233.282L228.242 106.258C227.442 104.658 226.562 103.218 225.602 101.938C224.722 100.658 223.562 99.7377 222.122 99.1777C220.122 98.2177 217.762 97.7377 215.042 97.7377C210.322 97.7377 206.002 98.9377 202.082 101.338C198.242 103.738 195.162 107.738 192.842 113.338C190.522 118.858 189.362 126.418 189.362 136.018C189.362 145.538 190.442 153.098 192.602 158.698C194.842 164.298 197.842 168.298 201.602 170.698C205.362 173.018 209.602 174.178 214.322 174.178C216.482 174.178 218.242 174.018 219.602 173.698C220.962 173.378 222.322 172.938 223.682 172.378C225.282 171.738 226.522 170.818 227.402 169.618C228.282 168.338 229.042 166.898 229.682 165.298L234.242 154.378H237.482L237.002 171.658C233.562 173.578 229.762 175.058 225.602 176.098C221.442 177.138 216.922 177.658 212.042 177.658ZM260.107 175.618V173.098L262.507 172.258C263.947 171.858 264.947 171.178 265.507 170.218C266.067 169.178 266.387 167.778 266.467 166.018V105.658C266.387 103.978 266.107 102.698 265.627 101.818C265.147 100.858 264.147 100.138 262.627 99.6577L260.107 98.8177V96.2977H317.227L318.067 115.498H314.707L309.907 104.698C309.267 103.178 308.547 102.018 307.747 101.218C306.947 100.338 305.747 99.8977 304.147 99.8977H283.747C283.667 104.858 283.627 109.978 283.627 115.258C283.627 120.458 283.627 126.338 283.627 132.898H295.507C297.107 132.898 298.307 132.498 299.107 131.698C299.987 130.818 300.787 129.658 301.507 128.218L303.547 123.658H306.187V145.858H303.547L301.387 141.298C300.747 139.858 300.027 138.698 299.227 137.818C298.427 136.938 297.227 136.498 295.627 136.498H283.627C283.627 142.258 283.627 147.218 283.627 151.378C283.627 155.538 283.627 159.258 283.627 162.538C283.707 165.738 283.747 168.898 283.747 172.018H306.787C308.387 172.018 309.627 171.618 310.507 170.818C311.387 169.938 312.107 168.738 312.667 167.218L317.107 156.418H320.467L319.627 175.618H260.107ZM344.792 175.618V173.098L348.272 172.138C349.792 171.738 350.832 170.978 351.392 169.858C352.032 168.738 352.352 167.378 352.352 165.778V107.698C351.632 106.178 350.992 105.058 350.432 104.338C349.952 103.538 349.432 102.858 348.872 102.298C348.312 101.738 347.552 101.098 346.592 100.378L344.432 98.8177V96.2977H364.952L404.792 150.778V106.258C404.792 104.658 404.512 103.258 403.952 102.058C403.472 100.858 402.432 100.058 400.832 99.6577L397.232 98.8177V96.2977H415.112V98.8177L412.112 99.6577C410.592 100.138 409.632 100.978 409.232 102.178C408.912 103.298 408.752 104.658 408.752 106.258V176.098H402.032L356.312 113.218V165.658C356.312 167.338 356.552 168.738 357.032 169.858C357.512 170.978 358.512 171.738 360.032 172.138L363.272 173.098V175.618H344.792ZM477.598 177.658C469.838 177.658 462.838 176.058 456.598 172.858C450.358 169.658 445.398 164.938 441.718 158.698C438.118 152.458 436.318 144.858 436.318 135.898C436.318 129.178 437.398 123.218 439.558 118.018C441.798 112.818 444.838 108.458 448.678 104.938C452.598 101.338 457.078 98.6577 462.118 96.8977C467.158 95.0577 472.518 94.1377 478.198 94.1377C482.598 94.1377 486.718 94.6577 490.558 95.6977C494.398 96.6577 498.078 98.0977 501.598 100.018L502.078 115.738H498.838L493.798 106.258C492.998 104.658 492.118 103.218 491.158 101.938C490.278 100.658 489.118 99.7377 487.678 99.1777C485.678 98.2177 483.318 97.7377 480.598 97.7377C475.878 97.7377 471.558 98.9377 467.638 101.338C463.798 103.738 460.718 107.738 458.398 113.338C456.078 118.858 454.918 126.418 454.918 136.018C454.918 145.538 455.998 153.098 458.158 158.698C460.398 164.298 463.398 168.298 467.158 170.698C470.918 173.018 475.158 174.178 479.878 174.178C482.038 174.178 483.798 174.018 485.158 173.698C486.518 173.378 487.878 172.938 489.238 172.378C490.838 171.738 492.078 170.818 492.958 169.618C493.838 168.338 494.598 166.898 495.238 165.298L499.798 154.378H503.038L502.558 171.658C499.118 173.578 495.318 175.058 491.158 176.098C486.998 177.138 482.478 177.658 477.598 177.658ZM525.663 175.618V173.098L528.063 172.258C529.503 171.858 530.503 171.178 531.063 170.218C531.623 169.178 531.943 167.778 532.023 166.018V105.658C531.943 103.978 531.663 102.698 531.183 101.818C530.703 100.858 529.703 100.138 528.183 99.6577L525.663 98.8177V96.2977H582.783L583.623 115.498H580.263L575.463 104.698C574.823 103.178 574.103 102.018 573.303 101.218C572.503 100.338 571.303 99.8977 569.703 99.8977H549.303C549.223 104.858 549.183 109.978 549.183 115.258C549.183 120.458 549.183 126.338 549.183 132.898H561.063C562.663 132.898 563.863 132.498 564.663 131.698C565.543 130.818 566.343 129.658 567.063 128.218L569.103 123.658H571.743V145.858H569.103L566.943 141.298C566.303 139.858 565.583 138.698 564.783 137.818C563.983 136.938 562.783 136.498 561.183 136.498H549.183C549.183 142.258 549.183 147.218 549.183 151.378C549.183 155.538 549.183 159.258 549.183 162.538C549.263 165.738 549.303 168.898 549.303 172.018H572.343C573.943 172.018 575.183 171.618 576.063 170.818C576.943 169.938 577.663 168.738 578.223 167.218L582.663 156.418H586.023L585.183 175.618H525.663Z" fill="url(#paint0_linear_164_221)" />
+                                <defs>
+                                    <linearGradient id="paint0_linear_164_221" x1="-15" y1="169.5" x2="230" y2="109" gradientUnits="userSpaceOnUse">
+                                        <stop stopColor="#0072AF" />
+                                        <stop offset="0.5" stopColor="#59C4FF" />
+                                        <stop offset="1" stopColor="#0072AF" />
+                                    </linearGradient>
+                                </defs>
+                            </svg>
+                        </Link>
+                        <p className="text-white/60 text-sm leading-relaxed max-w-md">
+                            Want to host your own auction? Contact us and we'll handle everything and host a professional cricket auction for your tournament.
+                        </p>
                     </div>
 
-                    {/* Bottom Bar */}
-                    <div className="border-t border-white/10 pt-4 sm:pt-8">
-                        <div className="flex flex-col sm:flex-row justify-between items-center gap-3 sm:gap-4">
-                            <div className="flex items-center gap-1.5 sm:gap-2 text-white/50 text-[10px] sm:text-sm">
-                                <span>© {new Date().getFullYear()} ISKCON Burla</span>
-                                <span>|</span>
+                    {/* Quick Links */}
+                    <div className="space-y-4">
+                        <h4 className="font-bold text-white text-sm relative inline-block">
+                            Quick Links
+                            <span className="absolute -bottom-1 left-0 w-8 h-0.5 bg-gradient-to-r from-blue-500 to-transparent rounded-full" />
+                        </h4>
+                        <ul className="space-y-3">
+                            {footerLinks.quickLinks.map((link) => (
+                                <li key={link.href}>
+                                    <Link
+                                        href={link.href}
+                                        className="text-sm text-white/60 hover:text-white hover:translate-x-1 transition-all duration-200 flex items-center gap-2 group"
+                                    >
+                                        <span className="w-1 h-1 rounded-full bg-blue-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                        {link.label}
+                                    </Link>
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+
+                    {/* Features */}
+                    <div className="space-y-4">
+                        <h4 className="font-bold text-white text-sm relative inline-block">
+                            Features
+                            <span className="absolute -bottom-1 left-0 w-8 h-0.5 bg-gradient-to-r from-cyan-500 to-transparent rounded-full" />
+                        </h4>
+                        <ul className="space-y-3">
+                            {footerLinks.features.map((item) => (
+                                <li key={item.label}>
+                                    <span className="text-sm text-white/60 flex items-center gap-2">
+                                        <span className="w-1 h-1 rounded-full bg-cyan-500" />
+                                        {item.label}
+                                    </span>
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+
+                    {/* Contact */}
+                    <div className="space-y-4 col-span-2 lg:col-span-1">
+                        <h4 className="font-bold text-white text-sm relative inline-block">
+                            Contact
+                            <span className="absolute -bottom-1 left-0 w-8 h-0.5 bg-gradient-to-r from-amber-500 to-transparent rounded-full" />
+                        </h4>
+                        <div className="flex items-center gap-2 text-white/70 text-sm">
+                            <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center">
+                                <Mail className="w-4 h-4" />
+                            </div>
+                            <span>admin@scoreIndia.cloud</span>
+                        </div>
+                        <div className="pt-2">
+                            <Link
+                                href="/auctions"
+                                className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-cyan-500 text-white text-sm font-medium rounded-lg hover:shadow-lg hover:shadow-blue-500/30 transition-all duration-300"
+                            >
+                                <Gavel className="w-4 h-4" />
+                                Join Auction
+                            </Link>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Bottom Bar */}
+                <div className="border-t border-white/10 pt-6">
+                    <div className="flex flex-col gap-4">
+                        <div className="flex flex-col sm:flex-row items-center justify-center sm:justify-between gap-3 sm:gap-2">
+                            <div className="flex flex-col sm:flex-row items-center gap-2 text-white/50 text-xs sm:text-sm">
+                                <span>© {new Date().getFullYear()} ScoreIndia</span>
+                                <span className="hidden sm:inline">•</span>
                                 <span className="flex items-center gap-1">
-                                    Made with <Heart className="w-3 h-3 sm:w-4 sm:h-4 text-rose-500" /> for Krishna
+                                    Made with <Heart className="w-3 h-3 sm:w-4 sm:h-4 text-rose-500" /> for Cricket
                                 </span>
                             </div>
-
-                            <div className="flex items-center gap-2 sm:gap-4">
-                                <p className="text-white/40 text-[10px] sm:text-sm italic hidden xs:block">
-                                    Hare Krishna Hare Krishna
-                                </p>
-                                <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-lg sm:rounded-xl bg-white/10 flex items-center justify-center">
-                                    <Image
-                                        src="/logo-white.svg"
-                                        alt="ISKCON"
-                                        width={32}
-                                        height={32}
-                                        className="h-6 w-6 sm:h-8 sm:w-8"
-                                    />
+                            <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4">
+                                <span className="text-white/40 text-xs sm:text-sm text-center sm:text-left">Premium Player Auction Platform</span>
+                                <div className="h-8 sm:h-10 w-auto rounded-xl bg-white/10 flex items-center justify-center px-2">
+                                    <svg className="h-5 sm:h-6 w-auto text-white/70" viewBox="0 0 733 221" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M87.6812 136.887L31.0104 215.832L15.5079 217.032L80.3784 126.663L87.6812 136.887ZM168.067 190.2L136.5 193.162L35.9588 56.9581L67.5275 53.9961L168.067 190.2ZM102.124 157.112L75.3988 194.343L59.8973 195.543L94.8227 146.888L102.124 157.112ZM125.181 124.994L117.879 114.771L199.41 1.19965L214.912 -2.6843e-06L125.181 124.994ZM110.737 104.77L103.435 94.5458L139.774 43.9281L155.276 42.7285L110.737 104.77Z" fill="white" fillOpacity="0.7" />
+                                        <path d="M212.042 177.658C204.282 177.658 197.282 176.058 191.042 172.858C184.802 169.658 179.842 164.938 176.162 158.698C172.562 152.458 170.762 144.858 170.762 135.898C170.762 129.178 171.842 123.218 174.002 118.018C176.242 112.818 179.282 108.458 183.122 104.938C187.042 101.338 191.522 98.6577 196.562 96.8977C201.602 95.0577 206.962 94.1377 212.642 94.1377C217.042 94.1377 221.162 94.6577 225.002 95.6977C228.842 96.6577 232.522 98.0977 236.042 100.018L236.522 115.738H233.282L228.242 106.258C227.442 104.658 226.562 103.218 225.602 101.938C224.722 100.658 223.562 99.7377 222.122 99.1777C220.122 98.2177 217.762 97.7377 215.042 97.7377C210.322 97.7377 206.002 98.9377 202.082 101.338C198.242 103.738 195.162 107.738 192.842 113.338C190.522 118.858 189.362 126.418 189.362 136.018C189.362 145.538 190.442 153.098 192.602 158.698C194.842 164.298 197.842 168.298 201.602 170.698C205.362 173.018 209.602 174.178 214.322 174.178C216.482 174.178 218.242 174.018 219.602 173.698C220.962 173.378 222.322 172.938 223.682 172.378C225.282 171.738 226.522 170.818 227.402 169.618C228.282 168.338 229.042 166.898 229.682 165.298L234.242 154.378H237.482L237.002 171.658C233.562 173.578 229.762 175.058 225.602 176.098C221.442 177.138 216.922 177.658 212.042 177.658ZM260.107 175.618V173.098L262.507 172.258C263.947 171.858 264.947 171.178 265.507 170.218C266.067 169.178 266.387 167.778 266.467 166.018V105.658C266.387 103.978 266.107 102.698 265.627 101.818C265.147 100.858 264.147 100.138 262.627 99.6577L260.107 98.8177V96.2977H317.227L318.067 115.498H314.707L309.907 104.698C309.267 103.178 308.547 102.018 307.747 101.218C306.947 100.338 305.747 99.8977 304.147 99.8977H283.747C283.667 104.858 283.627 109.978 283.627 115.258C283.627 120.458 283.627 126.338 283.627 132.898H295.507C297.107 132.898 298.307 132.498 299.107 131.698C299.987 130.818 300.787 129.658 301.507 128.218L303.547 123.658H306.187V145.858H303.547L301.387 141.298C300.747 139.858 300.027 138.698 299.227 137.818C298.427 136.938 297.227 136.498 295.627 136.498H283.627C283.627 142.258 283.627 147.218 283.627 151.378C283.627 155.538 283.627 159.258 283.627 162.538C283.707 165.738 283.747 168.898 283.747 172.018H306.787C308.387 172.018 309.627 171.618 310.507 170.818C311.387 169.938 312.107 168.738 312.667 167.218L317.107 156.418H320.467L319.627 175.618H260.107ZM344.792 175.618V173.098L348.272 172.138C349.792 171.738 350.832 170.978 351.392 169.858C352.032 168.738 352.352 167.378 352.352 165.778V107.698C351.632 106.178 350.992 105.058 350.432 104.338C349.952 103.538 349.432 102.858 348.872 102.298C348.312 101.738 347.552 101.098 346.592 100.378L344.432 98.8177V96.2977H364.952L404.792 150.778V106.258C404.792 104.658 404.512 103.258 403.952 102.058C403.472 100.858 402.432 100.058 400.832 99.6577L397.232 98.8177V96.2977H415.112V98.8177L412.112 99.6577C410.592 100.138 409.632 100.978 409.232 102.178C408.912 103.298 408.752 104.658 408.752 106.258V176.098H402.032L356.312 113.218V165.658C356.312 167.338 356.552 168.738 357.032 169.858C357.512 170.978 358.512 171.738 360.032 172.138L363.272 173.098V175.618H344.792ZM477.598 177.658C469.838 177.658 462.838 176.058 456.598 172.858C450.358 169.658 445.398 164.938 441.718 158.698C438.118 152.458 436.318 144.858 436.318 135.898C436.318 129.178 437.398 123.218 439.558 118.018C441.798 112.818 444.838 108.458 448.678 104.938C452.598 101.338 457.078 98.6577 462.118 96.8977C467.158 95.0577 472.518 94.1377 478.198 94.1377C482.598 94.1377 486.718 94.6577 490.558 95.6977C494.398 96.6577 498.078 98.0977 501.598 100.018L502.078 115.738H498.838L493.798 106.258C492.998 104.658 492.118 103.218 491.158 101.938C490.278 100.658 489.118 99.7377 487.678 99.1777C485.678 98.2177 483.318 97.7377 480.598 97.7377C475.878 97.7377 471.558 98.9377 467.638 101.338C463.798 103.738 460.718 107.738 458.398 113.338C456.078 118.858 454.918 126.418 454.918 136.018C454.918 145.538 455.998 153.098 458.158 158.698C460.398 164.298 463.398 168.298 467.158 170.698C470.918 173.018 475.158 174.178 479.878 174.178C482.038 174.178 483.798 174.018 485.158 173.698C486.518 173.378 487.878 172.938 489.238 172.378C490.838 171.738 492.078 170.818 492.958 169.618C493.838 168.338 494.598 166.898 495.238 165.298L499.798 154.378H503.038L502.558 171.658C499.118 173.578 495.318 175.058 491.158 176.098C486.998 177.138 482.478 177.658 477.598 177.658ZM525.663 175.618V173.098L528.063 172.258C529.503 171.858 530.503 171.178 531.063 170.218C531.623 169.178 531.943 167.778 532.023 166.018V105.658C531.943 103.978 531.663 102.698 531.183 101.818C530.703 100.858 529.703 100.138 528.183 99.6577L525.663 98.8177V96.2977H582.783L583.623 115.498H580.263L575.463 104.698C574.823 103.178 574.103 102.018 573.303 101.218C572.503 100.338 571.303 99.8977 569.703 99.8977H549.303C549.223 104.858 549.183 109.978 549.183 115.258C549.183 120.458 549.183 126.338 549.183 132.898H561.063C562.663 132.898 563.863 132.498 564.663 131.698C565.543 130.818 566.343 129.658 567.063 128.218L569.103 123.658H571.743V145.858H569.103L566.943 141.298C566.303 139.858 565.583 138.698 564.783 137.818C563.983 136.938 562.783 136.498 561.183 136.498H549.183C549.183 142.258 549.183 147.218 549.183 151.378C549.183 155.538 549.183 159.258 549.183 162.538C549.263 165.738 549.303 168.898 549.303 172.018H572.343C573.943 172.018 575.183 171.618 576.063 170.818C576.943 169.938 577.663 168.738 578.223 167.218L582.663 156.418H586.023L585.183 175.618H525.663Z" fill="white" fillOpacity="0.7" />
+                                    </svg>
                                 </div>
                             </div>
                         </div>

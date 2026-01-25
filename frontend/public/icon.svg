@@ -1,0 +1,10 @@
+<svg width="200" height="218" viewBox="0 0 200 218" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect width="200" height="218" rx="32" fill="url(#gradient)"/>
+<path d="M72.1734 136.887L15.5026 215.832L7.17342e-05 217.032L64.8705 126.663L72.1734 136.887ZM152.559 190.2L120.992 193.162L20.451 56.9582L52.0197 53.9961L152.559 190.2ZM86.6167 157.112L59.891 194.343L44.3895 195.543L79.3149 146.888L86.6167 157.112ZM109.673 124.994L102.371 114.771L183.902 1.19968L199.404 2.78333e-05L109.673 124.994ZM95.229 104.77L87.9272 94.5458L124.266 43.9282L139.768 42.7285L95.229 104.77Z" fill="white"/>
+<defs>
+<linearGradient id="gradient" x1="0" y1="0" x2="200" y2="218" gradientUnits="userSpaceOnUse">
+<stop stop-color="#6366f1"/>
+<stop offset="1" stop-color="#8b5cf6"/>
+</linearGradient>
+</defs>
+</svg>

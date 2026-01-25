@@ -22,6 +22,7 @@ const nextConfig: NextConfig = {
     // Extract base domain from API URL for CSP (remove /api path if present)
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
     const backendBaseUrl = apiUrl.replace(/\/api\/?$/, '');
+    const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:3001';
 
     return [
       {
@@ -55,8 +56,9 @@ const nextConfig: NextConfig = {
               "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "font-src 'self' https://fonts.gstatic.com",
-              "img-src 'self' data: blob: https://images.unsplash.com https://iskcon-storage.s3.ap-south-1.amazonaws.com",
-              `connect-src 'self' ${backendBaseUrl} https://iskcon-storage.s3.ap-south-1.amazonaws.com`,
+              `img-src 'self' data: blob: ${backendBaseUrl} https://images.unsplash.com https://iskcon-storage.s3.ap-south-1.amazonaws.com https://i.ytimg.com`,
+              `connect-src 'self' ${backendBaseUrl} ${wsUrl} https://iskcon-storage.s3.ap-south-1.amazonaws.com`,
+              "frame-src https://www.youtube.com https://youtube.com",
               "frame-ancestors 'none'",
             ].join('; '),
           },

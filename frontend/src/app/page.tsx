@@ -1,332 +1,82 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import {
-  UtensilsCrossed,
-  ShoppingBag,
   Users,
-  Video,
-  Calendar,
-  Heart,
+  Trophy,
+  Timer,
   ArrowRight,
   Sparkles,
   Star,
-  MessageCircle,
-  Play,
+  Gavel,
+  Target,
+  Shield,
+  Zap,
+  Crown,
   ChevronRight,
-  Info,
+  Play,
+  Clock,
+  IndianRupee,
+  Activity,
+  Award,
   Phone,
-  Building2,
-  Crown
+  Mail,
+  MessageCircle,
 } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import api from '@/lib/api';
 
-// API URL: Get base URL (without /api suffix) for direct fetch calls
-const getBaseUrl = () => {
-  const envUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
-  return envUrl.replace(/\/api\/?$/, '');
-};
-const API_URL = getBaseUrl();
-
-interface Slide {
-  id: string;
-  title: string;
-  subtitle?: string;
-  imageUrl: string;
-  buttonText?: string;
-  buttonLink?: string;
-  gradient?: string;
+interface AuctionState {
+  status: string;
+  current_player?: any;
+  current_bid?: number;
+  current_bidder?: any;
 }
 
-const FALLBACK_SLIDES: Slide[] = [
-  {
-    id: '1',
-    title: 'Sri Sri Radha Madhav',
-    subtitle: 'Divine Deities of ISKCON',
-    imageUrl: '',
-    gradient: 'from-orange-500 via-rose-500 to-pink-500',
-  },
-  {
-    id: '2',
-    title: 'Sacred Prasadam',
-    subtitle: 'Spiritually nourishing food',
-    imageUrl: '',
-    buttonText: 'Order Now',
-    buttonLink: '/prasadam',
-    gradient: 'from-amber-500 via-orange-500 to-red-500',
-  },
-  {
-    id: '3',
-    title: 'Live Darshan',
-    subtitle: 'Connect from anywhere',
-    imageUrl: '',
-    buttonText: 'Watch Live',
-    buttonLink: '/darshan',
-    gradient: 'from-cyan-500 via-blue-500 to-indigo-500',
-  },
-];
+const formatCurrency = (amount: number) => {
+  if (amount >= 10000000) return `₹${(amount / 10000000).toFixed(1)}Cr`;
+  if (amount >= 100000) return `₹${(amount / 100000).toFixed(1)}L`;
+  return `₹${amount.toLocaleString()}`;
+};
 
-function HeroSlideshow() {
-  const [activeIndex, setActiveIndex] = useState(0);
-  const [isAnimating, setIsAnimating] = useState(false);
-  const [hoveredCard, setHoveredCard] = useState<number | null>(null);
-  const [slides, setSlides] = useState<Slide[]>(FALLBACK_SLIDES);
+export default function HomePage() {
+  const [mounted, setMounted] = useState(false);
+  const [auctionState, setAuctionState] = useState<AuctionState | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isContactModalOpen, setIsContactModalOpen] = useState(false);
 
-  // Fetch slides from API
   useEffect(() => {
-    const fetchSlides = async () => {
+    setMounted(true);
+
+    // Fetch auction state
+    const fetchAuctionState = async () => {
       try {
-        const res = await fetch(`${API_URL}/api/hero-slides`);
-        if (res.ok) {
-          const data = await res.json();
-          if (data.length > 0) {
-            setSlides(data);
-          }
-        }
+        const state = await api.getPublicAuctionState();
+        setAuctionState(state);
       } catch (error) {
-        console.error('Failed to fetch slides, using fallback:', error);
+        console.error('Failed to fetch auction state:', error);
       } finally {
         setLoading(false);
       }
     };
-    fetchSlides();
+
+    fetchAuctionState();
+
+    // Poll for updates every 10 seconds
+    const interval = setInterval(fetchAuctionState, 10000);
+    return () => clearInterval(interval);
   }, []);
 
-  // Auto-advance slides
   useEffect(() => {
-    if (slides.length <= 1) return;
-    const interval = setInterval(() => {
-      if (!hoveredCard) {
-        setIsAnimating(true);
-        setTimeout(() => {
-          setActiveIndex((prev) => (prev + 1) % slides.length);
-          setIsAnimating(false);
-        }, 400);
-      }
-    }, 4000);
-    return () => clearInterval(interval);
-  }, [slides.length, hoveredCard]);
-
-  const goToSlide = (index: number) => {
-    if (index !== activeIndex && !isAnimating) {
-      setIsAnimating(true);
-      setTimeout(() => {
-        setActiveIndex(index);
-        setIsAnimating(false);
-      }, 300);
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="relative w-full h-[320px] sm:h-[400px] lg:h-[600px] flex items-center justify-center">
-        <div className="animate-spin rounded-full h-10 w-10 sm:h-12 sm:w-12 border-t-2 border-b-2 border-white/50"></div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="relative w-full h-[320px] sm:h-[400px] lg:h-[600px] perspective-1000">
-      {/* Ambient Glow Background */}
-      <div
-        className="absolute inset-0 opacity-60 transition-all duration-1000"
-        style={{
-          background: `radial-gradient(ellipse at center, ${slides[activeIndex]?.gradient?.includes('orange') ? 'rgba(251,146,60,0.3)' : slides[activeIndex]?.gradient?.includes('violet') ? 'rgba(139,92,246,0.3)' : slides[activeIndex]?.gradient?.includes('cyan') ? 'rgba(6,182,212,0.3)' : 'rgba(244,114,182,0.3)'} 0%, transparent 70%)`,
-        }}
-      />
-
-      {/* Floating Particles */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {[...Array(8)].map((_, i) => (
-          <div
-            key={i}
-            className="absolute w-2 h-2 rounded-full bg-white/30 animate-particle-float"
-            style={{
-              left: `${10 + i * 12}%`,
-              top: `${20 + (i % 3) * 25}%`,
-              animationDelay: `${i * 0.5}s`,
-              animationDuration: `${4 + i * 0.5}s`,
-            }}
-          />
-        ))}
-      </div>
-
-      {/* 3D Card Stack */}
-      <div className="absolute inset-0 flex items-center justify-center">
-        {slides.map((slide, index) => {
-          const offset = index - activeIndex;
-          const isActive = index === activeIndex;
-          const isPrev = offset === -1 || (activeIndex === 0 && index === slides.length - 1);
-          const isNext = offset === 1 || (activeIndex === slides.length - 1 && index === 0);
-          const isHidden = !isActive && !isPrev && !isNext;
-
-          let zIndex = 10;
-          let translateZ = -100;
-          let translateX = 0;
-          let rotateY = 0;
-          let scale = 0.8;
-          let opacity = 0;
-
-          if (isActive) {
-            zIndex = 30;
-            translateZ = 0;
-            scale = 1;
-            opacity = 1;
-            rotateY = 0;
-          } else if (isNext) {
-            zIndex = 20;
-            translateZ = -80;
-            translateX = 60;
-            rotateY = -15;
-            scale = 0.85;
-            opacity = 0.7;
-          } else if (isPrev) {
-            zIndex = 20;
-            translateZ = -80;
-            translateX = -60;
-            rotateY = 15;
-            scale = 0.85;
-            opacity = 0.7;
-          }
-
-          if (isHidden) return null;
-
-          const gradient = slide.gradient || 'from-[#5750F1] via-purple-500 to-fuchsia-500';
-
-          return (
-            <div
-              key={slide.id || index}
-              className={`absolute transition-all duration-700 ease-out cursor-pointer ${isAnimating ? 'pointer-events-none' : ''}`}
-              style={{
-                zIndex,
-                transform: `perspective(1000px) translateX(${translateX}px) translateZ(${translateZ}px) rotateY(${rotateY}deg) scale(${scale})`,
-                opacity,
-              }}
-              onClick={() => goToSlide(index)}
-              onMouseEnter={() => setHoveredCard(index)}
-              onMouseLeave={() => setHoveredCard(null)}
-            >
-              {/* Card Container */}
-              <div
-                className={`relative w-[240px] sm:w-[300px] lg:w-[360px] h-[300px] sm:h-[380px] lg:h-[500px] rounded-2xl sm:rounded-3xl overflow-hidden transition-all duration-500 ${isActive ? 'shadow-2xl shadow-black/30' : 'shadow-xl shadow-black/20'
-                  } ${hoveredCard === index && isActive ? 'scale-[1.02]' : ''}`}
-              >
-                {/* Background - Either Image or Gradient */}
-                {slide.imageUrl ? (
-                  <Image
-                    src={slide.imageUrl}
-                    alt={slide.title}
-                    fill
-                    className="object-cover"
-                    sizes="(max-width: 640px) 280px, (max-width: 1024px) 320px, 360px"
-                  />
-                ) : (
-                  <div className={`absolute inset-0 bg-gradient-to-br ${gradient}`} />
-                )}
-
-                {/* Overlay for text readability */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
-
-                {/* Shimmer Effect */}
-                <div className="absolute inset-0 overflow-hidden">
-                  <div
-                    className="absolute -top-1/2 -left-1/2 w-[200%] h-[200%] animate-shimmer"
-                    style={{
-                      background: 'linear-gradient(45deg, transparent 40%, rgba(255,255,255,0.15) 50%, transparent 60%)',
-                    }}
-                  />
-                </div>
-
-                {/* Glowing Border */}
-                <div
-                  className={`absolute inset-0 rounded-3xl transition-opacity duration-500 ${isActive ? 'opacity-100' : 'opacity-0'}`}
-                  style={{
-                    boxShadow: 'inset 0 0 0 2px rgba(255,255,255,0.3), 0 0 40px rgba(255,255,255,0.2)',
-                  }}
-                />
-
-                {/* Content */}
-                <div className="relative h-full flex flex-col items-center justify-end p-4 sm:p-6 lg:p-8 text-white text-center z-10">
-                  {/* Title with Glow */}
-                  <h3
-                    className={`text-lg sm:text-2xl lg:text-4xl font-bold mb-1 sm:mb-2 transition-all duration-500 ${isActive ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'
-                      }`}
-                    style={{
-                      textShadow: '0 0 30px rgba(0,0,0,0.5)',
-                    }}
-                  >
-                    {slide.title}
-                  </h3>
-
-                  {/* Subtitle */}
-                  {slide.subtitle && (
-                    <p
-                      className={`text-xs sm:text-base lg:text-lg text-white/90 mb-2 sm:mb-4 transition-all duration-500 delay-100 ${isActive ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'
-                        }`}
-                    >
-                      {slide.subtitle}
-                    </p>
-                  )}
-
-                  {/* Button Link */}
-                  {isActive && slide.buttonText && slide.buttonLink && (
-                    <Link href={slide.buttonLink} className="mt-1 sm:mt-2">
-                      <Button
-                        className="bg-white text-gray-900 hover:bg-white/90 font-semibold px-4 sm:px-6 py-1.5 sm:py-2 text-xs sm:text-sm rounded-full shadow-lg transition-all hover:scale-105"
-                      >
-                        {slide.buttonText}
-                        <ArrowRight className="ml-1.5 sm:ml-2 h-3 w-3 sm:h-4 sm:w-4" />
-                      </Button>
-                    </Link>
-                  )}
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Navigation Dots */}
-      <div className="absolute bottom-2 sm:bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5 sm:gap-2 z-40">
-        {slides.map((_, index) => (
-          <button
-            key={index}
-            onClick={() => goToSlide(index)}
-            className={`transition-all duration-300 rounded-full ${index === activeIndex
-              ? 'w-6 sm:w-8 h-2 sm:h-3 bg-white'
-              : 'w-2 sm:w-3 h-2 sm:h-3 bg-white/40 hover:bg-white/60'
-              }`}
-            aria-label={`Go to slide ${index + 1}`}
-          />
-        ))}
-      </div>
-
-      {/* Side Decorative Elements - Hidden on mobile */}
-      <div className="hidden sm:block absolute top-10 right-10 w-20 h-20 border-2 border-white/10 rounded-full animate-ring-pulse" />
-      <div className="hidden sm:block absolute bottom-20 left-10 w-16 h-16 border-2 border-white/10 rounded-lg rotate-45 animate-diamond-float" />
-    </div>
-  );
-}
-
-// Service Icon Component
-function ServiceIcon({ icon: Icon }: { icon: React.ElementType }) {
-  return (
-    <div className="text-white">
-      <Icon className="h-5 w-5" />
-    </div>
-  );
-}
-
-export default function LandingPage() {
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-    // Reveal animations
     const els = document.querySelectorAll('.reveal-up');
     const io = new IntersectionObserver(
       (entries) => {
@@ -340,490 +90,392 @@ export default function LandingPage() {
     return () => io.disconnect();
   }, []);
 
-  const services = [
-    {
-      title: 'Live Darshan',
-      description: 'Watch live ceremonies',
-      icon: Video,
-      href: '/darshan',
-      color: 'from-rose-500 to-pink-500'
-    },
-    {
-      title: 'Upcoming Events',
-      description: 'Upcoming festivals',
-      icon: Calendar,
-      href: '/events',
-      color: 'from-cyan-500 to-blue-500'
-    },
-    {
-      title: 'Youth Forum',
-      description: 'Join the community',
-      icon: Users,
-      href: '/youth',
-      color: 'from-emerald-500 to-teal-500'
-    },
-    {
-      title: 'Order Prasadam',
-      description: 'Order sacred food',
-      icon: UtensilsCrossed,
-      href: '/prasadam',
-      color: 'from-orange-500 to-amber-500'
-    },
-    {
-      title: 'Temple Store',
-      description: 'Spiritual merchandise',
-      icon: ShoppingBag,
-      href: '/store',
-      color: 'from-[#5750F1] to-purple-600'
-    },
-    {
-      title: 'Donations',
-      description: 'Support the temple',
-      icon: Heart,
-      href: '/donations',
-      color: 'from-red-500 to-rose-500'
-    },
-  ];
-
   return (
-    <div className="text-gray-900 dark:text-gray-100">
-      {/* Hero Section - Premium Split Layout */}
-      <section className="relative min-h-[90vh] overflow-hidden">
-        {/* Background Gradient */}
-        <div className="absolute inset-0 bg-gradient-to-br from-[#0f0c29] via-[#302b63] to-[#24243e]" />
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-50">
+      {/* Hero Section - Mobile-First Premium Design */}
+      <section className="hero-section relative overflow-hidden min-h-[100svh] sm:min-h-[95vh] bg-gradient-to-br from-[#0f172a] via-[#1e1b4b] to-[#0f172a]">
+        {/* Optimized Background Effects - GPU accelerated, reduced on mobile */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none select-none" aria-hidden="true">
+          {/* Static gradient overlays instead of animated orbs for mobile */}
+          <div className="hero-gradient-1 absolute top-0 right-0 w-[200px] h-[200px] sm:w-[400px] sm:h-[400px] lg:w-[600px] lg:h-[600px] rounded-full bg-gradient-to-br from-violet-600/30 to-indigo-500/20 blur-2xl sm:blur-3xl" style={{ transform: 'translate3d(20%, -20%, 0)' }} />
+          <div className="hero-gradient-2 absolute bottom-0 left-0 w-[150px] h-[150px] sm:w-[300px] sm:h-[300px] lg:w-[500px] lg:h-[500px] rounded-full bg-gradient-to-br from-amber-500/25 to-orange-500/15 blur-2xl sm:blur-3xl" style={{ transform: 'translate3d(-20%, 20%, 0)' }} />
 
-        {/* Animated Background Elements */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          {/* Large Gradient Orbs */}
-          <div className="absolute top-[-20%] right-[-10%] w-[600px] h-[600px] rounded-full bg-gradient-to-br from-[#5750F1]/40 to-purple-600/20 blur-3xl animate-orb-1" />
-          <div className="absolute bottom-[-20%] left-[-10%] w-[500px] h-[500px] rounded-full bg-gradient-to-br from-cyan-500/30 to-blue-600/20 blur-3xl animate-orb-2" />
-          <div className="absolute top-1/2 left-1/3 w-[300px] h-[300px] rounded-full bg-gradient-to-br from-rose-500/20 to-orange-500/10 blur-2xl animate-orb-3" />
+          {/* Subtle top glow - visible on all screens */}
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[300px] sm:w-[600px] h-[200px] sm:h-[400px] bg-gradient-to-b from-amber-400/15 via-amber-500/5 to-transparent blur-2xl" />
 
-          {/* Grid Pattern */}
-          <div
-            className="absolute inset-0 opacity-[0.03]"
-            style={{
-              backgroundImage: `
-                linear-gradient(rgba(255,255,255,1) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(255,255,255,1) 1px, transparent 1px)
-              `,
-              backgroundSize: '60px 60px',
-            }}
-          />
-
-          {/* Radial Glow at Top */}
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[600px] bg-gradient-radial from-[#5750F1]/20 via-transparent to-transparent" />
+          {/* Desktop-only decorative elements */}
+          <div className="hidden lg:block absolute top-[40%] left-[15%] w-[300px] h-[300px] rounded-full bg-gradient-to-br from-emerald-500/12 to-teal-500/8 blur-3xl animate-orb-3" />
         </div>
 
-        {/* Content Container */}
-        <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-20">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8 lg:gap-12 items-center min-h-[auto] lg:min-h-[70vh]">
+        {/* Content Container - Mobile optimized padding */}
+        <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-6 pb-20 sm:py-12 lg:py-20 lg:pb-32 flex flex-col min-h-[100svh] sm:min-h-0">
+          {/* Compact Header Row for Mobile */}
+          <div className="flex items-center justify-between gap-3 mb-6 sm:mb-8">
+            {/* Score India Brand - Compact on mobile */}
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="w-9 h-9 sm:w-11 sm:h-11 lg:w-12 lg:h-12 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-lg shadow-amber-500/30">
+                <Trophy className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white" />
+              </div>
+              <div>
+                <h2 className="text-lg sm:text-xl lg:text-2xl font-black text-white tracking-tight">
+                  Score<span className="text-amber-400">India</span>
+                </h2>
+                <p className="text-[9px] sm:text-[10px] lg:text-xs text-white/50 font-medium tracking-wider uppercase hidden sm:block">Premium Cricket Auctions</p>
+              </div>
+            </div>
 
-            {/* Left Side - Text Content - FIRST ON MOBILE */}
-            <div className="reveal-up order-1 lg:order-1 text-center lg:text-left">
-              {/* Badge */}
-              <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/10 mb-4 sm:mb-6">
-                <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-green-400 animate-pulse" />
-                <span className="text-xs sm:text-sm font-medium text-white/80">Digital Temple Experience</span>
+            {/* Live Status Badge - Compact on mobile */}
+            {!loading && (auctionState?.status === 'live' || auctionState?.status === 'active') && (
+              <div className="relative">
+                <div className="absolute -inset-1 bg-red-500/40 rounded-full blur-md" />
+                <div className="relative inline-flex items-center gap-1.5 sm:gap-3 px-3 sm:px-5 py-2 sm:py-2.5 rounded-full bg-red-500/20 border border-red-500/40">
+                  <span className="relative flex h-2 w-2 sm:h-3 sm:w-3">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-full w-full bg-red-500" />
+                  </span>
+                  <span className="text-xs sm:text-sm font-bold text-red-300 uppercase tracking-wider">Live</span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Main Content - Stack on mobile, grid on desktop */}
+          <div className="flex-1 flex flex-col lg:grid lg:grid-cols-12 gap-6 sm:gap-8 lg:gap-12 items-center lg:items-start">
+            {/* Left Side - Main Branding (centered on mobile) */}
+            <div className="lg:col-span-7 text-center lg:text-left flex flex-col items-center lg:items-start">
+              {/* Season Badge - Smaller on mobile */}
+              <div className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-white/5 border border-white/10 mb-4 sm:mb-6">
+                <Star className="w-3 h-3 sm:w-4 sm:h-4 text-amber-400" />
+                <span className="text-xs sm:text-sm font-semibold text-white/80">Season 2026</span>
+                <div className="w-1 h-1 rounded-full bg-white/40 hidden sm:block" />
+                <span className="text-xs sm:text-sm text-white/60 hidden sm:inline">Inaugural Edition</span>
               </div>
 
-              {/* Main Heading */}
-              <h1 className="text-[50px] sm:text-5xl lg:text-6xl xl:text-7xl font-extrabold leading-[1.1] tracking-tight text-white mb-4 sm:mb-6">
-                Experience
-                <span className="block mt-1 relative">
-                  <span className="relative z-10 bg-gradient-to-r from-cyan-300 via-white to-pink-300 bg-clip-text text-transparent">
-                    Divine Peace
+              {/* SPL Title - Responsive sizing */}
+              <div className="relative mb-4 sm:mb-6">
+                <h1 className="relative text-7xl sm:text-8xl lg:text-9xl font-black leading-none tracking-tighter">
+                  <span className="block bg-gradient-to-r from-amber-200 via-amber-400 to-orange-400 bg-clip-text text-transparent">
+                    SPL
                   </span>
-                  {/* Glow Effect */}
-                  <span
-                    className="absolute inset-0 blur-2xl bg-gradient-to-r from-cyan-400/50 via-white/30 to-pink-400/50 opacity-70"
-                    aria-hidden="true"
-                  />
-                </span>
-              </h1>
+                </h1>
+              </div>
 
-              {/* Description */}
-              <p className="text-sm sm:text-xl text-white/70 max-w-xl mx-auto lg:mx-0 mb-6 sm:mb-8 leading-relaxed">
-                Join our spiritual community. Order prasadam, explore devotional items,
-                watch live darshan, and connect with devotees worldwide.
+              {/* League Name - Simplified for mobile */}
+              <div className="flex items-center justify-center lg:justify-start gap-2 sm:gap-4 mb-4 sm:mb-6">
+                <div className="h-px w-8 sm:w-16 bg-gradient-to-r from-transparent to-amber-400/50" />
+                <h2 className="text-lg sm:text-2xl lg:text-3xl font-bold text-white">
+                  <span className="text-amber-400">Sambalpur</span> Premier League
+                </h2>
+                <div className="h-px w-8 sm:w-16 bg-gradient-to-l from-transparent to-amber-400/50" />
+              </div>
+
+              {/* Tagline - Shorter on mobile */}
+              <p className="text-sm sm:text-lg text-white/60 max-w-md lg:max-w-xl mb-6 sm:mb-8 leading-relaxed px-2 sm:px-0">
+                Experience the <span className="text-white font-medium">thrill of live cricket auctions</span>.
+                <span className="hidden sm:inline"> Build your dream team, track bids in real-time.</span>
               </p>
 
-              {/* Feature Pills */}
-              <div className="flex flex-wrap gap-2 sm:gap-3 justify-center lg:justify-start mb-6 sm:mb-10">
-                {['Prasadam', 'Temple Store', 'Live Darshan', 'Youth Forum'].map((feature) => (
-                  <span
-                    key={feature}
-                    className="px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-white/90 bg-white/10 rounded-full border border-white/10 hover:bg-white/20 hover:border-white/20 transition-all cursor-pointer"
-                  >
-                    {feature}
-                  </span>
-                ))}
-              </div>
-
-              {/* Slideshow - Show here on mobile only, before CTA buttons */}
-              <div className="block lg:hidden mb-6">
-                <HeroSlideshow />
-              </div>
-
-              {/* CTA Buttons */}
-              <div className="flex flex-row gap-3 sm:gap-4 justify-center lg:justify-start">
-                <Link href="/prasadam">
+              {/* CTA Buttons - Full width on mobile */}
+              <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto mb-6 sm:mb-10">
+                <Link href="/auctions" className="w-full sm:w-auto">
                   <Button
                     size="lg"
-                    className="group relative px-5 sm:px-8 py-4 sm:py-6 text-sm sm:text-base font-semibold bg-white text-[#5750F1] hover:bg-white/95 shadow-xl shadow-white/20 rounded-lg sm:rounded-xl transition-all duration-300 hover:-translate-y-0.5"
+                    className="w-full sm:w-auto px-6 sm:px-8 py-5 sm:py-6 text-sm sm:text-base font-bold bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-slate-900 shadow-lg shadow-amber-500/25 rounded-xl active:scale-[0.98] transition-transform"
                   >
-                    <span className="flex items-center gap-1.5 sm:gap-2">
-                      Order Prasadam
-                      <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 group-hover:translate-x-1 transition-transform" />
+                    <span className="flex items-center justify-center gap-2">
+                      <Play className="w-4 h-4 sm:w-5 sm:h-5" />
+                      Watch Live Auction
                     </span>
                   </Button>
                 </Link>
-                <Link href="/darshan">
+                <Link href="/auctions" className="w-full sm:w-auto">
                   <Button
                     size="lg"
                     variant="outline"
-                    className="group px-5 sm:px-8 py-4 sm:py-6 text-sm sm:text-base font-semibold border-2 border-white/30 text-white hover:bg-white/10 hover:border-white/50 rounded-lg sm:rounded-xl transition-all duration-300"
+                    className="w-full sm:w-auto px-6 sm:px-8 py-5 sm:py-6 text-sm sm:text-base font-semibold border-2 border-white/20 text-white bg-white/5 hover:bg-white/10 rounded-xl active:scale-[0.98] transition-transform"
                   >
-                    <span className="flex items-center gap-1.5 sm:gap-2">
-                      <Play className="w-4 h-4 sm:w-5 sm:h-5" />
-                      Watch Live
+                    <span className="flex items-center justify-center gap-2">
+                      View All Players
+                      <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5" />
                     </span>
                   </Button>
                 </Link>
               </div>
 
-              {/* Trust Indicators */}
-              <div className="mt-8 sm:mt-12 pt-6 sm:pt-8 border-t border-white/10">
-                <div className="flex flex-wrap items-center justify-center lg:justify-start gap-4 sm:gap-14">
-                  <div className="text-center lg:text-left">
-                    <p className="text-2xl sm:text-3xl font-bold text-white">15+</p>
-                    <p className="text-xs sm:text-sm text-white/60">Years</p>
+              {/* Feature Highlights - Horizontal scroll on mobile */}
+              <div className="w-full overflow-x-auto scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0 sm:overflow-visible">
+                <div className="flex items-center gap-2 sm:gap-3 sm:flex-wrap sm:justify-center lg:justify-start min-w-max sm:min-w-0">
+                  <div className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-full bg-blue-500/10 border border-blue-500/20">
+                    <Users className="w-3 h-3 sm:w-4 sm:h-4 text-blue-400" />
+                    <span className="text-xs sm:text-sm font-semibold text-white whitespace-nowrap">150+ Players</span>
                   </div>
-                  <div className="w-px h-8 sm:h-12 bg-white/20" />
-                  <div className="text-center lg:text-left">
-                    <p className="text-2xl sm:text-3xl font-bold text-white">1000+</p>
-                    <p className="text-xs sm:text-sm text-white/60">Members</p>
+                  <div className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-full bg-purple-500/10 border border-purple-500/20">
+                    <Shield className="w-3 h-3 sm:w-4 sm:h-4 text-purple-400" />
+                    <span className="text-xs sm:text-sm font-semibold text-white whitespace-nowrap">8 Teams</span>
                   </div>
-                  <div className="w-px h-8 sm:h-12 bg-white/20" />
-                  <div className="text-center lg:text-left">
-                    <p className="text-2xl sm:text-3xl font-bold text-white">100+</p>
-                    <p className="text-xs sm:text-sm text-white/60">Nitya Sevak</p>
+                  <div className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
+                    <Zap className="w-3 h-3 sm:w-4 sm:h-4 text-emerald-400" />
+                    <span className="text-xs sm:text-sm font-semibold text-white whitespace-nowrap">Live Bidding</span>
+                  </div>
+                  <div className="hidden sm:inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-amber-500/10 border border-amber-500/20">
+                    <Trophy className="w-4 h-4 text-amber-400" />
+                    <span className="text-sm font-semibold text-white">Real-time Updates</span>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Right Side - Premium Slideshow - Hidden on mobile (shown above instead) */}
-            <div className="hidden lg:block order-2 lg:order-2">
-              <HeroSlideshow />
+            {/* Right Side - Auction Status Card (below content on mobile) */}
+            <div className="lg:col-span-5 relative w-full max-w-md lg:max-w-none lg:-mt-16">
+              {/* Card glow - reduced on mobile */}
+              <div className="hidden sm:block absolute -inset-4 bg-gradient-to-r from-amber-500/15 via-violet-500/15 to-blue-500/15 rounded-3xl blur-2xl opacity-60" />
+
+              {/* Main Card - Simplified styling for mobile */}
+              <Card className="relative bg-gradient-to-br from-white/10 to-white/[0.03] border border-white/10 rounded-2xl sm:rounded-3xl p-5 sm:p-6 lg:p-8 overflow-hidden shadow-xl">
+                {/* Subtle internal decoration - desktop only */}
+                <div className="hidden sm:block absolute top-0 right-0 w-32 h-32 bg-amber-500/10 rounded-full blur-2xl -translate-y-1/3 translate-x-1/3" />
+
+                <div className="relative z-10">
+                  {/* Card Header */}
+                  <div className="text-center mb-4 sm:mb-6">
+                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full bg-amber-500/20 border border-amber-500/30 mb-3 sm:mb-4">
+                      <Crown className="w-3 h-3 sm:w-4 sm:h-4 text-amber-400" />
+                      <span className="text-[10px] sm:text-xs font-bold text-amber-300 uppercase tracking-wider">Official Auction</span>
+                    </div>
+
+                    <h3 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white mb-1 sm:mb-2">
+                      SPL 2026
+                    </h3>
+                    <p className="text-xs sm:text-sm text-white/50 font-medium">Sambalpur Premier League</p>
+                  </div>
+
+                  {/* Status Section */}
+                  {loading ? (
+                    <div className="text-center py-6">
+                      <div className="w-10 h-10 sm:w-12 sm:h-12 border-2 border-white/20 border-t-amber-400 rounded-full animate-spin mx-auto mb-3" />
+                      <p className="text-white/50 text-xs sm:text-sm font-medium">Loading...</p>
+                    </div>
+                  ) : (
+                    <>
+                      {/* Status Badge */}
+                      <div className="flex items-center justify-center mb-4 sm:mb-6">
+                        {auctionState?.status === 'live' || auctionState?.status === 'active' ? (
+                          <div className="inline-flex items-center gap-2 sm:gap-3 px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl bg-emerald-500/15 border border-emerald-500/30">
+                            <div className="relative">
+                              <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-emerald-400" />
+                              <div className="absolute inset-0 w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-emerald-400 animate-ping" />
+                            </div>
+                            <span className="text-xs sm:text-sm font-bold text-emerald-300 uppercase tracking-wider">
+                              Bidding Open
+                            </span>
+                          </div>
+                        ) : (
+                          <div className="inline-flex items-center gap-2 sm:gap-3 px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl bg-amber-500/15 border border-amber-500/30">
+                            <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-300" />
+                            <span className="text-xs sm:text-sm font-bold text-amber-300 uppercase tracking-wider">
+                              Coming Soon
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Status Content */}
+                      <div className="text-center space-y-2 sm:space-y-4 mb-4 sm:mb-6">
+                        {auctionState?.status === 'live' || auctionState?.status === 'active' ? (
+                          <>
+                            <div className="flex items-center justify-center gap-2">
+                              <Zap className="w-4 h-4 sm:w-5 sm:h-5 text-amber-400" />
+                              <h4 className="text-lg sm:text-xl font-bold text-white">
+                                Auction is LIVE!
+                              </h4>
+                            </div>
+                            <p className="text-xs sm:text-sm text-white/60 leading-relaxed">
+                              Join now to watch the action!
+                            </p>
+                          </>
+                        ) : (
+                          <>
+                            <div className="w-12 h-12 sm:w-14 sm:h-14 mx-auto rounded-xl sm:rounded-2xl bg-amber-500/15 flex items-center justify-center border border-amber-500/20 mb-3">
+                              <Gavel className="w-6 h-6 sm:w-7 sm:h-7 text-amber-300" />
+                            </div>
+                            <h4 className="text-lg sm:text-xl font-bold text-white">
+                              Auction Not Started
+                            </h4>
+                            <p className="text-xs sm:text-sm text-white/50 leading-relaxed">
+                              Stay tuned for the action!
+                            </p>
+                          </>
+                        )}
+                      </div>
+
+                      {/* CTA Button */}
+                      <Link href="/auctions" className="block">
+                        <Button className="w-full py-4 sm:py-5 text-sm sm:text-base font-bold bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-slate-900 rounded-xl shadow-lg shadow-amber-500/20 active:scale-[0.98] transition-transform">
+                          <Gavel className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
+                          Enter Auction Room
+                        </Button>
+                      </Link>
+
+                      {/* Feature Pills - Hidden on smallest screens */}
+                      <div className="hidden sm:flex flex-wrap items-center justify-center gap-2 mt-5 pt-5 border-t border-white/10">
+                        <div className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-[10px] sm:text-xs text-blue-300 font-medium">
+                          <Target className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+                          Real-time
+                        </div>
+                        <div className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[10px] sm:text-xs text-emerald-300 font-medium">
+                          <Shield className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+                          8 Teams
+                        </div>
+                        <div className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-purple-500/10 border border-purple-500/20 text-[10px] sm:text-xs text-purple-300 font-medium">
+                          <Award className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+                          150+ Players
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </Card>
             </div>
           </div>
         </div>
 
-        {/* Bottom Wave Separator */}
-        <div className="absolute bottom-0 left-0 right-0 overflow-hidden">
+        {/* Bottom Wave - Simplified SVG */}
+        <div className="absolute bottom-0 left-0 right-0">
           <svg
-            viewBox="0 0 1440 120"
+            viewBox="0 0 1440 80"
             fill="none"
             xmlns="http://www.w3.org/2000/svg"
-            className="w-full h-auto"
+            className="w-full h-auto block"
             preserveAspectRatio="none"
           >
             <path
-              d="M0 120L48 108C96 96 192 72 288 66C384 60 480 72 576 78C672 84 768 84 864 78C960 72 1056 60 1152 60C1248 60 1344 72 1392 78L1440 84V120H1392C1344 120 1248 120 1152 120C1056 120 960 120 864 120C768 120 672 120 576 120C480 120 384 120 288 120C192 120 96 120 48 120H0Z"
-              className="fill-white dark:fill-gray-950"
+              d="M0 80L60 73.3C120 67 240 53 360 46.7C480 40 600 40 720 44C840 48 960 56 1080 58.7C1200 61 1320 59 1380 58L1440 57V80H0Z"
+              className="fill-slate-50"
             />
           </svg>
         </div>
       </section>
 
-      {/* Services Grid Section */}
-      <section className="mt-6 sm:mt-8 md:mt-10 px-3 sm:px-4" aria-labelledby="services-title">
+
+
+      {/* CTA Banner */}
+      {/* CTA Banner - Tournament Hosting Advertisement */}
+      <section className="py-12 sm:py-16 px-4 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-7xl">
-          <div className="mb-4 sm:mb-5 flex items-center justify-between">
-            <h2 id="services-title" className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">Our Services</h2>
-            <span className="inline-flex items-center gap-1 sm:gap-1.5 rounded-full border border-[#5750F1]/20 bg-[#5750F1]/5 px-2.5 sm:px-3 py-0.5 sm:py-1 text-[10px] sm:text-xs font-semibold text-[#5750F1]">
-              <Sparkles className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
-              Popular
-            </span>
-          </div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3 sm:gap-4">
-            {services.map((service) => {
-              const Icon = service.icon;
-              return (
-                <Link
-                  key={service.title}
-                  href={service.href}
-                  className="group relative overflow-hidden rounded-xl sm:rounded-2xl bg-white dark:bg-white/5 p-3 sm:p-5 transition-all duration-300 hover:-translate-y-1 border border-gray-200 dark:border-white/10 hover:border-[#5750F1]/50 hover:shadow-md"
-                >
-                  <div className="relative z-10 flex flex-col gap-3 sm:gap-4">
-                    {/* Icon Container */}
-                    <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-lg bg-[#5750F1]/10 flex items-center justify-center text-[#5750F1] group-hover:scale-110 transition-transform duration-300">
-                      <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
-                    </div>
-
-                    <div>
-                      <h3 className="font-bold text-gray-900 dark:text-gray-100 group-hover:text-[#5750F1] transition-colors text-xs sm:text-sm">
-                        {service.title}
-                      </h3>
-                      <p className="mt-0.5 sm:mt-1 text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 line-clamp-2">
-                        {service.description}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Hover Arrow */}
-                  <div className="absolute top-2 right-2 sm:top-4 sm:right-4 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300">
-                    <ArrowRight className="h-3 w-3 sm:h-4 sm:w-4 text-[#5750F1]" />
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
-      {/* Explore More Section */}
-      <section className="mt-10 sm:mt-16 px-3 sm:px-4" aria-labelledby="explore-title">
-        <div className="mx-auto max-w-7xl">
-          <div className="mb-5 sm:mb-8 text-center">
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-[#5750F1]/20 bg-[#5750F1]/5 px-2.5 sm:px-3 py-1 text-[10px] sm:text-xs font-semibold text-[#5750F1] mb-3 sm:mb-4">
-              <Star className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
-              Explore
-            </span>
-            <h2 id="explore-title" className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">
-              Discover More
-            </h2>
-            <p className="mt-1.5 sm:mt-2 text-xs sm:text-sm text-gray-600 dark:text-gray-400 max-w-xl mx-auto px-4">
-              Learn about our mission, support temple construction, or become a life patron
-            </p>
-          </div>
-
-          <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
-            {/* New Temple Construction Card */}
-            <Link href="/temple-construction" className="group">
-              <div className="relative overflow-hidden rounded-xl sm:rounded-2xl bg-gradient-to-br from-[#5750F1] to-[#7C3AED] p-3 sm:p-5 h-28 sm:h-40 lg:h-48 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-[#5750F1]/30">
-                {/* Decorative corner */}
-                <div className="absolute top-0 right-0 w-16 sm:w-24 h-16 sm:h-24 rounded-bl-full bg-white/10" />
-
-                {/* Arrow icon - hidden on mobile */}
-                <div className="hidden sm:flex absolute bottom-4 right-4 w-8 h-8 rounded-full bg-white/20 items-center justify-center group-hover:bg-white/30 transition-all group-hover:translate-x-0.5">
-                  <ArrowRight className="h-4 w-4 text-white" />
-                </div>
-
-                <div className="relative z-10 h-full flex flex-col gap-2 sm:gap-3">
-                  {/* Icon */}
-                  <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-lg sm:rounded-xl bg-white/20 flex items-center justify-center">
-                    <Building2 className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
-                  </div>
-
-                  <div>
-                    <h3 className="text-sm sm:text-lg font-bold text-white mb-0.5">New Temple</h3>
-                    <p className="text-white/80 text-[10px] sm:text-xs leading-snug">Be a part of divine construction</p>
-                  </div>
-                </div>
-              </div>
-            </Link>
-
-            {/* Seva Opportunities Card */}
-            <Link href="/seva-opportunities" className="group">
-              <div className="relative overflow-hidden rounded-xl sm:rounded-2xl bg-gradient-to-br from-amber-500 to-yellow-600 p-3 sm:p-5 h-28 sm:h-40 lg:h-48 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-amber-500/30">
-                {/* Decorative corner */}
-                <div className="absolute top-0 right-0 w-16 sm:w-24 h-16 sm:h-24 rounded-bl-full bg-white/10" />
-
-                {/* Arrow icon - hidden on mobile */}
-                <div className="hidden sm:flex absolute bottom-4 right-4 w-8 h-8 rounded-full bg-white/20 items-center justify-center group-hover:bg-white/30 transition-all group-hover:translate-x-0.5">
-                  <ArrowRight className="h-4 w-4 text-white" />
-                </div>
-
-                <div className="relative z-10 h-full flex flex-col gap-2 sm:gap-3">
-                  {/* Icon */}
-                  <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-lg sm:rounded-xl bg-white/20 flex items-center justify-center">
-                    <Heart className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
-                  </div>
-
-                  <div>
-                    <h3 className="text-sm sm:text-lg font-bold text-white mb-0.5">Seva Opportunities</h3>
-                    <p className="text-white/80 text-[10px] sm:text-xs leading-snug">Serve to please Lord Sita Ram</p>
-                  </div>
-                </div>
-              </div>
-            </Link>
-
-            {/* Nitya Sevak Card - Featured (col-span-2 on mobile, col-span-1 on lg) */}
-            <Link href="/nitya-sevak" className="group col-span-2 lg:col-span-1">
-              <div className="relative overflow-hidden rounded-xl sm:rounded-2xl bg-gradient-to-br from-[#0f0c29] via-[#302b63] to-[#24243e] p-4 sm:p-6 h-32 sm:h-48 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-[#5750F1]/20">
-                <div className="absolute top-[-20%] right-[-10%] w-32 sm:w-64 h-32 sm:h-64 rounded-full bg-[#5750F1]/30 blur-3xl" />
-                <div className="absolute bottom-[-20%] left-[-10%] w-24 sm:w-48 h-24 sm:h-48 rounded-full bg-amber-500/20 blur-2xl" />
-
-                {/* Arrow icon */}
-                <div className="absolute bottom-4 right-4 sm:bottom-6 sm:right-6 w-7 h-7 sm:w-9 sm:h-9 rounded-full bg-white/10 flex items-center justify-center group-hover:bg-white/20 transition-all group-hover:translate-x-0.5 z-20">
-                  <ArrowRight className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-white" />
-                </div>
-
-                <div className="relative z-10 h-full flex flex-col justify-between">
-                  <div className="flex items-center gap-2 sm:gap-3">
-                    <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl bg-gradient-to-br from-amber-400 to-yellow-500 flex items-center justify-center">
-                      <Crown className="h-4 w-4 sm:h-6 sm:w-6 text-white" />
-                    </div>
-                    <span className="px-2 sm:px-3 py-0.5 sm:py-1 bg-amber-500/20 text-amber-300 text-[10px] sm:text-xs font-medium rounded-full border border-amber-500/30">
-                      Life Patron
-                    </span>
-                  </div>
-                  <div>
-                    <h3 className="text-base sm:text-2xl lg:text-xl font-bold text-white mb-0.5 sm:mb-1">Become a Nitya Sevak</h3>
-                    <p className="text-white/70 text-[10px] sm:text-sm lg:text-xs">Join our exclusive life patron membership</p>
-                  </div>
-                </div>
-              </div>
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* Join Our Community - Premium Hero-Style Section */}
-      <section className="mt-10 sm:mt-16 px-3 sm:px-4 pb-10 sm:pb-16">
-        <div className="mx-auto max-w-7xl">
-          {/* Main Community Hero Card */}
-          <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl bg-gradient-to-br from-[#0f0c29] via-[#302b63] to-[#24243e] p-5 sm:p-8 md:p-12 lg:p-16 mb-6 sm:mb-8">
-            {/* Animated Background Elements */}
+          <Card className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 border-0 rounded-3xl p-8 sm:p-12 lg:p-16 text-center">
+            {/* Background Elements */}
             <div className="absolute inset-0 overflow-hidden pointer-events-none">
-              <div className="absolute top-[-20%] right-[-10%] w-[500px] h-[500px] rounded-full bg-gradient-to-br from-[#5750F1]/40 to-purple-600/20 blur-3xl animate-orb-1" />
-              <div className="absolute bottom-[-30%] left-[-10%] w-[400px] h-[400px] rounded-full bg-gradient-to-br from-cyan-500/30 to-blue-600/20 blur-3xl animate-orb-2" />
-              <div className="absolute top-1/2 right-1/4 w-[200px] h-[200px] rounded-full bg-gradient-to-br from-rose-500/20 to-orange-500/10 blur-2xl animate-orb-3" />
-
-              {/* Grid Pattern */}
-              <div
-                className="absolute inset-0 opacity-[0.03]"
-                style={{
-                  backgroundImage: `
-                    linear-gradient(rgba(255,255,255,1) 1px, transparent 1px),
-                    linear-gradient(90deg, rgba(255,255,255,1) 1px, transparent 1px)
-                  `,
-                  backgroundSize: '60px 60px',
-                }}
-              />
-
-              {/* Floating Particles */}
-              {[...Array(6)].map((_, i) => (
-                <div
-                  key={i}
-                  className="absolute w-2 h-2 rounded-full bg-white/20 animate-particle-float"
-                  style={{
-                    left: `${15 + i * 15}%`,
-                    top: `${20 + (i % 3) * 25}%`,
-                    animationDelay: `${i * 0.7}s`,
-                    animationDuration: `${4 + i * 0.5}s`,
-                  }}
-                />
-              ))}
+              <div className="absolute top-[-20%] right-[-10%] w-[400px] h-[400px] rounded-full bg-blue-500/20 blur-3xl" />
+              <div className="absolute bottom-[-20%] left-[-10%] w-[300px] h-[300px] rounded-full bg-purple-500/20 blur-3xl" />
             </div>
 
-            {/* Content */}
-            <div className="relative z-10">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
-                {/* Left Content */}
-                <div className="text-center lg:text-left">
-                  {/* Badge */}
-                  <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/10 mb-6">
-                    <Users className="w-4 h-4 text-cyan-400" />
-                    <span className="text-sm font-medium text-white/80">Growing Community</span>
-                  </div>
+            <div className="relative z-10 flex flex-col items-center">
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/10 mb-6">
+                <Crown className="w-4 h-4 text-amber-400" />
+                <span className="text-sm font-semibold text-white/80">Premium Experience</span>
+              </div>
 
-                  {/* Heading */}
-                  <h2 className="text-3xl sm:text-4xl md:text-4xl lg:text-5xl font-extrabold leading-[1.1] tracking-tight text-white mb-3 sm:mb-4">
-                    Join Our
-                    <span className="block mt-1 relative">
-                      <span className="relative z-10 bg-gradient-to-r from-cyan-300 via-white to-pink-300 bg-clip-text text-transparent">
-                        Spiritual Community
-                      </span>
-                      <span
-                        className="absolute inset-0 blur-2xl bg-gradient-to-r from-cyan-400/50 via-white/30 to-pink-400/50 opacity-50"
-                        aria-hidden="true"
-                      />
-                    </span>
-                  </h2>
+              <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-6 leading-tight">
+                Want to Host Your Own
+                <span className="block mt-2 bg-gradient-to-r from-amber-200 via-amber-400 to-orange-400 bg-clip-text text-transparent">
+                  Tournament Auction?
+                </span>
+              </h2>
 
-                  {/* Description */}
-                  <p className="text-sm sm:text-base md:text-lg text-white/70 max-w-lg mx-auto lg:mx-0 mb-5 sm:mb-8">
-                    Connect with devotees, participate in festivals, and deepen your journey with us.
-                  </p>
+              <p className="text-lg text-white/70 max-w-2xl mx-auto mb-10 leading-relaxed">
+                Take your local tournament to the next level with our professional auction platform.
+                Manage players, teams, and live bidding with a broadcast-quality interface that everyone will love.
+              </p>
 
-                  {/* CTA Buttons */}
-                  <div className="flex flex-row gap-3 sm:gap-5 justify-center lg:justify-start">
-                    <Link href="/register">
-                      <Button
-                        size="lg"
-                        className="group px-6 sm:px-10 py-4 sm:py-6 text-sm sm:text-base font-semibold bg-white text-[#5750F1] hover:bg-white/95 shadow-xl shadow-white/20 rounded-lg sm:rounded-xl transition-all duration-300 hover:-translate-y-0.5"
-                      >
-                        <span className="flex items-center gap-1.5 sm:gap-2">
-                          Join Now
-                          <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 group-hover:translate-x-1 transition-transform" />
-                        </span>
-                      </Button>
-                    </Link>
-                    <Link href="/events">
-                      <Button
-                        size="lg"
-                        variant="outline"
-                        className="group px-6 sm:px-10 py-4 sm:py-6 text-sm sm:text-base font-semibold border-2 border-white/30 text-white hover:bg-white/10 hover:border-white/50 rounded-lg sm:rounded-xl transition-all"
-                      >
-                        <Calendar className="w-4 h-4 sm:w-5 sm:h-5 mr-1.5 sm:mr-2" />
-                        <span className="hidden xs:inline">View </span>Events
-                      </Button>
-                    </Link>
-                  </div>
-                </div>
+              <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto items-center justify-center">
+                <Button
+                  onClick={() => setIsContactModalOpen(true)}
+                  size="lg"
+                  className="w-full sm:w-auto px-8 py-7 text-lg font-bold bg-white text-blue-900 hover:bg-white/95 rounded-xl shadow-xl shadow-white/20 transition-all hover:scale-105 active:scale-95"
+                >
+                  <MessageCircle className="w-5 h-5 mr-2" />
+                  Contact Us to Host
+                </Button>
 
-                {/* Right Side - Stats Grid */}
-                <div className="grid grid-cols-3 gap-1.5 sm:gap-3 lg:gap-4">
-                  {[
-                    { value: '15+', label: 'Years', icon: Star, color: 'from-amber-500 to-orange-500' },
-                    { value: '1000+', label: 'Members', icon: Users, color: 'from-emerald-500 to-teal-500' },
-                    { value: '100+', label: 'Nitya Sevak', icon: Heart, color: 'from-rose-500 to-pink-500' },
-                  ].map((stat, index) => (
-                    <div
-                      key={stat.label}
-                      className="group relative overflow-hidden rounded-lg sm:rounded-xl bg-white/10 backdrop-blur-sm border border-white/10 p-2 sm:p-4 lg:p-5 text-center hover:bg-white/15 transition-all duration-300 hover:-translate-y-1"
-                    >
-                      <div className={`absolute inset-0 opacity-0 group-hover:opacity-20 transition-opacity bg-gradient-to-br ${stat.color}`} />
-                      <div className="relative z-10">
-                        <stat.icon className="w-3 h-3 sm:w-4 sm:h-4 lg:w-5 lg:h-5 text-white/60 mx-auto mb-1 sm:mb-2" />
-                        <p className="text-base sm:text-xl md:text-2xl lg:text-3xl font-bold text-white mb-0.5">{stat.value}</p>
-                        <p className="text-[8px] sm:text-[10px] md:text-xs text-white/60">{stat.label}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                <Link href="/auctions" className="w-full sm:w-auto">
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    className="w-full sm:w-auto px-8 py-7 text-lg font-bold border-2 border-white/20 text-white bg-white/5 hover:bg-white/10 rounded-xl transition-all"
+                  >
+                    View Current Auction
+                    <ArrowRight className="w-5 h-5 ml-2" />
+                  </Button>
+                </Link>
               </div>
             </div>
+          </Card>
+        </div>
+      </section>
+
+      {/* Contact Modal */}
+      <Dialog open={isContactModalOpen} onOpenChange={setIsContactModalOpen}>
+        <DialogContent className="!w-[calc(100vw-2rem)] sm:!w-auto sm:max-w-md !bg-white border-slate-200 text-slate-900 !left-1/2 !-translate-x-1/2 !mx-0 !max-h-[90vh] flex flex-col">
+          <DialogHeader className="shrink-0">
+            <DialogTitle className="text-xl sm:text-2xl font-bold text-slate-900 text-center">Host Your Auction</DialogTitle>
+            <DialogDescription className="text-center text-slate-600 text-sm">
+              Contact us to set up your premium cricket auction platform.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col space-y-3 py-4 overflow-y-auto flex-1 min-h-0">
+            <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 w-full text-center">
+              <p className="text-[10px] sm:text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Website Creator and Owner</p>
+              <p className="text-base sm:text-lg font-bold text-slate-900">Sonu Yadav</p>
+            </div>
+
+            <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 flex flex-col sm:flex-row items-center sm:items-start gap-3 w-full">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 shrink-0">
+                <Phone className="w-4 h-4 sm:w-5 sm:h-5" />
+              </div>
+              <div className="flex-1 text-center sm:text-left">
+                <p className="text-[10px] sm:text-xs font-semibold text-slate-500 uppercase tracking-wider">Call / WhatsApp</p>
+                <a href="tel:+918956636255" className="text-sm sm:text-base font-bold text-slate-900 hover:text-blue-600 transition-colors">
+                  +91 89566 36255
+                </a>
+              </div>
+            </div>
+
+            <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 flex flex-col sm:flex-row items-center sm:items-start gap-3 w-full">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 shrink-0">
+                <Mail className="w-4 h-4 sm:w-5 sm:h-5" />
+              </div>
+              <div className="flex-1 text-center sm:text-left">
+                <p className="text-[10px] sm:text-xs font-semibold text-slate-500 uppercase tracking-wider">Email Us</p>
+                <a href="mailto:admin@scoreIndia.cloud" className="text-sm sm:text-base font-bold text-slate-900 hover:text-purple-600 transition-colors break-all">
+                  admin@scoreIndia.cloud
+                </a>
+              </div>
+            </div>
+
+            <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 w-full">
+              <h4 className="text-sm sm:text-base font-bold text-blue-900 mb-2 flex items-center justify-start gap-2">
+                <Shield className="w-3 h-3 sm:w-4 sm:h-4 text-blue-600" />
+                Premium Features Include:
+              </h4>
+              <ul className="text-xs sm:text-sm text-slate-600 space-y-1 list-none pl-5">
+                <li className="relative before:content-['•'] before:absolute before:-left-4 before:text-slate-600">Professional Auction Dashboard</li>
+                <li className="relative before:content-['•'] before:absolute before:-left-4 before:text-slate-600">Live Big Screen Display</li>
+                <li className="relative before:content-['•'] before:absolute before:-left-4 before:text-slate-600">Team Management Tools</li>
+                <li className="relative before:content-['•'] before:absolute before:-left-4 before:text-slate-600">Real-time Bidding System</li>
+              </ul>
+            </div>
           </div>
-        </div>
-      </section >
-
-      {/* Quote Section */}
-      < section className="py-8 sm:py-12 md:py-16 px-4 bg-muted/30" >
-        <div className="mx-auto max-w-4xl text-center px-2">
-          <blockquote className="text-base sm:text-xl md:text-2xl lg:text-3xl font-medium italic text-foreground leading-relaxed">
-            &ldquo;We are not this body. We are eternal spirit souls, part and parcel of the Supreme Lord.&rdquo;
-          </blockquote>
-          <p className="mt-3 sm:mt-4 md:mt-6 text-sm sm:text-base text-[#5750F1] font-semibold">— Srila Prabhupada</p>
-        </div>
-      </section >
-
-      {/* Maha Mantra Section */}
-      < section className="py-8 sm:py-10 md:py-12 px-4 bg-gradient-to-r from-[#5750F1] to-[#7C3AED] text-white" >
-        <div className="mx-auto max-w-4xl text-center px-2">
-          <p className="text-sm sm:text-base md:text-lg opacity-80 mb-2 sm:mb-3 md:mb-4">Chant and Be Happy</p>
-          <h2 className="text-lg sm:text-2xl md:text-3xl lg:text-4xl font-bold leading-relaxed">
-            Hare Krishna Hare Krishna<br />
-            Krishna Krishna Hare Hare<br />
-            Hare Rama Hare Rama<br />
-            Rama Rama Hare Hare
-          </h2>
-        </div>
-      </section >
-    </div >
+          <div className="flex justify-center pt-2 shrink-0 border-t border-slate-200 mt-2">
+            <Button
+              variant="outline"
+              onClick={() => setIsContactModalOpen(false)}
+              className="w-full text-slate-700 border-slate-200 hover:bg-slate-50 hover:text-slate-900"
+            >
+              Close
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 }
