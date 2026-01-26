@@ -58,6 +58,7 @@ type Player struct {
 	TeamID      *uuid.UUID             `json:"team_id,omitempty"`
 	SoldAt      *time.Time             `json:"sold_at,omitempty"`
 	QueueOrder  *int                   `json:"queue_order,omitempty"`
+	Badge       *string                `json:"badge,omitempty"`
 	CreatedAt   time.Time              `json:"created_at"`
 	UpdatedAt   time.Time              `json:"updated_at"`
 

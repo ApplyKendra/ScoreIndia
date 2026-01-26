@@ -46,8 +46,10 @@ export interface TwoFactorVerifyResponse {
     recoveryCodes?: string[];
 }
 
-// Debug logger for auth flow
+// Debug logger for auth flow (only in development)
+const isDev = process.env.NODE_ENV === 'development';
 const logAuth = (step: string, data?: any, error?: any) => {
+    if (!isDev) return;
     const timestamp = new Date().toISOString();
     if (error) {
         console.error(`🔐 [AUTH ${timestamp}] ${step}:`, error);

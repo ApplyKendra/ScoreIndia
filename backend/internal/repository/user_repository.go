@@ -113,6 +113,15 @@ func (r *UserRepository) Update(ctx context.Context, user *models.User) error {
 	return err
 }
 
+// UpdatePassword updates a user's password hash
+func (r *UserRepository) UpdatePassword(ctx context.Context, id uuid.UUID, passwordHash string) error {
+	_, err := r.db.Exec(ctx, `
+		UPDATE users SET password_hash = $2, updated_at = NOW()
+		WHERE id = $1
+	`, id, passwordHash)
+	return err
+}
+
 // Delete deletes a user
 func (r *UserRepository) Delete(ctx context.Context, id uuid.UUID) error {
 	_, err := r.db.Exec(ctx, "DELETE FROM users WHERE id = $1", id)

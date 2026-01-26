@@ -76,6 +76,7 @@ interface Player {
     team_id?: string;
     team?: Team;
     queue_order?: number;
+    badge?: string;
     stats?: {
         matches?: number;
         runs?: number;
@@ -109,7 +110,16 @@ const formatCurrency = (value: number) => {
 };
 
 const formatTime = (date: string) => {
-    return new Date(date).toLocaleTimeString('en-IN', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    if (!date) return '--:--:--';
+    try {
+        const dateObj = new Date(date);
+        if (isNaN(dateObj.getTime())) {
+            return '--:--:--';
+        }
+        return dateObj.toLocaleTimeString('en-IN', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    } catch (error) {
+        return '--:--:--';
+    }
 };
 
 // Action Button Component
@@ -817,13 +827,23 @@ export default function HostDashboard() {
                 <aside className={`bg-white border-r border-slate-200 flex flex-col shrink-0 transition-all duration-300 ${presentationMode ? 'w-0 opacity-0 pointer-events-none overflow-hidden' : 'w-80'}`}>
                     <div className="flex border-b border-slate-200 shrink-0">
                         <button
-                            onClick={() => setActivePanel('queue')}
+                            type="button"
+                            onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setActivePanel('queue');
+                            }}
                             className={`flex-1 py-3 text-sm font-semibold transition-all flex items-center justify-center gap-2 ${activePanel === 'queue' ? 'text-indigo-600 bg-indigo-50 border-b-2 border-indigo-600' : 'text-slate-500 hover:bg-slate-50'}`}
                         >
                             <Activity className="w-4 h-4" /> Queue
                         </button>
                         <button
-                            onClick={() => setActivePanel('teams')}
+                            type="button"
+                            onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setActivePanel('teams');
+                            }}
                             className={`flex-1 py-3 text-sm font-semibold transition-all flex items-center justify-center gap-2 ${activePanel === 'teams' ? 'text-indigo-600 bg-indigo-50 border-b-2 border-indigo-600' : 'text-slate-500 hover:bg-slate-50'}`}
                         >
                             <Users className="w-4 h-4" /> Teams
@@ -939,53 +959,66 @@ export default function HostDashboard() {
                         /* Player Card - Vertical Layout */
                         <Card className="flex-1 bg-white border-slate-200 overflow-hidden flex flex-col shadow-lg rounded-2xl">
 
-                            {/* Large Player Image - No Background */}
-                            <div className={`flex items-center justify-center shrink-0 transition-all duration-300 ${presentationMode ? 'p-8' : 'p-6'}`}>
-                                <div className={`rounded-3xl overflow-hidden shadow-2xl transition-all duration-300 ${presentationMode ? 'w-80 h-80 lg:w-[400px] lg:h-[400px]' : 'w-64 h-64 lg:w-80 lg:h-80'}`}>
-                                    {currentPlayer.image_url ? (
-                                        <img src={getImageUrl(currentPlayer.image_url)} alt={currentPlayer.name} className="w-full h-full object-cover" />
-                                    ) : (
-                                        <div className="w-full h-full flex items-center justify-center bg-slate-200">
-                                            <Users className="w-24 h-24 text-slate-400" />
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
+                            {/* Dark Background Container for Player Image and Info */}
+                            <div className="bg-gradient-to-br from-slate-600 via-slate-500 to-slate-600 relative overflow-hidden shrink-0">
+                                {/* Decorative gradient overlay */}
+                                <div className="absolute inset-0 bg-gradient-to-br from-indigo-900/20 via-transparent to-purple-900/20 pointer-events-none" />
 
-                            {/* Player Info - No Background */}
-                            <div className={`text-center shrink-0 transition-all duration-300 ${presentationMode ? 'px-6 py-4' : 'px-4 py-3'}`}>
-                                <h2 className={`font-bold text-slate-900 transition-all duration-300 ${presentationMode ? 'text-3xl lg:text-4xl' : 'text-xl'}`}>{currentPlayer.name}</h2>
-                                <div className={`flex items-center justify-center mt-2 transition-all duration-300 ${presentationMode ? 'gap-4' : 'gap-2'}`}>
-                                    <span className={`transition-all duration-300 ${presentationMode ? 'text-2xl' : 'text-lg'}`}>{currentPlayer.country_flag || '🏏'}</span>
-                                    <span className={`text-slate-700 transition-all duration-300 ${presentationMode ? 'text-lg' : 'text-sm'}`}>{currentPlayer.country}</span>
-                                    <Badge className={`bg-slate-100 text-slate-800 border-slate-200 transition-all duration-300 ${presentationMode ? 'text-sm px-3 py-1' : 'text-xs'}`}>{currentPlayer.role}</Badge>
-                                    <span className="text-slate-400">•</span>
-                                    <span className={`text-slate-900 font-semibold transition-all duration-300 ${presentationMode ? 'text-lg' : 'text-base'}`}>Base: {formatCurrency(currentPlayer.base_price)}</span>
+                                {/* Large Player Image with Frame */}
+                                <div className={`flex items-center justify-center shrink-0 transition-all duration-300 relative z-10 ${presentationMode ? 'p-4' : 'p-4'}`}>
+                                    <div className={`relative rounded-3xl overflow-hidden shadow-2xl transition-all duration-300 ${presentationMode ? 'w-64 h-64 lg:w-80 lg:h-80' : 'w-56 h-56 lg:w-72 lg:h-72'}`}>
+                                        {/* Frame border */}
+                                        <div className="absolute inset-0 border-4 border-white/30 rounded-3xl pointer-events-none z-10" />
+                                        <div className="absolute inset-[2px] border-2 border-white/20 rounded-[22px] pointer-events-none z-10" />
+
+                                        {/* Inner shadow effect */}
+                                        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/20 rounded-3xl pointer-events-none z-10" />
+
+                                        {currentPlayer.image_url ? (
+                                            <img src={getImageUrl(currentPlayer.image_url)} alt={currentPlayer.name} className="w-full h-full object-cover" />
+                                        ) : (
+                                            <div className="w-full h-full flex items-center justify-center bg-slate-600">
+                                                <Users className="w-20 h-20 text-slate-400" />
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Player Info with Dark Background */}
+                                <div className={`text-center shrink-0 transition-all duration-300 relative z-10 ${presentationMode ? 'px-6 py-3 pb-4' : 'px-4 py-2 pb-3'}`}>
+                                    <h2 className={`font-bold text-white transition-all duration-300 ${presentationMode ? 'text-2xl lg:text-3xl' : 'text-lg'} drop-shadow-lg`}>{currentPlayer.name}</h2>
+                                    <div className={`flex items-center justify-center mt-1.5 transition-all duration-300 ${presentationMode ? 'gap-3' : 'gap-2'}`}>
+                                        <span className={`transition-all duration-300 ${presentationMode ? 'text-xl' : 'text-base'}`}>{currentPlayer.country_flag || '🏏'}</span>
+                                        <span className={`text-slate-200 transition-all duration-300 ${presentationMode ? 'text-base' : 'text-sm'}`}>{currentPlayer.country}</span>
+                                        <Badge className={`bg-white/20 text-white border-white/30 backdrop-blur-sm transition-all duration-300 ${presentationMode ? 'text-xs px-2 py-0.5' : 'text-[10px] px-1.5 py-0.5'}`}>{currentPlayer.role}</Badge>
+                                        <span className="text-slate-400">•</span>
+                                        <span className={`text-white font-semibold transition-all duration-300 ${presentationMode ? 'text-base' : 'text-sm'}`}>Base: {formatCurrency(currentPlayer.base_price)}</span>
+                                    </div>
                                 </div>
                             </div>
 
                             {/* Current Bid Display */}
-                            <div className={`flex-1 flex flex-col items-center justify-center bg-gradient-to-b from-slate-50 to-white min-h-0 transition-all duration-300 ${presentationMode ? 'p-6' : 'p-4'}`}>
-                                <p className={`text-slate-500 uppercase tracking-wider font-semibold mb-2 transition-all duration-300 ${presentationMode ? 'text-sm' : 'text-xs'}`}>Current Bid</p>
+                            <div className={`flex-1 flex flex-col items-center justify-center bg-gradient-to-b from-slate-50 to-white min-h-0 transition-all duration-300 ${presentationMode ? 'px-6 py-3' : 'px-4 py-3'}`}>
+                                <p className={`text-slate-500 uppercase tracking-wider font-semibold mb-2 transition-all duration-300 ${presentationMode ? 'text-xs' : 'text-[10px]'}`}>Current Bid</p>
                                 {currentBidder && (
-                                    <div className={`flex items-center rounded-lg mb-3 transition-all duration-300 ${presentationMode ? 'gap-3 px-4 py-2' : 'gap-2 px-3 py-1'}`} style={{ backgroundColor: `${currentBidder.color}15`, border: `1px solid ${currentBidder.color}30` }}>
-                                        <div className={`rounded flex items-center justify-center font-bold text-white transition-all duration-300 ${presentationMode ? 'w-8 h-8 text-xs' : 'w-5 h-5 text-[9px]'}`} style={{ backgroundColor: currentBidder.color }}>
+                                    <div className={`flex items-center rounded-lg mb-2 transition-all duration-300 ${presentationMode ? 'gap-2 px-3 py-1.5' : 'gap-2 px-2.5 py-1'}`} style={{ backgroundColor: `${currentBidder.color}15`, border: `1px solid ${currentBidder.color}30` }}>
+                                        <div className={`rounded flex items-center justify-center font-bold text-white transition-all duration-300 ${presentationMode ? 'w-7 h-7 text-xs' : 'w-5 h-5 text-[9px]'}`} style={{ backgroundColor: currentBidder.color }}>
                                             {currentBidder.short_name}
                                         </div>
-                                        <span className={`font-bold text-slate-800 transition-all duration-300 ${presentationMode ? 'text-lg' : 'text-sm'}`}>{currentBidder.name}</span>
-                                        <Crown className={`text-amber-500 transition-all duration-300 ${presentationMode ? 'w-5 h-5' : 'w-3 h-3'}`} />
+                                        <span className={`font-bold text-slate-800 transition-all duration-300 ${presentationMode ? 'text-base' : 'text-sm'}`}>{currentBidder.name}</span>
+                                        <Crown className={`text-amber-500 transition-all duration-300 ${presentationMode ? 'w-4 h-4' : 'w-3 h-3'}`} />
                                     </div>
                                 )}
-                                <p className={`font-black text-slate-900 tracking-tight tabular-nums transition-all duration-300 ${presentationMode ? 'text-7xl lg:text-8xl' : 'text-5xl'}`}>
+                                <p className={`font-black text-slate-900 tracking-tight tabular-nums transition-all duration-300 ${presentationMode ? 'text-4xl lg:text-5xl' : 'text-3xl lg:text-4xl'} leading-[1.1]`}>
                                     {formatCurrency(currentBid)}
                                 </p>
 
                                 {/* Tie Breaking */}
                                 {auctionState?.tied_teams && auctionState.tied_teams.length > 1 && (
-                                    <div className="mt-3 p-3 bg-amber-50 border border-amber-300 rounded-xl w-full max-w-xs">
+                                    <div className="mt-2 p-2 bg-amber-50 border border-amber-300 rounded-xl w-full max-w-xs">
                                         <div className="flex items-center gap-2 mb-2">
-                                            <AlertTriangle className="w-4 h-4 text-amber-600" />
-                                            <span className="font-bold text-amber-800 text-xs">Tie! Select winner:</span>
+                                            <AlertTriangle className="w-3 h-3 text-amber-600" />
+                                            <span className="font-bold text-amber-800 text-[10px]">Tie! Select winner:</span>
                                         </div>
                                         <div className="grid grid-cols-2 gap-2">
                                             {auctionState.tied_teams.map((team) => (
@@ -1005,27 +1038,29 @@ export default function HostDashboard() {
                                 )}
                             </div>
 
-                            {/* Action Buttons */}
-                            <div className="border-t border-slate-200 p-3 bg-white flex items-center justify-center gap-3 shrink-0">
-                                <ActionButton onClick={handleUnsold} loading={actionLoading === 'unsold'} variant="outline" size="md">
-                                    <X className="w-4 h-4" /> Unsold
-                                </ActionButton>
+                            {/* Action Buttons - Hidden in presentation mode */}
+                            {!presentationMode && (
+                                <div className="border-t border-slate-200 p-3 bg-white flex items-center justify-center gap-3 shrink-0">
+                                    <ActionButton onClick={handleUnsold} loading={actionLoading === 'unsold'} variant="outline" size="md">
+                                        <X className="w-4 h-4" /> Unsold
+                                    </ActionButton>
 
-                                <ActionButton
-                                    onClick={handleSell}
-                                    disabled={!currentBidder || (auctionState?.tied_teams && auctionState.tied_teams.length > 1)}
-                                    loading={actionLoading === 'sell'}
-                                    variant="success"
-                                    size="xl"
-                                    className="min-w-[140px]"
-                                >
-                                    <Hammer className="w-5 h-5" /> SOLD!
-                                </ActionButton>
+                                    <ActionButton
+                                        onClick={handleSell}
+                                        disabled={!currentBidder || (auctionState?.tied_teams && auctionState.tied_teams.length > 1)}
+                                        loading={actionLoading === 'sell'}
+                                        variant="success"
+                                        size="xl"
+                                        className="min-w-[140px]"
+                                    >
+                                        <Hammer className="w-5 h-5" /> SOLD!
+                                    </ActionButton>
 
-                                <ActionButton onClick={handleSkipPlayer} loading={actionLoading === 'skip'} variant="outline" size="md">
-                                    <SkipForward className="w-4 h-4" /> Skip
-                                </ActionButton>
-                            </div>
+                                    <ActionButton onClick={handleSkipPlayer} loading={actionLoading === 'skip'} variant="outline" size="md">
+                                        <SkipForward className="w-4 h-4" /> Skip
+                                    </ActionButton>
+                                </div>
+                            )}
                         </Card>
                     )}
                 </section>
@@ -1052,7 +1087,7 @@ export default function HostDashboard() {
                                 >
                                     <div className="flex items-center justify-between mb-1">
                                         <span className={`font-semibold text-slate-800 transition-all duration-300 ${presentationMode ? 'text-sm' : 'text-xs'}`}>{bid.team?.name || 'Unknown'}</span>
-                                        <span className={`text-slate-400 font-mono transition-all duration-300 ${presentationMode ? 'text-xs' : 'text-[9px]'}`}>{formatTime(bid.created_at)}</span>
+                                        <span className={`text-slate-400 font-mono transition-all duration-300 ${presentationMode ? 'text-xs' : 'text-[9px]'}`}>{bid.created_at ? formatTime(bid.created_at) : '--:--:--'}</span>
                                     </div>
                                     <div className="flex items-center justify-between">
                                         <p className={`font-black transition-all duration-300 ${presentationMode ? 'text-xl' : 'text-base'} ${index === 0 ? 'text-indigo-600' : 'text-slate-600'}`}>
@@ -1085,9 +1120,9 @@ export default function HostDashboard() {
 
             {/* Team Squad Dialog */}
             <Dialog open={!!selectedTeam} onOpenChange={(open) => !open && setSelectedTeam(null)}>
-                <DialogContent className="bg-white border-slate-200 max-w-lg max-h-[70vh]">
+                <DialogContent className="!bg-white dark:!bg-white !text-slate-900 dark:!text-slate-900 border-slate-200 max-w-lg max-h-[70vh]">
                     <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2 text-base">
+                        <DialogTitle className="flex items-center gap-2 text-base !text-slate-900 dark:!text-slate-900">
                             {selectedTeam && (
                                 <>
                                     {selectedTeam.logo_url ? (
@@ -1101,7 +1136,7 @@ export default function HostDashboard() {
                                 </>
                             )}
                         </DialogTitle>
-                        <DialogDescription>
+                        <DialogDescription className="!text-slate-600 dark:!text-slate-600">
                             {selectedTeam && (
                                 <span className="text-xs">
                                     Spent: <span className="font-bold text-emerald-600">{formatCurrency(selectedTeam.spent || 0)}</span> •

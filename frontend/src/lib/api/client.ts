@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Get API URL from environment, fallback to localhost for development
-// NEXT_PUBLIC_API_URL should be set to the full API path like: https://iskconburla-api.onrender.com/api
+// NEXT_PUBLIC_API_URL should be set to the full API path like: https://api.scoreindia.cloud/api
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 
 export const api = axios.create({
@@ -33,6 +33,8 @@ const noRefreshUrls = [
 ];
 
 // Response interceptor for token refresh (now cookie-based)
+const isDev = process.env.NODE_ENV === 'development';
+
 api.interceptors.response.use(
     (response) => response,
     async (error) => {
@@ -44,21 +46,21 @@ api.interceptors.response.use(
 
         // If 401 and not already retried, try to refresh the token
         if (error.response?.status === 401 && !originalRequest._retry && !shouldSkipRefresh) {
-            console.log('[API] 401 received, attempting token refresh for:', requestUrl);
+            if (isDev) console.log('[API] 401 received, attempting token refresh for:', requestUrl);
             originalRequest._retry = true;
 
             try {
                 // Cookie-based refresh: the refreshToken cookie is sent automatically
-                console.log('[API] Calling /auth/refresh with credentials...');
+                if (isDev) console.log('[API] Calling /auth/refresh with credentials...');
                 await axios.post(`${API_BASE_URL}/auth/refresh`, {}, { withCredentials: true });
-                console.log('[API] Token refresh successful, retrying original request');
+                if (isDev) console.log('[API] Token refresh successful, retrying original request');
 
                 // Retry the original request (new accessToken cookie is set automatically)
                 return api(originalRequest);
             } catch (refreshError: any) {
                 // Refresh failed - DON'T redirect to login here
                 // Let the calling code handle this gracefully
-                console.error('[API] Token refresh FAILED:', refreshError.response?.status, refreshError.message);
+                if (isDev) console.error('[API] Token refresh FAILED:', refreshError.response?.status, refreshError.message);
             }
         }
 

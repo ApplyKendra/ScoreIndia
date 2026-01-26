@@ -65,9 +65,17 @@ func RunMigrations(db *pgxpool.Pool) error {
 		team_id UUID REFERENCES teams(id) ON DELETE SET NULL,
 		sold_at TIMESTAMP,
 		queue_order INT,
+		badge VARCHAR(100),
 		created_at TIMESTAMP DEFAULT NOW(),
 		updated_at TIMESTAMP DEFAULT NOW()
 	);
+
+	-- Add badge column if it doesn't exist (for existing databases)
+	DO $$ BEGIN
+		ALTER TABLE players ADD COLUMN IF NOT EXISTS badge VARCHAR(100);
+	EXCEPTION
+		WHEN duplicate_column THEN null;
+	END $$;
 
 	-- Auctions table
 	CREATE TABLE IF NOT EXISTS auctions (

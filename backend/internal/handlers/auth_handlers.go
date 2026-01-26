@@ -152,3 +152,40 @@ func (h *Handlers) GetCurrentUser(c *fiber.Ctx) error {
 
 	return c.JSON(user)
 }
+
+// ChangePassword handles password change for authenticated users
+func (h *Handlers) ChangePassword(c *fiber.Ctx) error {
+	userID, ok := c.Locals("userID").(uuid.UUID)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "User ID not found",
+		})
+	}
+
+	var req struct {
+		CurrentPassword string `json:"current_password"`
+		NewPassword     string `json:"new_password"`
+	}
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid request body",
+		})
+	}
+
+	if req.CurrentPassword == "" || req.NewPassword == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Current password and new password are required",
+		})
+	}
+
+	err := h.services.Auth.ChangePassword(c.Context(), userID, req.CurrentPassword, req.NewPassword)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": err.Error(),
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"message": "Password changed successfully",
+	})
+}

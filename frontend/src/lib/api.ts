@@ -90,6 +90,13 @@ class ApiClient {
         return this.request<any>('/auth/me');
     }
 
+    async changePassword(currentPassword: string, newPassword: string) {
+        return this.request<{ message: string }>('/auth/change-password', {
+            method: 'POST',
+            body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),
+        });
+    }
+
     // Teams
     async getTeams() {
         return this.request<any[]>('/teams');
@@ -119,6 +126,17 @@ class ApiClient {
 
     async deleteTeam(id: string) {
         return this.request<void>(`/teams/${id}`, { method: 'DELETE' });
+    }
+
+    async getRetainedPlayers(teamId: string) {
+        return this.request<any[]>(`/teams/${teamId}/retained`);
+    }
+
+    async retainPlayers(teamId: string, players: { player_id: string; badge?: string }[]) {
+        return this.request<any[]>(`/teams/${teamId}/retain`, {
+            method: 'POST',
+            body: JSON.stringify({ players }),
+        });
     }
 
     // Players

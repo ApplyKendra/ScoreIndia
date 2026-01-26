@@ -1,19 +1,118 @@
-# ISKCON Burla - Robots.txt
-# https://www.iskconburla.com
+# ScoreIndia - Professional Cricket Player Auction Platform
+# Website: https://scoreindia.cloud
+# Contact: admin@scoreindia.cloud
+# Last Updated: 2026-01-26
 
-User-agent: *
+# ===========================================
+# GOOGLE SEARCH BOT
+# ===========================================
+User-agent: Googlebot
 Allow: /
-
-# Disallow private/admin areas
+Allow: /auctions
 Disallow: /admin/
 Disallow: /api/
 Disallow: /login
-Disallow: /register
-Disallow: /profile
-Disallow: /my-donations
-Disallow: /orders
-Disallow: /cart
-Disallow: /setup-2fa
+Disallow: /host
+Disallow: /bidders
+Disallow: /_next/
+Disallow: /*.json$
 
-# Sitemap location
-Sitemap: https://www.iskconburla.com/sitemap.xml
+# ===========================================
+# GOOGLE IMAGE BOT
+# ===========================================
+User-agent: Googlebot-Image
+Allow: /og-image.jpg
+Allow: /icon-192.png
+Allow: /icon-512.png
+Allow: /logo.svg
+Allow: /ScoreIndia-Logo.png
+Disallow: /_next/
+
+# ===========================================
+# BING / MSN SEARCH BOT
+# ===========================================
+User-agent: Bingbot
+Allow: /
+Allow: /auctions
+Disallow: /admin/
+Disallow: /api/
+Disallow: /login
+Disallow: /host
+Disallow: /bidders
+Disallow: /_next/
+Crawl-delay: 1
+
+# ===========================================
+# YAHOO / SLURP BOT
+# ===========================================
+User-agent: Slurp
+Allow: /
+Allow: /auctions
+Disallow: /admin/
+Disallow: /api/
+Disallow: /login
+Disallow: /host
+Disallow: /bidders
+Disallow: /_next/
+Crawl-delay: 1
+
+# ===========================================
+# DUCKDUCKGO BOT
+# ===========================================
+User-agent: DuckDuckBot
+Allow: /
+Allow: /auctions
+Disallow: /admin/
+Disallow: /api/
+Disallow: /login
+Disallow: /host
+Disallow: /bidders
+
+# ===========================================
+# FACEBOOK / META CRAWLER
+# ===========================================
+User-agent: facebookexternalhit
+Allow: /
+Allow: /auctions
+Allow: /og-image.jpg
+
+# ===========================================
+# TWITTER CRAWLER
+# ===========================================
+User-agent: Twitterbot
+Allow: /
+Allow: /auctions
+Allow: /og-image.jpg
+
+# ===========================================
+# LINKEDIN CRAWLER
+# ===========================================
+User-agent: LinkedInBot
+Allow: /
+Allow: /auctions
+Allow: /og-image.jpg
+
+# ===========================================
+# ALL OTHER BOTS (Default Rules)
+# ===========================================
+User-agent: *
+Allow: /
+Allow: /auctions
+Disallow: /admin/
+Disallow: /api/
+Disallow: /login
+Disallow: /host
+Disallow: /bidders
+Disallow: /_next/static/
+Disallow: /*.json$
+Crawl-delay: 2
+
+# ===========================================
+# SITEMAP LOCATION
+# ===========================================
+Sitemap: https://scoreindia.cloud/sitemap.xml
+
+# ===========================================
+# HOST DIRECTIVE
+# ===========================================
+Host: https://scoreindia.cloud

@@ -27,20 +27,13 @@ const NAV_DATA: { section: string; items: NavItem[] }[] = [
         section: "Main",
         items: [
             { href: "/", label: "Home", icon: HomeIcon },
-            { href: "/prasadam", label: "Prasadam", icon: ShoppingBagIcon, badge: "Hot" },
-            { href: "/store", label: "Store", icon: ShoppingBagIcon },
-            { href: "/events", label: "Events", icon: CalendarIcon, badge: "New" },
-            { href: "/youth", label: "Youth Forum", icon: YouthIcon },
-            { href: "/darshan", label: "Live Darshan", icon: VideoIcon },
+            { href: "/auctions", label: "Live Auction", icon: VideoIcon, badge: "Hot" },
         ],
     },
     {
         section: "Account",
         items: [
             { href: "/profile", label: "My Profile", icon: User },
-            { href: "/orders", label: "My Orders", icon: CalendarIcon },
-            { href: "/my-donations", label: "My Donations", icon: HeartIcon },
-            { href: "/cart", label: "Cart", icon: ShoppingCart },
         ],
     },
 ];
@@ -156,26 +149,26 @@ export function Sidebar() {
                             <div className="relative">
                                 {/* Light mode logo */}
                                 <Image
-                                    src="/logo.svg"
-                                    alt="ISKCON Burla"
+                                    src="/ScoreIndia-Logo.png"
+                                    alt="ScoreIndia"
                                     width={48}
                                     height={48}
                                     className="h-10 w-10 dark:hidden"
                                 />
                                 {/* Dark mode logo */}
                                 <Image
-                                    src="/logo-white.svg"
-                                    alt="ISKCON Burla"
+                                    src="/ScoreIndia-Logo.png"
+                                    alt="ScoreIndia"
                                     width={48}
                                     height={48}
                                     className="h-10 w-10 hidden dark:block"
                                 />
                             </div>
                             <div className="flex flex-col">
-                                <span className="text-lg font-bold bg-gradient-to-r from-gray-900 via-[#5750F1] to-gray-900 dark:from-white dark:via-[#5750F1] dark:to-white bg-clip-text text-transparent">
-                                    ISKCON Burla
+                                <span className="text-lg font-bold bg-gradient-to-r from-gray-900 via-blue-600 to-gray-900 dark:from-white dark:via-blue-500 dark:to-white bg-clip-text text-transparent">
+                                    ScoreIndia
                                 </span>
-                                <span className="text-xs text-gray-500 dark:text-gray-400">Digital Temple</span>
+                                <span className="text-xs text-gray-500 dark:text-gray-400">Cricket Auction</span>
                             </div>
                         </Link>
 

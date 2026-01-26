@@ -1,6 +1,7 @@
 
 import { memo } from 'react';
 import { getImageUrl } from '@/lib/utils';
+import { Crown } from 'lucide-react';
 
 // Updated Player type to match API response
 interface Player {
@@ -15,6 +16,7 @@ interface Player {
     category?: string;
     team?: any;
     image_url?: string;
+    badge?: string;
     // Legacy support for old format
     basePrice?: number;
     soldPrice?: number;
@@ -31,15 +33,21 @@ const PlayerListItem = memo(({ player }: { player: Player }) => {
     const basePrice = player.base_price || player.basePrice || 0;
     const soldPrice = player.sold_price || player.soldPrice || 0;
     const teamName = typeof player.team === 'object' ? player.team?.name : player.team;
+    const isRetained = player.status === 'retained';
 
     return (
         <div className="group flex items-center gap-4 p-3 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors">
             {/* Avatar / Icon */}
-            <div className={`w-10 h-10 flex-shrink-0 rounded-lg bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center text-xl border border-slate-200/60 overflow-hidden`}>
+            <div className={`relative w-10 h-10 flex-shrink-0 rounded-lg bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center text-xl border border-slate-200/60 overflow-hidden ${isRetained ? 'ring-2 ring-amber-400' : ''}`}>
                 {player.image_url ? (
                     <img src={getImageUrl(player.image_url)} alt={player.name} className="w-full h-full object-cover" />
                 ) : (
                     <span>{player.role === 'Batsman' ? '🏏' : player.role === 'Bowler' ? '🎯' : player.role === 'Wicketkeeper' ? '🧤' : '⭐'}</span>
+                )}
+                {isRetained && (
+                    <div className="absolute -top-1 -right-1 w-4 h-4 bg-amber-400 rounded-full flex items-center justify-center shadow-sm">
+                        <Crown className="w-2.5 h-2.5 text-amber-800" />
+                    </div>
                 )}
             </div>
 
@@ -50,31 +58,41 @@ const PlayerListItem = memo(({ player }: { player: Player }) => {
                     <span className="text-xs text-slate-500 font-medium px-1.5 py-0.5 bg-slate-100 rounded text-center min-w-[24px]">
                         {player.country_flag || player.country}
                     </span>
+                    {/* Badge for retained players */}
+                    {isRetained && player.badge && (
+                        <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 flex items-center gap-1 whitespace-nowrap">
+                            <Crown className="w-2.5 h-2.5" />
+                            {player.badge}
+                        </span>
+                    )}
                 </div>
                 <p className="text-xs text-slate-500">{player.role}</p>
             </div>
 
-            {/* Team (if sold) */}
-            {player.status === 'sold' && teamName && (
+            {/* Team (if sold or retained) */}
+            {(player.status === 'sold' || isRetained) && teamName && (
                 <div className="hidden sm:block text-right px-4">
-                    <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Sold To</p>
+                    <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">
+                        {isRetained ? 'Retained by' : 'Sold To'}
+                    </p>
                     <p className="text-sm font-semibold text-slate-700">{teamName}</p>
                 </div>
             )}
 
             {/* Price & Status */}
             <div className="text-right flex flex-col items-end gap-1">
-                <p className={`font-bold ${player.status === 'sold' ? 'text-emerald-600' : 'text-slate-900'}`}>
+                <p className={`font-bold ${player.status === 'sold' ? 'text-emerald-600' : isRetained ? 'text-amber-600' : 'text-slate-900'}`}>
                     {player.status === 'sold'
                         ? formatCurrency(soldPrice)
                         : formatCurrency(basePrice)}
                 </p>
                 <div className="flex items-center gap-2">
                     <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full ${player.status === 'sold' ? 'bg-emerald-100 text-emerald-700' :
-                        player.status === 'unsold' ? 'bg-slate-100 text-slate-600' :
-                            'bg-blue-100 text-blue-700'
+                            isRetained ? 'bg-amber-100 text-amber-700' :
+                                player.status === 'unsold' ? 'bg-slate-100 text-slate-600' :
+                                    'bg-blue-100 text-blue-700'
                         }`}>
-                        {player.status}
+                        {isRetained ? 'Retained' : player.status}
                     </span>
                 </div>
             </div>

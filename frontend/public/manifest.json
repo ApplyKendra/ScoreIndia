@@ -1,11 +1,11 @@
 {
-    "name": "ISKCON Burla",
-    "short_name": "ISKCON Burla",
-    "description": "ISKCON Burla - Your spiritual home in Sambalpur, Odisha. Order prasadam, shop temple store, watch live darshan.",
+    "name": "ScoreIndia - Cricket Auction Platform",
+    "short_name": "ScoreIndia",
+    "description": "ScoreIndia - Professional cricket player auction platform. Experience live auctions, build your dream team, and compete in real-time.",
     "start_url": "/",
     "display": "standalone",
-    "background_color": "#0f0c29",
-    "theme_color": "#5750F1",
+    "background_color": "#0f172a",
+    "theme_color": "#3b82f6",
     "orientation": "portrait-primary",
     "icons": [
         {
@@ -20,9 +20,9 @@
         }
     ],
     "categories": [
-        "religion",
-        "lifestyle",
-        "food"
+        "sports",
+        "entertainment",
+        "games"
     ],
     "lang": "en",
     "dir": "ltr"

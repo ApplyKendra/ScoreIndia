@@ -12,6 +12,9 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/a
 const USER_TOKEN_REFRESH_INTERVAL = 25 * 60 * 1000; // 25 minutes
 const ADMIN_TOKEN_REFRESH_INTERVAL = 10 * 60 * 1000; // 10 minutes
 
+// Only log in development
+const isDev = process.env.NODE_ENV === 'development';
+
 export interface User {
     id: string;
     email: string;
@@ -55,7 +58,7 @@ export const useAuthStore = create<AuthState>()(
 
             setHasHydrated: () => {
                 const state = get();
-                console.log('[AUTH-STORE] Hydration complete', {
+                if (isDev) console.log('[AUTH-STORE] Hydration complete', {
                     user: state.user?.email,
                     isAuthenticated: state.isAuthenticated,
                 });
@@ -100,12 +103,12 @@ export const useAuthStore = create<AuthState>()(
             // Proactive token refresh - call /auth/refresh before token expires
             refreshToken: async () => {
                 try {
-                    console.log('[AUTH-STORE] Proactive token refresh...');
+                    if (isDev) console.log('[AUTH-STORE] Proactive token refresh...');
                     await axios.post(`${API_BASE_URL}/auth/refresh`, {}, { withCredentials: true });
-                    console.log('[AUTH-STORE] Token refreshed successfully');
+                    if (isDev) console.log('[AUTH-STORE] Token refreshed successfully');
                     return true;
                 } catch (error: any) {
-                    console.error('[AUTH-STORE] Proactive refresh failed:', error.response?.status);
+                    if (isDev) console.error('[AUTH-STORE] Proactive refresh failed:', error.response?.status);
                     // If refresh fails, session is invalid
                     if (error.response?.status === 401) {
                         get().stopTokenRefresh();
@@ -128,7 +131,7 @@ export const useAuthStore = create<AuthState>()(
                     clearInterval(state._refreshInterval);
                 }
 
-                console.log('[AUTH-STORE] Starting proactive token refresh interval');
+                if (isDev) console.log('[AUTH-STORE] Starting proactive token refresh interval');
 
                 // Refresh immediately to ensure we have a fresh token
                 get().refreshToken();
@@ -138,7 +141,7 @@ export const useAuthStore = create<AuthState>()(
                 const isAdmin = currentState.user?.role === 'SUPER_ADMIN' || currentState.user?.role === 'SUB_ADMIN';
                 const refreshInterval = isAdmin ? ADMIN_TOKEN_REFRESH_INTERVAL : USER_TOKEN_REFRESH_INTERVAL;
 
-                console.log(`[AUTH-STORE] Token refresh scheduled every ${refreshInterval / 60000} minutes`);
+                if (isDev) console.log(`[AUTH-STORE] Token refresh scheduled every ${refreshInterval / 60000} minutes`);
 
                 const interval = setInterval(() => {
                     const state = get();
@@ -156,7 +159,7 @@ export const useAuthStore = create<AuthState>()(
             stopTokenRefresh: () => {
                 const state = get();
                 if (state._refreshInterval) {
-                    console.log('[AUTH-STORE] Stopping token refresh interval');
+                    if (isDev) console.log('[AUTH-STORE] Stopping token refresh interval');
                     clearInterval(state._refreshInterval);
                     set({ _refreshInterval: null });
                 }
@@ -166,7 +169,7 @@ export const useAuthStore = create<AuthState>()(
             validateSession: async () => {
                 const state = get();
 
-                console.log('[AUTH-STORE] validateSession called', {
+                if (isDev) console.log('[AUTH-STORE] validateSession called', {
                     _sessionVerified: state._sessionVerified,
                     isAuthenticated: state.isAuthenticated,
                     user: state.user?.email,
@@ -174,18 +177,18 @@ export const useAuthStore = create<AuthState>()(
 
                 // If we've already verified this session, skip
                 if (state._sessionVerified) {
-                    console.log('[AUTH-STORE] Session already verified, skipping');
+                    if (isDev) console.log('[AUTH-STORE] Session already verified, skipping');
                     set({ isLoading: false });
                     return true;
                 }
 
                 // If localStorage says we're authenticated, verify with server
                 if (state.isAuthenticated && state.user) {
-                    console.log('[AUTH-STORE] Verifying session with server...');
+                    if (isDev) console.log('[AUTH-STORE] Verifying session with server...');
                     set({ isLoading: true });
                     try {
                         const { data } = await api.get('/auth/profile');
-                        console.log('[AUTH-STORE] Session verified successfully', { email: data.email });
+                        if (isDev) console.log('[AUTH-STORE] Session verified successfully', { email: data.email });
                         set({
                             user: data,
                             isAuthenticated: true,
@@ -199,7 +202,7 @@ export const useAuthStore = create<AuthState>()(
                         return true;
                     } catch (e: any) {
                         // Cookies are invalid - clear localStorage state
-                        console.error('[AUTH-STORE] Session validation FAILED', {
+                        if (isDev) console.error('[AUTH-STORE] Session validation FAILED', {
                             status: e.response?.status,
                             message: e.response?.data?.message || e.message,
                         });

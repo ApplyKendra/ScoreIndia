@@ -131,3 +131,31 @@ func (s *AuthService) GetCurrentUser(ctx context.Context, userID uuid.UUID) (*mo
 
 	return user, nil
 }
+
+// ChangePassword changes a user's password after verifying the current password
+func (s *AuthService) ChangePassword(ctx context.Context, userID uuid.UUID, currentPassword, newPassword string) error {
+	// Get user with password
+	user, err := s.repos.Users.FindByID(ctx, userID)
+	if err != nil {
+		return errors.New("user not found")
+	}
+
+	// Verify current password
+	if !utils.CheckPassword(currentPassword, user.PasswordHash) {
+		return errors.New("current password is incorrect")
+	}
+
+	// Validate new password
+	if len(newPassword) < 8 {
+		return errors.New("new password must be at least 8 characters")
+	}
+
+	// Hash new password
+	newHash, err := utils.HashPassword(newPassword)
+	if err != nil {
+		return errors.New("failed to hash password")
+	}
+
+	// Update password
+	return s.repos.Users.UpdatePassword(ctx, userID, newHash)
+}

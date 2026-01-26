@@ -61,6 +61,7 @@ interface Player {
     team?: Team;
     team_id?: string;
     image_url?: string;
+    badge?: string;
     stats?: {
         matches?: number;
         runs?: number;
@@ -320,7 +321,8 @@ export default function AuctionsPage() {
                     setTopBuys(topData || []);
                 }
             } catch (error) {
-                console.error('Failed to fetch data:', error);
+                // Silent fail in production
+                if (process.env.NODE_ENV === 'development') console.error('Failed to fetch data:', error);
             } finally {
                 clearTimeout(timeoutId);
                 if (isMounted) setLoading(false);
@@ -335,13 +337,13 @@ export default function AuctionsPage() {
     useEffect(() => {
         api.getPublicStreamUrl()
             .then(data => {
-                console.log('[Stream URL] Loaded from API:', data);
+                if (process.env.NODE_ENV === 'development') console.log('[Stream URL] Loaded from API:', data);
                 if (data?.url) {
                     setLiveStreamUrl(data.url);
                 }
             })
             .catch((err) => {
-                console.log('[Stream URL] Error loading:', err);
+                if (process.env.NODE_ENV === 'development') console.log('[Stream URL] Error loading:', err);
                 // Ignore errors - URL may not be set
             });
     }, []);
@@ -435,7 +437,7 @@ export default function AuctionsPage() {
                     };
                     frame();
                 } catch (error) {
-                    console.error('Error triggering confetti:', error);
+                    if (process.env.NODE_ENV === 'development') console.error('Error triggering confetti:', error);
                 }
             }, 100);
         }
@@ -1366,16 +1368,24 @@ export default function AuctionsPage() {
                 {/* Squads Tab */}
                 {
                     activeTab === 'squads' && (
-                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
                             {teams.map((team) => (
                                 <Card key={team.id} className="group overflow-hidden border border-slate-200 shadow-sm hover:shadow-xl hover:border-blue-500/30 transition-all duration-300 bg-white">
                                     <div className="p-4 flex flex-col items-center text-center relative">
-                                        <div
-                                            className="w-16 h-16 rounded-2xl flex items-center justify-center mb-3 shadow-inner text-white font-bold text-lg"
-                                            style={{ backgroundColor: team.color }}
-                                        >
-                                            {team.short_name}
-                                        </div>
+                                        {team.logo_url ? (
+                                            <img
+                                                src={getImageUrl(team.logo_url)}
+                                                alt={team.name}
+                                                className="w-32 h-32 rounded-2xl object-contain mb-3 shadow-inner bg-white border border-slate-200"
+                                            />
+                                        ) : (
+                                            <div
+                                                className="w-32 h-32 rounded-2xl flex items-center justify-center mb-3 shadow-inner text-white font-bold text-2xl"
+                                                style={{ backgroundColor: team.color }}
+                                            >
+                                                {team.short_name}
+                                            </div>
+                                        )}
                                         <h3 className="font-bold text-slate-900 leading-tight mb-1 truncate w-full">{team.name}</h3>
                                         <p className="text-xs text-slate-500 font-medium">{team.player_count || 0} Players</p>
                                     </div>
@@ -1411,20 +1421,28 @@ export default function AuctionsPage() {
 
                 {/* Team Squad Modal */}
                 <Dialog open={!!selectedTeam} onOpenChange={(open) => !open && setSelectedTeam(null)}>
-                    <DialogContent className="max-w-2xl max-h-[85vh] overflow-hidden flex flex-col p-0 gap-0 rounded-2xl">
+                    <DialogContent className="max-w-2xl max-h-[85vh] overflow-hidden flex flex-col p-0 gap-0 rounded-2xl !bg-white dark:!bg-white !text-slate-900 dark:!text-slate-900 !backdrop-blur-none" style={{ filter: 'none', backdropFilter: 'none' }}>
                         {selectedTeam && (
                             <>
-                                <DialogHeader className="p-6 border-b border-slate-100 bg-slate-50/50">
+                                <DialogHeader className="p-6 border-b border-slate-100 bg-slate-50" style={{ backdropFilter: 'none', filter: 'none' }}>
                                     <div className="flex items-center gap-4">
-                                        <div
-                                            className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold"
-                                            style={{ backgroundColor: selectedTeam.color }}
-                                        >
-                                            {selectedTeam.short_name}
-                                        </div>
+                                        {selectedTeam.logo_url ? (
+                                            <img
+                                                src={getImageUrl(selectedTeam.logo_url)}
+                                                alt={selectedTeam.name}
+                                                className="w-12 h-12 rounded-xl object-contain bg-white border border-slate-200"
+                                            />
+                                        ) : (
+                                            <div
+                                                className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold"
+                                                style={{ backgroundColor: selectedTeam.color }}
+                                            >
+                                                {selectedTeam.short_name}
+                                            </div>
+                                        )}
                                         <div>
-                                            <DialogTitle className="text-xl font-bold text-slate-900">{selectedTeam.name}</DialogTitle>
-                                            <DialogDescription className="text-slate-500">
+                                            <DialogTitle className="text-xl font-bold !text-slate-900 dark:!text-slate-900">{selectedTeam.name}</DialogTitle>
+                                            <DialogDescription className="!text-slate-500 dark:!text-slate-500">
                                                 Squad List • {teamSquad.length} Players
                                             </DialogDescription>
                                         </div>
@@ -1448,7 +1466,7 @@ export default function AuctionsPage() {
                                     </div>
                                 </div>
 
-                                <div className="p-4 border-t border-slate-100 bg-slate-50/50 flex justify-between items-center text-sm">
+                                <div className="p-4 border-t border-slate-100 bg-slate-50 flex justify-between items-center text-sm" style={{ backdropFilter: 'none', filter: 'none' }}>
                                     <span className="text-slate-500 font-medium">Total Spent</span>
                                     <span className="font-bold text-slate-900 text-lg">{formatCurrency(selectedTeam.spent || 0)}</span>
                                 </div>

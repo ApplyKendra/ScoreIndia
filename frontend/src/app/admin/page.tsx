@@ -19,7 +19,9 @@ import {
     Trophy,
     Gavel,
     Filter,
-    LogOut
+    LogOut,
+    Lock,
+    Crown,
 } from 'lucide-react';
 import { ImageUpload } from '@/components/ui/image-upload';
 import { Button } from '@/components/ui/button';
@@ -150,15 +152,23 @@ export default function AdminDashboard() {
 
     // Form states
     const [newTeam, setNewTeam] = useState({ name: '', short_name: '', color: '#0066FF', budget: 150000, logo_url: '' });
-    const [newPlayer, setNewPlayer] = useState({ name: '', country: 'India', role: 'Batsman', base_price: 2000000, category: 'Set 1', image_url: '' });
+    const [newPlayer, setNewPlayer] = useState({ name: '', country: 'India', role: 'Batsman', base_price: 2000, category: 'Set 1', image_url: '' });
     const [newUser, setNewUser] = useState({ name: '', email: '', password: '', role: 'bidder', team_id: '' });
 
     // Edit User state
     const [editingUser, setEditingUser] = useState<User | null>(null);
     const [isEditUserOpen, setIsEditUserOpen] = useState(false);
 
+    // Password change state
+    const [passwordForm, setPasswordForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
+    const [isChangingPassword, setIsChangingPassword] = useState(false);
+
     // Edit Team State
     const [editingTeam, setEditingTeam] = useState<Team | null>(null);
+
+    // Retained Players State
+    const [retainedPlayers, setRetainedPlayers] = useState<{ player_id: string; badge: string; name?: string }[]>([]);
+    const [loadingRetained, setLoadingRetained] = useState(false);
 
     const { user, logout, isAuthenticated, isLoading: authLoading } = useAuth();
     const router = useRouter();
@@ -229,6 +239,31 @@ export default function AdminDashboard() {
         }
     };
 
+    const handleChangePassword = async () => {
+        if (!passwordForm.currentPassword || !passwordForm.newPassword) {
+            toast.error('Please fill in all fields');
+            return;
+        }
+        if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+            toast.error('New passwords do not match');
+            return;
+        }
+        if (passwordForm.newPassword.length < 8) {
+            toast.error('New password must be at least 8 characters');
+            return;
+        }
+        setIsChangingPassword(true);
+        try {
+            await api.changePassword(passwordForm.currentPassword, passwordForm.newPassword);
+            toast.success('Password changed successfully!');
+            setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+        } catch (error: any) {
+            toast.error(error.message || 'Failed to change password');
+        } finally {
+            setIsChangingPassword(false);
+        }
+    };
+
     const handleCreateTeam = async () => {
         try {
             await api.createTeam(newTeam);
@@ -246,16 +281,67 @@ export default function AdminDashboard() {
     const handleUpdateTeam = async () => {
         if (!editingTeam) return;
         try {
+            // Update team data
             await api.updateTeam(editingTeam.id, editingTeam);
+
+            // Update retained players
+            const playersToRetain = retainedPlayers.map(p => ({
+                player_id: p.player_id,
+                badge: p.badge || ''
+            }));
+            await api.retainPlayers(editingTeam.id, playersToRetain);
+
             toast.success('Team updated successfully!');
             setIsEditTeamOpen(false);
             setEditingTeam(null);
-            // Refresh teams
-            const teamsData = await api.getTeams();
+            setRetainedPlayers([]);
+            // Refresh teams and players
+            const [teamsData, playersData] = await Promise.all([
+                api.getTeams(),
+                api.getPlayers({ limit: 200 })
+            ]);
             setTeams(teamsData);
+            setPlayers(playersData?.data || []);
         } catch (error: any) {
             toast.error(error.message || 'Failed to update team');
         }
+    };
+
+    // Load retained players when editing a team
+    const loadRetainedPlayers = async (teamId: string) => {
+        setLoadingRetained(true);
+        try {
+            const retained = await api.getRetainedPlayers(teamId);
+            setRetainedPlayers((retained || []).map(p => ({
+                player_id: p.id,
+                badge: p.badge || '',
+                name: p.name
+            })));
+        } catch (error) {
+            setRetainedPlayers([]);
+        } finally {
+            setLoadingRetained(false);
+        }
+    };
+
+    // Add a retained player
+    const addRetainedPlayer = (playerId: string) => {
+        const player = players.find(p => p.id === playerId);
+        if (player && !retainedPlayers.find(rp => rp.player_id === playerId)) {
+            setRetainedPlayers([...retainedPlayers, { player_id: playerId, badge: '', name: player.name }]);
+        }
+    };
+
+    // Remove a retained player
+    const removeRetainedPlayer = (playerId: string) => {
+        setRetainedPlayers(retainedPlayers.filter(rp => rp.player_id !== playerId));
+    };
+
+    // Update badge for a retained player
+    const updateRetainedBadge = (playerId: string, badge: string) => {
+        setRetainedPlayers(retainedPlayers.map(rp =>
+            rp.player_id === playerId ? { ...rp, badge } : rp
+        ));
     };
 
     const handlePopulateTeams = async () => {
@@ -291,7 +377,7 @@ export default function AdminDashboard() {
             setIsAddPlayerOpen(false);
             toast.success('Player created successfully!');
             setIsAddPlayerOpen(false);
-            setNewPlayer({ name: '', country: 'India', role: 'Batsman', base_price: 2000000, category: 'Set 1', image_url: '' });
+            setNewPlayer({ name: '', country: 'India', role: 'Batsman', base_price: 2000, category: 'Set 1', image_url: '' });
             // Refresh players
             const playersData = await api.getPlayers({ limit: 100 });
             setPlayers(playersData?.data || []);
@@ -553,22 +639,23 @@ export default function AdminDashboard() {
                                             Add New Team
                                         </Button>
                                     </DialogTrigger>
-                                    <DialogContent className="sm:max-w-md">
+                                    <DialogContent className="sm:max-w-md !bg-white dark:!bg-white !text-slate-900 dark:!text-slate-900">
                                         <DialogHeader>
-                                            <DialogTitle>Create New Team</DialogTitle>
-                                            <DialogDescription>Add a new team to the auction.</DialogDescription>
+                                            <DialogTitle className="!text-slate-900 dark:!text-slate-900">Create New Team</DialogTitle>
+                                            <DialogDescription className="!text-slate-600 dark:!text-slate-600">Add a new team to the auction.</DialogDescription>
                                         </DialogHeader>
                                         <div className="space-y-4 py-4">
                                             <div className="grid gap-2">
-                                                <Label>Team Name</Label>
+                                                <Label className="!text-slate-900 dark:!text-slate-900">Team Name</Label>
                                                 <Input
                                                     value={newTeam.name}
                                                     onChange={(e) => setNewTeam({ ...newTeam, name: e.target.value })}
                                                     placeholder="Mumbai Masters"
+                                                    className="!text-slate-900 dark:!text-slate-900 !bg-white dark:!bg-white"
                                                 />
                                             </div>
                                             <div className="grid gap-2">
-                                                <Label>Team Logo</Label>
+                                                <Label className="!text-slate-900 dark:!text-slate-900">Team Logo</Label>
                                                 <ImageUpload
                                                     value={newTeam.logo_url}
                                                     onChange={(url) => setNewTeam({ ...newTeam, logo_url: url })}
@@ -577,29 +664,32 @@ export default function AdminDashboard() {
                                             </div>
                                             <div className="grid grid-cols-2 gap-4">
                                                 <div className="grid gap-2">
-                                                    <Label>Short Name</Label>
+                                                    <Label className="!text-slate-900 dark:!text-slate-900">Short Name</Label>
                                                     <Input
                                                         value={newTeam.short_name}
                                                         onChange={(e) => setNewTeam({ ...newTeam, short_name: e.target.value })}
                                                         placeholder="MM"
                                                         maxLength={5}
+                                                        className="!text-slate-900 dark:!text-slate-900 !bg-white dark:!bg-white"
                                                     />
                                                 </div>
                                                 <div className="grid gap-2">
-                                                    <Label>Color</Label>
+                                                    <Label className="!text-slate-900 dark:!text-slate-900">Color</Label>
                                                     <Input
                                                         type="color"
                                                         value={newTeam.color}
                                                         onChange={(e) => setNewTeam({ ...newTeam, color: e.target.value })}
+                                                        className="h-10"
                                                     />
                                                 </div>
                                             </div>
                                             <div className="grid gap-2">
-                                                <Label>Budget (in paisa)</Label>
+                                                <Label className="!text-slate-900 dark:!text-slate-900">Budget (in paisa)</Label>
                                                 <Input
                                                     type="number"
                                                     value={newTeam.budget}
                                                     onChange={(e) => setNewTeam({ ...newTeam, budget: parseInt(e.target.value) })}
+                                                    className="!text-slate-900 dark:!text-slate-900 !bg-white dark:!bg-white"
                                                 />
                                                 <p className="text-xs text-slate-500">Current: {formatCurrency(newTeam.budget)}</p>
                                             </div>
@@ -615,24 +705,30 @@ export default function AdminDashboard() {
                         </div>
 
                         {/* Edit Team Dialog */}
-                        <Dialog open={isEditTeamOpen} onOpenChange={setIsEditTeamOpen}>
-                            <DialogContent className="sm:max-w-md">
+                        <Dialog open={isEditTeamOpen} onOpenChange={(open) => {
+                            setIsEditTeamOpen(open);
+                            if (!open) {
+                                setRetainedPlayers([]);
+                            }
+                        }}>
+                            <DialogContent className="sm:max-w-2xl !bg-white dark:!bg-white !text-slate-900 dark:!text-slate-900 max-h-[90vh] overflow-y-auto">
                                 <DialogHeader>
-                                    <DialogTitle>Edit Team</DialogTitle>
-                                    <DialogDescription>Update team details.</DialogDescription>
+                                    <DialogTitle className="!text-slate-900 dark:!text-slate-900">Edit Team</DialogTitle>
+                                    <DialogDescription className="!text-slate-600 dark:!text-slate-600">Update team details and manage retained players.</DialogDescription>
                                 </DialogHeader>
                                 {editingTeam && (
                                     <div className="space-y-4 py-4">
                                         <div className="grid gap-2">
-                                            <Label>Team Name</Label>
+                                            <Label className="!text-slate-900 dark:!text-slate-900">Team Name</Label>
                                             <Input
                                                 value={editingTeam.name}
                                                 onChange={(e) => setEditingTeam({ ...editingTeam, name: e.target.value })}
                                                 placeholder="Mumbai Masters"
+                                                className="!text-slate-900 dark:!text-slate-900 !bg-white dark:!bg-white"
                                             />
                                         </div>
                                         <div className="grid gap-2">
-                                            <Label>Team Logo</Label>
+                                            <Label className="!text-slate-900 dark:!text-slate-900">Team Logo</Label>
                                             <ImageUpload
                                                 value={editingTeam.logo_url}
                                                 onChange={(url) => setEditingTeam({ ...editingTeam, logo_url: url })}
@@ -641,31 +737,99 @@ export default function AdminDashboard() {
                                         </div>
                                         <div className="grid grid-cols-2 gap-4">
                                             <div className="grid gap-2">
-                                                <Label>Short Name</Label>
+                                                <Label className="!text-slate-900 dark:!text-slate-900">Short Name</Label>
                                                 <Input
                                                     value={editingTeam.short_name}
                                                     onChange={(e) => setEditingTeam({ ...editingTeam, short_name: e.target.value })}
                                                     placeholder="MM"
                                                     maxLength={5}
+                                                    className="!text-slate-900 dark:!text-slate-900 !bg-white dark:!bg-white"
                                                 />
                                             </div>
                                             <div className="grid gap-2">
-                                                <Label>Color</Label>
+                                                <Label className="!text-slate-900 dark:!text-slate-900">Color</Label>
                                                 <Input
                                                     type="color"
                                                     value={editingTeam.color}
                                                     onChange={(e) => setEditingTeam({ ...editingTeam, color: e.target.value })}
+                                                    className="h-10"
                                                 />
                                             </div>
                                         </div>
                                         <div className="grid gap-2">
-                                            <Label>Budget (in paisa)</Label>
+                                            <Label className="!text-slate-900 dark:!text-slate-900">Budget (in paisa)</Label>
                                             <Input
                                                 type="number"
                                                 value={editingTeam.budget}
                                                 onChange={(e) => setEditingTeam({ ...editingTeam, budget: parseInt(e.target.value) })}
+                                                className="!text-slate-900 dark:!text-slate-900 !bg-white dark:!bg-white"
                                             />
                                             <p className="text-xs text-slate-500">Current: {formatCurrency(editingTeam.budget)}</p>
+                                        </div>
+
+                                        {/* Retained Players Section */}
+                                        <div className="border-t border-slate-200 pt-4 mt-4">
+                                            <Label className="!text-slate-900 dark:!text-slate-900 text-base font-semibold flex items-center gap-2 mb-3">
+                                                <Crown className="w-4 h-4 text-amber-500" />
+                                                Retained Players (Pre-Auction)
+                                            </Label>
+                                            <p className="text-xs text-slate-500 mb-3">These players will be pre-assigned to this team and won&apos;t participate in the auction.</p>
+
+                                            {/* Add Player Dropdown */}
+                                            <div className="mb-3">
+                                                <Select
+                                                    value=""
+                                                    onValueChange={(playerId) => addRetainedPlayer(playerId)}
+                                                >
+                                                    <SelectTrigger className="!text-slate-900 dark:!text-slate-900 !bg-white dark:!bg-white">
+                                                        <SelectValue placeholder="Add a player to retain..." />
+                                                    </SelectTrigger>
+                                                    <SelectContent className="!bg-white dark:!bg-white !text-slate-900 dark:!text-slate-900 max-h-60">
+                                                        {players
+                                                            .filter(p => p.status === 'available' && !retainedPlayers.find(rp => rp.player_id === p.id))
+                                                            .map(player => (
+                                                                <SelectItem key={player.id} value={player.id} className="!text-slate-900 dark:!text-slate-900">
+                                                                    {player.name} ({player.role})
+                                                                </SelectItem>
+                                                            ))}
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+
+                                            {/* Retained Players List */}
+                                            {loadingRetained ? (
+                                                <div className="text-center py-4 text-slate-500">Loading retained players...</div>
+                                            ) : retainedPlayers.length === 0 ? (
+                                                <div className="text-center py-4 text-slate-400 text-sm">No retained players. Add players from the dropdown above.</div>
+                                            ) : (
+                                                <div className="space-y-2">
+                                                    {retainedPlayers.map((rp) => {
+                                                        const player = players.find(p => p.id === rp.player_id);
+                                                        return (
+                                                            <div key={rp.player_id} className="flex items-center gap-2 p-2 bg-slate-50 rounded-lg border border-slate-200">
+                                                                <div className="flex-1">
+                                                                    <p className="text-sm font-medium text-slate-900">{rp.name || player?.name}</p>
+                                                                    <p className="text-xs text-slate-500">{player?.role}</p>
+                                                                </div>
+                                                                <Input
+                                                                    value={rp.badge}
+                                                                    onChange={(e) => updateRetainedBadge(rp.player_id, e.target.value)}
+                                                                    placeholder="Badge (e.g., Icon Player, Captain)"
+                                                                    className="!text-slate-900 dark:!text-slate-900 !bg-white dark:!bg-white text-xs h-8 w-48"
+                                                                />
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="sm"
+                                                                    className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                                                                    onClick={() => removeRetainedPlayer(rp.player_id)}
+                                                                >
+                                                                    <Trash2 className="w-4 h-4" />
+                                                                </Button>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 )}
@@ -683,6 +847,7 @@ export default function AdminDashboard() {
                                     team={team}
                                     onEdit={() => {
                                         setEditingTeam(team);
+                                        loadRetainedPlayers(team.id);
                                         setIsEditTeamOpen(true);
                                     }}
                                 />
@@ -718,22 +883,23 @@ export default function AdminDashboard() {
                                                 Add Player
                                             </Button>
                                         </DialogTrigger>
-                                        <DialogContent className="sm:max-w-md">
+                                        <DialogContent className="sm:max-w-md !bg-white dark:!bg-white !text-slate-900 dark:!text-slate-900">
                                             <DialogHeader>
-                                                <DialogTitle>Add New Player</DialogTitle>
-                                                <DialogDescription>Add a player to the auction pool.</DialogDescription>
+                                                <DialogTitle className="!text-slate-900 dark:!text-slate-900">Add New Player</DialogTitle>
+                                                <DialogDescription className="!text-slate-600 dark:!text-slate-600">Add a player to the auction pool.</DialogDescription>
                                             </DialogHeader>
                                             <div className="space-y-4 py-4">
                                                 <div className="grid gap-2">
-                                                    <Label>Player Name</Label>
+                                                    <Label className="!text-slate-900 dark:!text-slate-900">Player Name</Label>
                                                     <Input
                                                         value={newPlayer.name}
                                                         onChange={(e) => setNewPlayer({ ...newPlayer, name: e.target.value })}
                                                         placeholder="Virat Kohli"
+                                                        className="!text-slate-900 dark:!text-slate-900 !bg-white dark:!bg-white"
                                                     />
                                                 </div>
                                                 <div className="grid gap-2">
-                                                    <Label>Player Image</Label>
+                                                    <Label className="!text-slate-900 dark:!text-slate-900">Player Image</Label>
                                                     <ImageUpload
                                                         value={newPlayer.image_url}
                                                         onChange={(url) => setNewPlayer({ ...newPlayer, image_url: url })}
@@ -742,49 +908,51 @@ export default function AdminDashboard() {
                                                 </div>
                                                 <div className="grid grid-cols-2 gap-4">
                                                     <div className="grid gap-2">
-                                                        <Label>Country</Label>
+                                                        <Label className="!text-slate-900 dark:!text-slate-900">Country</Label>
                                                         <Input
                                                             value={newPlayer.country}
                                                             onChange={(e) => setNewPlayer({ ...newPlayer, country: e.target.value })}
                                                             placeholder="India"
+                                                            className="!text-slate-900 dark:!text-slate-900 !bg-white dark:!bg-white"
                                                         />
                                                     </div>
                                                     <div className="grid gap-2">
-                                                        <Label>Role</Label>
+                                                        <Label className="!text-slate-900 dark:!text-slate-900">Role</Label>
                                                         <Select value={newPlayer.role} onValueChange={(v) => setNewPlayer({ ...newPlayer, role: v })}>
-                                                            <SelectTrigger>
+                                                            <SelectTrigger className="!text-slate-900 dark:!text-slate-900 !bg-white dark:!bg-white">
                                                                 <SelectValue />
                                                             </SelectTrigger>
-                                                            <SelectContent>
-                                                                <SelectItem value="Batsman">Batsman</SelectItem>
-                                                                <SelectItem value="Bowler">Bowler</SelectItem>
-                                                                <SelectItem value="All-rounder">All-rounder</SelectItem>
-                                                                <SelectItem value="Wicketkeeper">Wicketkeeper</SelectItem>
+                                                            <SelectContent className="!bg-white dark:!bg-white !text-slate-900 dark:!text-slate-900">
+                                                                <SelectItem value="Batsman" className="!text-slate-900 dark:!text-slate-900">Batsman</SelectItem>
+                                                                <SelectItem value="Bowler" className="!text-slate-900 dark:!text-slate-900">Bowler</SelectItem>
+                                                                <SelectItem value="All-rounder" className="!text-slate-900 dark:!text-slate-900">All-rounder</SelectItem>
+                                                                <SelectItem value="Wicketkeeper" className="!text-slate-900 dark:!text-slate-900">Wicketkeeper</SelectItem>
                                                             </SelectContent>
                                                         </Select>
                                                     </div>
                                                 </div>
                                                 <div className="grid grid-cols-2 gap-4">
                                                     <div className="grid gap-2">
-                                                        <Label>Base Price (paisa)</Label>
+                                                        <Label className="!text-slate-900 dark:!text-slate-900">Base Price</Label>
                                                         <Input
                                                             type="number"
                                                             value={newPlayer.base_price}
                                                             onChange={(e) => setNewPlayer({ ...newPlayer, base_price: parseInt(e.target.value) })}
+                                                            className="!text-slate-900 dark:!text-slate-900 !bg-white dark:!bg-white"
                                                         />
                                                         <p className="text-xs text-slate-500">{formatCurrency(newPlayer.base_price)}</p>
                                                     </div>
                                                     <div className="grid gap-2">
-                                                        <Label>Category</Label>
+                                                        <Label className="!text-slate-900 dark:!text-slate-900">Category</Label>
                                                         <Select value={newPlayer.category} onValueChange={(v) => setNewPlayer({ ...newPlayer, category: v })}>
-                                                            <SelectTrigger>
+                                                            <SelectTrigger className="!text-slate-900 dark:!text-slate-900 !bg-white dark:!bg-white">
                                                                 <SelectValue />
                                                             </SelectTrigger>
-                                                            <SelectContent>
-                                                                <SelectItem value="Marquee">Marquee</SelectItem>
-                                                                <SelectItem value="Set 1">Set 1</SelectItem>
-                                                                <SelectItem value="Set 2">Set 2</SelectItem>
-                                                                <SelectItem value="Set 3">Set 3</SelectItem>
+                                                            <SelectContent className="!bg-white dark:!bg-white !text-slate-900 dark:!text-slate-900">
+                                                                <SelectItem value="Marquee" className="!text-slate-900 dark:!text-slate-900">Marquee</SelectItem>
+                                                                <SelectItem value="Set 1" className="!text-slate-900 dark:!text-slate-900">Set 1</SelectItem>
+                                                                <SelectItem value="Set 2" className="!text-slate-900 dark:!text-slate-900">Set 2</SelectItem>
+                                                                <SelectItem value="Set 3" className="!text-slate-900 dark:!text-slate-900">Set 3</SelectItem>
                                                             </SelectContent>
                                                         </Select>
                                                     </div>
@@ -864,62 +1032,65 @@ export default function AdminDashboard() {
                                             Create New Bidder
                                         </Button>
                                     </DialogTrigger>
-                                    <DialogContent className="sm:max-w-md">
+                                    <DialogContent className="sm:max-w-md !bg-white dark:!bg-white !text-slate-900 dark:!text-slate-900">
                                         <DialogHeader>
-                                            <DialogTitle>Create New Bidder Account</DialogTitle>
-                                            <DialogDescription>Add a new user and assign them to a team.</DialogDescription>
+                                            <DialogTitle className="!text-slate-900 dark:!text-slate-900">Create New Bidder Account</DialogTitle>
+                                            <DialogDescription className="!text-slate-600 dark:!text-slate-600">Add a new user and assign them to a team.</DialogDescription>
                                         </DialogHeader>
                                         <div className="space-y-4 py-4">
                                             <div className="grid gap-2">
-                                                <Label>Full Name</Label>
+                                                <Label className="!text-slate-900 dark:!text-slate-900">Full Name</Label>
                                                 <Input
                                                     value={newUser.name}
                                                     onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
                                                     placeholder="John Doe"
+                                                    className="!text-slate-900 dark:!text-slate-900 !bg-white dark:!bg-white"
                                                 />
                                             </div>
                                             <div className="grid gap-2">
-                                                <Label>Email Address</Label>
+                                                <Label className="!text-slate-900 dark:!text-slate-900">Email Address</Label>
                                                 <Input
                                                     type="email"
                                                     value={newUser.email}
                                                     onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
                                                     placeholder="john@team.com"
+                                                    className="!text-slate-900 dark:!text-slate-900 !bg-white dark:!bg-white"
                                                 />
                                             </div>
                                             <div className="grid gap-2">
-                                                <Label>Password</Label>
+                                                <Label className="!text-slate-900 dark:!text-slate-900">Password</Label>
                                                 <Input
                                                     type="password"
                                                     value={newUser.password}
                                                     onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
                                                     placeholder="••••••••"
+                                                    className="!text-slate-900 dark:!text-slate-900 !bg-white dark:!bg-white"
                                                 />
                                             </div>
                                             <div className="grid gap-2">
-                                                <Label>Role</Label>
+                                                <Label className="!text-slate-900 dark:!text-slate-900">Role</Label>
                                                 <Select value={newUser.role} onValueChange={(v) => setNewUser({ ...newUser, role: v })}>
-                                                    <SelectTrigger>
+                                                    <SelectTrigger className="!text-slate-900 dark:!text-slate-900 !bg-white dark:!bg-white">
                                                         <SelectValue />
                                                     </SelectTrigger>
-                                                    <SelectContent>
-                                                        <SelectItem value="bidder">Bidder</SelectItem>
-                                                        <SelectItem value="host">Host</SelectItem>
-                                                        <SelectItem value="admin">Administrator</SelectItem>
-                                                        <SelectItem value="viewer">Viewer</SelectItem>
+                                                    <SelectContent className="!bg-white dark:!bg-white !text-slate-900 dark:!text-slate-900">
+                                                        <SelectItem value="bidder" className="!text-slate-900 dark:!text-slate-900">Bidder</SelectItem>
+                                                        <SelectItem value="host" className="!text-slate-900 dark:!text-slate-900">Host</SelectItem>
+                                                        <SelectItem value="admin" className="!text-slate-900 dark:!text-slate-900">Administrator</SelectItem>
+                                                        <SelectItem value="viewer" className="!text-slate-900 dark:!text-slate-900">Viewer</SelectItem>
                                                     </SelectContent>
                                                 </Select>
                                             </div>
                                             {teams.length > 0 && (
                                                 <div className="grid gap-2">
-                                                    <Label>Assign Team (Optional)</Label>
+                                                    <Label className="!text-slate-900 dark:!text-slate-900">Assign Team (Optional)</Label>
                                                     <Select value={newUser.team_id} onValueChange={(v) => setNewUser({ ...newUser, team_id: v })}>
-                                                        <SelectTrigger>
+                                                        <SelectTrigger className="!text-slate-900 dark:!text-slate-900 !bg-white dark:!bg-white">
                                                             <SelectValue placeholder="Select a team..." />
                                                         </SelectTrigger>
-                                                        <SelectContent>
+                                                        <SelectContent className="!bg-white dark:!bg-white !text-slate-900 dark:!text-slate-900">
                                                             {teams.map(team => (
-                                                                <SelectItem key={team.id} value={team.id}>{team.name}</SelectItem>
+                                                                <SelectItem key={team.id} value={team.id} className="!text-slate-900 dark:!text-slate-900">{team.name}</SelectItem>
                                                             ))}
                                                         </SelectContent>
                                                     </Select>
@@ -1004,111 +1175,51 @@ export default function AdminDashboard() {
 
                             {/* Edit User Dialog */}
                             <Dialog open={isEditUserOpen} onOpenChange={setIsEditUserOpen}>
-                                <DialogContent className="sm:max-w-md">
+                                <DialogContent className="sm:max-w-md !bg-white dark:!bg-white !text-slate-900 dark:!text-slate-900">
                                     <DialogHeader>
-                                        <DialogTitle>Edit User</DialogTitle>
-                                        <DialogDescription>Update user role and team assignment.</DialogDescription>
+                                        <DialogTitle className="!text-slate-900 dark:!text-slate-900">Edit User</DialogTitle>
+                                        <DialogDescription className="!text-slate-600 dark:!text-slate-600">Update user role and team assignment.</DialogDescription>
                                     </DialogHeader>
                                     {editingUser && (
                                         <div className="space-y-4 py-4">
                                             <div className="grid gap-2">
-                                                <Label>Full Name</Label>
-                                                <Input value={editingUser.name} disabled />
+                                                <Label className="!text-slate-900 dark:!text-slate-900">Full Name</Label>
+                                                <Input value={editingUser.name} disabled className="!text-slate-900 dark:!text-slate-900 !bg-white dark:!bg-white" />
                                             </div>
                                             <div className="grid gap-2">
-                                                <Label>Email Address</Label>
-                                                <Input value={editingUser.email} disabled />
+                                                <Label className="!text-slate-900 dark:!text-slate-900">Email Address</Label>
+                                                <Input value={editingUser.email} disabled className="!text-slate-900 dark:!text-slate-900 !bg-white dark:!bg-white" />
                                             </div>
                                             <div className="grid gap-2">
-                                                <Label>Role</Label>
+                                                <Label className="!text-slate-900 dark:!text-slate-900">Role</Label>
                                                 <Select
                                                     value={editingUser.role}
                                                     onValueChange={(v) => setEditingUser({ ...editingUser, role: v })}
                                                 >
-                                                    <SelectTrigger>
+                                                    <SelectTrigger className="!text-slate-900 dark:!text-slate-900 !bg-white dark:!bg-white">
                                                         <SelectValue />
                                                     </SelectTrigger>
-                                                    <SelectContent>
-                                                        <SelectItem value="bidder">Bidder</SelectItem>
-                                                        <SelectItem value="host">Host</SelectItem>
-                                                        <SelectItem value="admin">Administrator</SelectItem>
-                                                        <SelectItem value="viewer">Viewer</SelectItem>
+                                                    <SelectContent className="!bg-white dark:!bg-white !text-slate-900 dark:!text-slate-900">
+                                                        <SelectItem value="bidder" className="!text-slate-900 dark:!text-slate-900">Bidder</SelectItem>
+                                                        <SelectItem value="host" className="!text-slate-900 dark:!text-slate-900">Host</SelectItem>
+                                                        <SelectItem value="admin" className="!text-slate-900 dark:!text-slate-900">Administrator</SelectItem>
+                                                        <SelectItem value="viewer" className="!text-slate-900 dark:!text-slate-900">Viewer</SelectItem>
                                                     </SelectContent>
                                                 </Select>
                                             </div>
                                             <div className="grid gap-2">
-                                                <Label>Assign Team</Label>
+                                                <Label className="!text-slate-900 dark:!text-slate-900">Assign Team</Label>
                                                 <Select
                                                     value={editingUser.team_id || "none"}
                                                     onValueChange={(v) => setEditingUser({ ...editingUser, team_id: v === "none" ? undefined : v })}
                                                 >
-                                                    <SelectTrigger>
+                                                    <SelectTrigger className="!text-slate-900 dark:!text-slate-900 !bg-white dark:!bg-white">
                                                         <SelectValue placeholder="Select a team..." />
                                                     </SelectTrigger>
-                                                    <SelectContent>
-                                                        <SelectItem value="none">No Team</SelectItem>
+                                                    <SelectContent className="!bg-white dark:!bg-white !text-slate-900 dark:!text-slate-900">
+                                                        <SelectItem value="none" className="!text-slate-900 dark:!text-slate-900">No Team</SelectItem>
                                                         {teams.map(team => (
-                                                            <SelectItem key={team.id} value={team.id}>{team.name}</SelectItem>
-                                                        ))}
-                                                    </SelectContent>
-                                                </Select>
-                                            </div>
-                                        </div>
-                                    )}
-                                    <DialogFooter>
-                                        <Button variant="outline" onClick={() => setIsEditUserOpen(false)}>Cancel</Button>
-                                        <Button onClick={handleUpdateUser}>Update User</Button>
-                                    </DialogFooter>
-                                </DialogContent>
-                            </Dialog>
-
-                            {/* Edit User Dialog */}
-                            <Dialog open={isEditUserOpen} onOpenChange={setIsEditUserOpen}>
-                                <DialogContent className="sm:max-w-md">
-                                    <DialogHeader>
-                                        <DialogTitle>Edit User</DialogTitle>
-                                        <DialogDescription>Update user role and team assignment.</DialogDescription>
-                                    </DialogHeader>
-                                    {editingUser && (
-                                        <div className="space-y-4 py-4">
-                                            <div className="grid gap-2">
-                                                <Label>Full Name</Label>
-                                                <Input value={editingUser.name} disabled />
-                                            </div>
-                                            <div className="grid gap-2">
-                                                <Label>Email Address</Label>
-                                                <Input value={editingUser.email} disabled />
-                                            </div>
-                                            <div className="grid gap-2">
-                                                <Label>Role</Label>
-                                                <Select
-                                                    value={editingUser.role}
-                                                    onValueChange={(v) => setEditingUser({ ...editingUser, role: v })}
-                                                >
-                                                    <SelectTrigger>
-                                                        <SelectValue />
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        <SelectItem value="bidder">Bidder</SelectItem>
-                                                        <SelectItem value="host">Host</SelectItem>
-                                                        <SelectItem value="admin">Administrator</SelectItem>
-                                                        <SelectItem value="viewer">Viewer</SelectItem>
-                                                    </SelectContent>
-                                                </Select>
-                                            </div>
-                                            <div className="grid gap-2">
-                                                <Label>Assign Team</Label>
-                                                <Select
-                                                    value={editingUser.team_id || "none"}
-                                                    onValueChange={(v) => setEditingUser({ ...editingUser, team_id: v === "none" ? undefined : v })}
-                                                >
-                                                    <SelectTrigger>
-                                                        <SelectValue placeholder="Select a team..." />
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        <SelectItem value="none">No Team</SelectItem>
-                                                        {teams.map(team => (
-                                                            <SelectItem key={team.id} value={team.id}>{team.name}</SelectItem>
+                                                            <SelectItem key={team.id} value={team.id} className="!text-slate-900 dark:!text-slate-900">{team.name}</SelectItem>
                                                         ))}
                                                     </SelectContent>
                                                 </Select>
@@ -1131,8 +1242,63 @@ export default function AdminDashboard() {
                         <div className="space-y-8 animate-in fade-in duration-500">
                             <div>
                                 <h1 className="text-2xl font-bold text-slate-900">System Configuration</h1>
-                                <p className="text-slate-500">Global settings and danger zone operations.</p>
+                                <p className="text-slate-500">Account settings and danger zone operations.</p>
                             </div>
+
+                            {/* Change Password Section */}
+                            <Card className="p-6 border-slate-200">
+                                <div className="flex items-start gap-4">
+                                    <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+                                        <Lock className="w-6 h-6 text-blue-600" />
+                                    </div>
+                                    <div className="flex-1">
+                                        <h3 className="font-bold text-slate-800 text-lg">Change Password</h3>
+                                        <p className="text-sm text-slate-500 mt-1 mb-4">
+                                            Update your admin account password. Use a strong password with at least 8 characters.
+                                        </p>
+
+                                        <div className="bg-slate-50 rounded-lg p-4 border border-slate-200 space-y-4 max-w-md">
+                                            <div className="grid gap-2">
+                                                <Label htmlFor="currentPassword">Current Password</Label>
+                                                <Input
+                                                    id="currentPassword"
+                                                    type="password"
+                                                    value={passwordForm.currentPassword}
+                                                    onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
+                                                    placeholder="Enter current password"
+                                                />
+                                            </div>
+                                            <div className="grid gap-2">
+                                                <Label htmlFor="newPassword">New Password</Label>
+                                                <Input
+                                                    id="newPassword"
+                                                    type="password"
+                                                    value={passwordForm.newPassword}
+                                                    onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
+                                                    placeholder="Enter new password (min 8 characters)"
+                                                />
+                                            </div>
+                                            <div className="grid gap-2">
+                                                <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                                                <Input
+                                                    id="confirmPassword"
+                                                    type="password"
+                                                    value={passwordForm.confirmPassword}
+                                                    onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
+                                                    placeholder="Confirm new password"
+                                                />
+                                            </div>
+                                            <Button
+                                                onClick={handleChangePassword}
+                                                disabled={isChangingPassword}
+                                                className="w-full sm:w-auto"
+                                            >
+                                                {isChangingPassword ? 'Changing...' : 'Change Password'}
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </Card>
 
                             {/* Danger Zone */}
                             <Card className="p-6 border-red-200 bg-red-50/50">

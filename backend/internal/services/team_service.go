@@ -99,3 +99,29 @@ func (s *TeamService) Update(ctx context.Context, id uuid.UUID, req models.Updat
 func (s *TeamService) Delete(ctx context.Context, id uuid.UUID) error {
 	return s.repos.Teams.Delete(ctx, id)
 }
+
+// RetainPlayers retains multiple players to a team with optional badges
+func (s *TeamService) RetainPlayers(ctx context.Context, teamID uuid.UUID, players []models.RetainedPlayer) error {
+	// First, release all previously retained players for this team
+	if err := s.repos.Players.ReleaseAllRetainedByTeam(ctx, teamID); err != nil {
+		return err
+	}
+	
+	// Now retain the new players
+	for _, p := range players {
+		playerID, err := uuid.Parse(p.PlayerID)
+		if err != nil {
+			continue // Skip invalid player IDs
+		}
+		if err := s.repos.Players.RetainPlayer(ctx, playerID, teamID, p.Badge); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// GetRetainedPlayers returns all retained players for a team
+func (s *TeamService) GetRetainedPlayers(ctx context.Context, teamID uuid.UUID) ([]models.Player, error) {
+	return s.repos.Players.GetRetainedByTeam(ctx, teamID)
+}
+

@@ -26,7 +26,7 @@ func (r *PlayerRepository) FindAll(ctx context.Context, filter models.PlayerFilt
 	query := `
 		SELECT p.id, p.name, p.country, p.country_flag, p.role, p.base_price, p.category,
 			   p.image_url, p.stats, p.status, p.sold_price, p.team_id, p.sold_at,
-			   p.queue_order, p.created_at, p.updated_at,
+			   p.queue_order, p.badge, p.created_at, p.updated_at,
 			   t.id, t.name, t.short_name, t.color
 		FROM players p
 		LEFT JOIN teams t ON p.team_id = t.id
@@ -103,7 +103,7 @@ func (r *PlayerRepository) FindAll(ctx context.Context, filter models.PlayerFilt
 		err := rows.Scan(
 			&p.ID, &p.Name, &p.Country, &p.CountryFlag, &p.Role, &p.BasePrice, &p.Category,
 			&p.ImageURL, &statsJSON, &p.Status, &p.SoldPrice, &p.TeamID, &p.SoldAt,
-			&p.QueueOrder, &p.CreatedAt, &p.UpdatedAt,
+			&p.QueueOrder, &p.Badge, &p.CreatedAt, &p.UpdatedAt,
 			&tID, &teamName, &teamShort, &teamColor,
 		)
 		if err != nil {
@@ -138,7 +138,7 @@ func (r *PlayerRepository) FindByID(ctx context.Context, id uuid.UUID) (*models.
 	err := r.db.QueryRow(ctx, `
 		SELECT p.id, p.name, p.country, p.country_flag, p.role, p.base_price, p.category,
 			   p.image_url, p.stats, p.status, p.sold_price, p.team_id, p.sold_at,
-			   p.queue_order, p.created_at, p.updated_at,
+			   p.queue_order, p.badge, p.created_at, p.updated_at,
 			   t.id, t.name, t.short_name, t.color
 		FROM players p
 		LEFT JOIN teams t ON p.team_id = t.id
@@ -146,7 +146,7 @@ func (r *PlayerRepository) FindByID(ctx context.Context, id uuid.UUID) (*models.
 	`, id).Scan(
 		&p.ID, &p.Name, &p.Country, &p.CountryFlag, &p.Role, &p.BasePrice, &p.Category,
 		&p.ImageURL, &statsJSON, &p.Status, &p.SoldPrice, &p.TeamID, &p.SoldAt,
-		&p.QueueOrder, &p.CreatedAt, &p.UpdatedAt,
+		&p.QueueOrder, &p.Badge, &p.CreatedAt, &p.UpdatedAt,
 		&tID, &teamName, &teamShort, &teamColor,
 	)
 	if err != nil {
@@ -174,10 +174,10 @@ func (r *PlayerRepository) FindByTeamID(ctx context.Context, teamID uuid.UUID) (
 	rows, err := r.db.Query(ctx, `
 		SELECT id, name, country, country_flag, role, base_price, category,
 			   image_url, stats, status, sold_price, team_id, sold_at,
-			   queue_order, created_at, updated_at
+			   queue_order, badge, created_at, updated_at
 		FROM players 
-		WHERE team_id = $1 AND status = 'sold'
-		ORDER BY sold_at DESC
+		WHERE team_id = $1 AND (status = 'sold' OR status = 'retained')
+		ORDER BY CASE WHEN status = 'retained' THEN 0 ELSE 1 END, sold_at DESC
 	`, teamID)
 	if err != nil {
 		return nil, err
@@ -191,7 +191,7 @@ func (r *PlayerRepository) FindByTeamID(ctx context.Context, teamID uuid.UUID) (
 		err := rows.Scan(
 			&p.ID, &p.Name, &p.Country, &p.CountryFlag, &p.Role, &p.BasePrice, &p.Category,
 			&p.ImageURL, &statsJSON, &p.Status, &p.SoldPrice, &p.TeamID, &p.SoldAt,
-			&p.QueueOrder, &p.CreatedAt, &p.UpdatedAt,
+			&p.QueueOrder, &p.Badge, &p.CreatedAt, &p.UpdatedAt,
 		)
 		if err != nil {
 			return nil, err
@@ -380,7 +380,7 @@ func (r *PlayerRepository) GetRecentSales(ctx context.Context, limit int) ([]mod
 func (r *PlayerRepository) ResetAllPlayers(ctx context.Context) error {
 	_, err := r.db.Exec(ctx, `
 		UPDATE players SET 
-			status = 'available', sold_price = NULL, team_id = NULL, sold_at = NULL, updated_at = NOW()
+			status = 'available', sold_price = NULL, team_id = NULL, sold_at = NULL, badge = NULL, updated_at = NOW()
 	`)
 	return err
 }
@@ -391,3 +391,71 @@ func (r *PlayerRepository) DeleteAll(ctx context.Context) error {
 	return err
 }
 
+// RetainPlayer marks a player as retained by a team with an optional badge
+func (r *PlayerRepository) RetainPlayer(ctx context.Context, playerID, teamID uuid.UUID, badge string) error {
+	var badgePtr *string
+	if badge != "" {
+		badgePtr = &badge
+	}
+	_, err := r.db.Exec(ctx, `
+		UPDATE players SET 
+			status = 'retained', team_id = $2, badge = $3, updated_at = NOW()
+		WHERE id = $1
+	`, playerID, teamID, badgePtr)
+	return err
+}
+
+// ReleaseRetainedPlayer releases a retained player back to available pool
+func (r *PlayerRepository) ReleaseRetainedPlayer(ctx context.Context, playerID uuid.UUID) error {
+	_, err := r.db.Exec(ctx, `
+		UPDATE players SET 
+			status = 'available', team_id = NULL, badge = NULL, updated_at = NOW()
+		WHERE id = $1 AND status = 'retained'
+	`, playerID)
+	return err
+}
+
+// ReleaseAllRetainedByTeam releases all retained players for a specific team
+func (r *PlayerRepository) ReleaseAllRetainedByTeam(ctx context.Context, teamID uuid.UUID) error {
+	_, err := r.db.Exec(ctx, `
+		UPDATE players SET 
+			status = 'available', team_id = NULL, badge = NULL, updated_at = NOW()
+		WHERE team_id = $1 AND status = 'retained'
+	`, teamID)
+	return err
+}
+
+// GetRetainedByTeam returns all retained players for a team
+func (r *PlayerRepository) GetRetainedByTeam(ctx context.Context, teamID uuid.UUID) ([]models.Player, error) {
+	rows, err := r.db.Query(ctx, `
+		SELECT id, name, country, country_flag, role, base_price, category,
+			   image_url, stats, status, sold_price, team_id, sold_at,
+			   queue_order, badge, created_at, updated_at
+		FROM players 
+		WHERE team_id = $1 AND status = 'retained'
+		ORDER BY name
+	`, teamID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var players []models.Player
+	for rows.Next() {
+		var p models.Player
+		var statsJSON []byte
+		err := rows.Scan(
+			&p.ID, &p.Name, &p.Country, &p.CountryFlag, &p.Role, &p.BasePrice, &p.Category,
+			&p.ImageURL, &statsJSON, &p.Status, &p.SoldPrice, &p.TeamID, &p.SoldAt,
+			&p.QueueOrder, &p.Badge, &p.CreatedAt, &p.UpdatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+		if len(statsJSON) > 0 {
+			json.Unmarshal(statsJSON, &p.Stats)
+		}
+		players = append(players, p)
+	}
+	return players, nil
+}

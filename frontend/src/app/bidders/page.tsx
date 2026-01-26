@@ -23,7 +23,8 @@ import {
     LogOut,
     Coffee,
     Eye,
-    EyeOff
+    EyeOff,
+    Crown
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -67,6 +68,7 @@ interface Player {
     image_url?: string;
     team_id?: string;
     team?: Team;
+    badge?: string;
     stats?: {
         matches?: number;
         runs?: number;
@@ -160,6 +162,8 @@ export default function BidderDashboard() {
                     api.getTeam(user.team_id).then(t => setMyTeam(t));
                     api.getTeamSquad(user.team_id).then(s => setMySquad(s || []));
                 }
+                // Refresh upcoming queue after player is sold
+                api.getPlayerQueue(10).then(queue => setUpcomingQueue(queue || [])).catch(() => { });
                 break;
             case 'auction:player-changed':
                 setAuctionState(prev => ({
@@ -171,9 +175,12 @@ export default function BidderDashboard() {
                     bids: [],
                 }));
                 setBidHistory([]);
+                // Refresh upcoming queue when player changes
+                api.getPlayerQueue(10).then(queue => setUpcomingQueue(queue || [])).catch(() => { });
                 break;
             case 'auction:unsold':
-                // Just handled via state change
+                // Refresh upcoming queue after player is marked unsold
+                api.getPlayerQueue(10).then(queue => setUpcomingQueue(queue || [])).catch(() => { });
                 break;
             case 'auction:live':
                 // Auction is now live - show notification and update state
@@ -183,9 +190,15 @@ export default function BidderDashboard() {
             case 'auction:reset':
                 // Auction was reset - refresh everything
                 toast.info('Auction has been reset');
-                api.getAuctionState().then(state => {
-                    setAuctionState(state);
-                    if (state?.bids) setBidHistory(state.bids);
+                Promise.all([
+                    api.getAuctionState().catch(() => null),
+                    api.getPlayerQueue(10).catch(() => [])
+                ]).then(([state, queue]) => {
+                    if (state) {
+                        setAuctionState(state);
+                        if (state.bids) setBidHistory(state.bids);
+                    }
+                    if (queue) setUpcomingQueue(queue);
                 });
                 if (user?.team_id) {
                     api.getTeam(user.team_id).then(t => setMyTeam(t));
@@ -202,11 +215,15 @@ export default function BidderDashboard() {
         onMessage: handleWebSocketMessage,
         onOpen: useCallback(() => {
             // Sync state on WebSocket connection/reconnection
-            api.getAuctionState().then(state => {
+            Promise.all([
+                api.getAuctionState().catch(() => null),
+                api.getPlayerQueue(10).catch(() => [])
+            ]).then(([state, queue]) => {
                 if (state) {
                     setAuctionState(state);
                     if (state.bids) setBidHistory(state.bids);
                 }
+                if (queue) setUpcomingQueue(queue);
             }).catch(() => { });
         }, []),
     });
@@ -256,11 +273,15 @@ export default function BidderDashboard() {
 
         const interval = setInterval(async () => {
             try {
-                const stateData = await api.getAuctionState();
+                const [stateData, queueData] = await Promise.all([
+                    api.getAuctionState().catch(() => null),
+                    api.getPlayerQueue(10).catch(() => [])
+                ]);
                 if (stateData) {
                     setAuctionState(stateData);
                     if (stateData.bids) setBidHistory(stateData.bids);
                 }
+                if (queueData) setUpcomingQueue(queueData);
                 // Also refresh team data
                 if (user?.team_id) {
                     const teamData = await api.getTeam(user.team_id).catch(() => null);
@@ -418,67 +439,50 @@ export default function BidderDashboard() {
 
             {/* --- Top Navigation / Header --- */}
             {isHeaderVisible && (
-            <header className="h-auto py-2 lg:py-0 lg:h-16 bg-white border-b border-slate-200 flex flex-wrap items-center justify-between px-3 lg:px-6 sticky top-0 z-50 shrink-0 gap-2">
-                <div className="flex items-center gap-3 lg:gap-4">
-                    {/* App Logo */}
-                    {/* App Logo */}
-                    <svg className="h-6 lg:h-10 w-auto" viewBox="0 0 733 221" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M87.6812 136.887L31.0104 215.832L15.5079 217.032L80.3784 126.663L87.6812 136.887ZM168.067 190.2L136.5 193.162L35.9588 56.9581L67.5275 53.9961L168.067 190.2ZM102.124 157.112L75.3988 194.343L59.8973 195.543L94.8227 146.888L102.124 157.112ZM125.181 124.994L117.879 114.771L199.41 1.19965L214.912 -2.6843e-06L125.181 124.994ZM110.737 104.77L103.435 94.5458L139.774 43.9281L155.276 42.7285L110.737 104.77Z" fill="url(#paint0_linear_164_221)" />
-                        <path d="M212.042 177.658C204.282 177.658 197.282 176.058 191.042 172.858C184.802 169.658 179.842 164.938 176.162 158.698C172.562 152.458 170.762 144.858 170.762 135.898C170.762 129.178 171.842 123.218 174.002 118.018C176.242 112.818 179.282 108.458 183.122 104.938C187.042 101.338 191.522 98.6577 196.562 96.8977C201.602 95.0577 206.962 94.1377 212.642 94.1377C217.042 94.1377 221.162 94.6577 225.002 95.6977C228.842 96.6577 232.522 98.0977 236.042 100.018L236.522 115.738H233.282L228.242 106.258C227.442 104.658 226.562 103.218 225.602 101.938C224.722 100.658 223.562 99.7377 222.122 99.1777C220.122 98.2177 217.762 97.7377 215.042 97.7377C210.322 97.7377 206.002 98.9377 202.082 101.338C198.242 103.738 195.162 107.738 192.842 113.338C190.522 118.858 189.362 126.418 189.362 136.018C189.362 145.538 190.442 153.098 192.602 158.698C194.842 164.298 197.842 168.298 201.602 170.698C205.362 173.018 209.602 174.178 214.322 174.178C216.482 174.178 218.242 174.018 219.602 173.698C220.962 173.378 222.322 172.938 223.682 172.378C225.282 171.738 226.522 170.818 227.402 169.618C228.282 168.338 229.042 166.898 229.682 165.298L234.242 154.378H237.482L237.002 171.658C233.562 173.578 229.762 175.058 225.602 176.098C221.442 177.138 216.922 177.658 212.042 177.658ZM260.107 175.618V173.098L262.507 172.258C263.947 171.858 264.947 171.178 265.507 170.218C266.067 169.178 266.387 167.778 266.467 166.018V105.658C266.387 103.978 266.107 102.698 265.627 101.818C265.147 100.858 264.147 100.138 262.627 99.6577L260.107 98.8177V96.2977H317.227L318.067 115.498H314.707L309.907 104.698C309.267 103.178 308.547 102.018 307.747 101.218C306.947 100.338 305.747 99.8977 304.147 99.8977H283.747C283.667 104.858 283.627 109.978 283.627 115.258C283.627 120.458 283.627 126.338 283.627 132.898H295.507C297.107 132.898 298.307 132.498 299.107 131.698C299.987 130.818 300.787 129.658 301.507 128.218L303.547 123.658H306.187V145.858H303.547L301.387 141.298C300.747 139.858 300.027 138.698 299.227 137.818C298.427 136.938 297.227 136.498 295.627 136.498H283.627C283.627 142.258 283.627 147.218 283.627 151.378C283.627 155.538 283.627 159.258 283.627 162.538C283.707 165.738 283.747 168.898 283.747 172.018H306.787C308.387 172.018 309.627 171.618 310.507 170.818C311.387 169.938 312.107 168.738 312.667 167.218L317.107 156.418H320.467L319.627 175.618H260.107ZM344.792 175.618V173.098L348.272 172.138C349.792 171.738 350.832 170.978 351.392 169.858C352.032 168.738 352.352 167.378 352.352 165.778V107.698C351.632 106.178 350.992 105.058 350.432 104.338C349.952 103.538 349.432 102.858 348.872 102.298C348.312 101.738 347.552 101.098 346.592 100.378L344.432 98.8177V96.2977H364.952L404.792 150.778V106.258C404.792 104.658 404.512 103.258 403.952 102.058C403.472 100.858 402.432 100.058 400.832 99.6577L397.232 98.8177V96.2977H415.112V98.8177L412.112 99.6577C410.592 100.138 409.632 100.978 409.232 102.178C408.912 103.298 408.752 104.658 408.752 106.258V176.098H402.032L356.312 113.218V165.658C356.312 167.338 356.552 168.738 357.032 169.858C357.512 170.978 358.512 171.738 360.032 172.138L363.272 173.098V175.618H344.792ZM477.598 177.658C469.838 177.658 462.838 176.058 456.598 172.858C450.358 169.658 445.398 164.938 441.718 158.698C438.118 152.458 436.318 144.858 436.318 135.898C436.318 129.178 437.398 123.218 439.558 118.018C441.798 112.818 444.838 108.458 448.678 104.938C452.598 101.338 457.078 98.6577 462.118 96.8977C467.158 95.0577 472.518 94.1377 478.198 94.1377C482.598 94.1377 486.718 94.6577 490.558 95.6977C494.398 96.6577 498.078 98.0977 501.598 100.018L502.078 115.738H498.838L493.798 106.258C492.998 104.658 492.118 103.218 491.158 101.938C490.278 100.658 489.118 99.7377 487.678 99.1777C485.678 98.2177 483.318 97.7377 480.598 97.7377C475.878 97.7377 471.558 98.9377 467.638 101.338C463.798 103.738 460.718 107.738 458.398 113.338C456.078 118.858 454.918 126.418 454.918 136.018C454.918 145.538 455.998 153.098 458.158 158.698C460.398 164.298 463.398 168.298 467.158 170.698C470.918 173.018 475.158 174.178 479.878 174.178C482.038 174.178 483.798 174.018 485.158 173.698C486.518 173.378 487.878 172.938 489.238 172.378C490.838 171.738 492.078 170.818 492.958 169.618C493.838 168.338 494.598 166.898 495.238 165.298L499.798 154.378H503.038L502.558 171.658C499.118 173.578 495.318 175.058 491.158 176.098C486.998 177.138 482.478 177.658 477.598 177.658ZM525.663 175.618V173.098L528.063 172.258C529.503 171.858 530.503 171.178 531.063 170.218C531.623 169.178 531.943 167.778 532.023 166.018V105.658C531.943 103.978 531.663 102.698 531.183 101.818C530.703 100.858 529.703 100.138 528.183 99.6577L525.663 98.8177V96.2977H582.783L583.623 115.498H580.263L575.463 104.698C574.823 103.178 574.103 102.018 573.303 101.218C572.503 100.338 571.303 99.8977 569.703 99.8977H549.303C549.223 104.858 549.183 109.978 549.183 115.258C549.183 120.458 549.183 126.338 549.183 132.898H561.063C562.663 132.898 563.863 132.498 564.663 131.698C565.543 130.818 566.343 129.658 567.063 128.218L569.103 123.658H571.743V145.858H569.103L566.943 141.298C566.303 139.858 565.583 138.698 564.783 137.818C563.983 136.938 562.783 136.498 561.183 136.498H549.183C549.183 142.258 549.183 147.218 549.183 151.378C549.183 155.538 549.183 159.258 549.183 162.538C549.263 165.738 549.303 168.898 549.303 172.018H572.343C573.943 172.018 575.183 171.618 576.063 170.818C576.943 169.938 577.663 168.738 578.223 167.218L582.663 156.418H586.023L585.183 175.618H525.663Z" fill="#38AEE9" />
-                        <defs>
-                            <linearGradient id="paint0_linear_164_221" x1="-15" y1="169.5" x2="230" y2="109" gradientUnits="userSpaceOnUse">
-                                <stop stopColor="#0072AF" />
-                                <stop offset="0.5" stopColor="#59C4FF" />
-                                <stop offset="1" stopColor="#0072AF" />
-                            </linearGradient>
-                        </defs>
-                    </svg>
-
-                    {/* Divider */}
-                    <div className="hidden lg:block h-8 w-px bg-slate-200" />
-
-                    <div
-                        className="w-8 h-8 lg:w-10 lg:h-10 rounded-xl flex items-center justify-center shadow-lg text-white font-bold bg-white"
-                        style={{ backgroundColor: teamProfile.logo_url ? 'white' : (teamProfile.color || '#3B82F6') }}
-                    >
-                        {teamProfile.logo_url ? (
-                            <img src={getImageUrl(teamProfile.logo_url)} alt={teamProfile.name} className="w-full h-full object-contain rounded-xl" />
-                        ) : (
-                            teamProfile.short_name || 'BT'
-                        )}
-                    </div>
-                    <div>
-                        <h1 className="font-bold text-sm lg:text-base text-slate-800 leading-tight">{teamProfile.name}</h1>
-                        <p className="text-[10px] lg:text-xs text-slate-500 font-medium tracking-wide uppercase">Bidder Dashboard</p>
-                    </div>
-                </div>
-
-                <div className="flex items-center gap-3 lg:gap-6 ml-auto">
-                    {/* Live Connection Status */}
-                    <div className={`flex items-center gap-1.5 lg:gap-2 px-2 lg:px-3 py-1 lg:py-1.5 rounded-full border ${isConnected ? 'bg-green-50 text-green-700 border-green-200' : 'bg-yellow-50 text-yellow-700 border-yellow-200'}`}>
-                        <span className="relative flex h-2 w-2 lg:h-2.5 lg:w-2.5">
-                            {isConnected && <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>}
-                            <span className={`relative inline-flex rounded-full h-2 w-2 lg:h-2.5 lg:w-2.5 ${isConnected ? 'bg-green-500' : 'bg-yellow-500'}`}></span>
-                        </span>
-                        <span className="text-[10px] lg:text-xs font-bold">{isConnected ? 'Live' : '...'}</span>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                        <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            onClick={() => setIsHeaderVisible(false)} 
-                            title="Hide header" 
-                            className="h-8 w-8 lg:h-9 lg:w-9"
+                <header className="h-auto py-2 lg:py-0 lg:h-16 bg-white border-b border-slate-200 flex flex-wrap items-center justify-between px-3 lg:px-6 sticky top-0 z-50 shrink-0 gap-2">
+                    <div className="flex items-center gap-3 lg:gap-4">
+                        <div
+                            className="w-8 h-8 lg:w-10 lg:h-10 rounded-xl flex items-center justify-center shadow-lg text-white font-bold bg-white"
+                            style={{ backgroundColor: teamProfile.logo_url ? 'white' : (teamProfile.color || '#3B82F6') }}
                         >
-                            <EyeOff className="w-3 h-3 lg:w-4 lg:h-4 text-slate-500" />
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={handleLogout} title="Logout" className="h-8 w-8 lg:h-9 lg:w-9">
-                            <LogOut className="w-3 h-3 lg:w-4 lg:h-4 text-slate-500" />
-                        </Button>
+                            {teamProfile.logo_url ? (
+                                <img src={getImageUrl(teamProfile.logo_url)} alt={teamProfile.name} className="w-full h-full object-contain rounded-xl" />
+                            ) : (
+                                teamProfile.short_name || 'BT'
+                            )}
+                        </div>
+                        <div>
+                            <h1 className="font-bold text-sm lg:text-base text-slate-800 leading-tight">{teamProfile.name}</h1>
+                            <p className="text-[10px] lg:text-xs text-slate-500 font-medium tracking-wide uppercase">Bidder Dashboard</p>
+                        </div>
                     </div>
-                </div>
-            </header>
+
+                    <div className="flex items-center gap-3 lg:gap-6 ml-auto">
+                        {/* Live Connection Status */}
+                        <div className={`flex items-center gap-1.5 lg:gap-2 px-2 lg:px-3 py-1 lg:py-1.5 rounded-full border ${isConnected ? 'bg-green-50 text-green-700 border-green-200' : 'bg-yellow-50 text-yellow-700 border-yellow-200'}`}>
+                            <span className="relative flex h-2 w-2 lg:h-2.5 lg:w-2.5">
+                                {isConnected && <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>}
+                                <span className={`relative inline-flex rounded-full h-2 w-2 lg:h-2.5 lg:w-2.5 ${isConnected ? 'bg-green-500' : 'bg-yellow-500'}`}></span>
+                            </span>
+                            <span className="text-[10px] lg:text-xs font-bold">{isConnected ? 'Live' : '...'}</span>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => setIsHeaderVisible(false)}
+                                title="Hide header"
+                                className="h-8 w-8 lg:h-9 lg:w-9"
+                            >
+                                <EyeOff className="w-3 h-3 lg:w-4 lg:h-4 text-slate-500" />
+                            </Button>
+                            <Button variant="ghost" size="icon" onClick={handleLogout} title="Logout" className="h-8 w-8 lg:h-9 lg:w-9">
+                                <LogOut className="w-3 h-3 lg:w-4 lg:h-4 text-slate-500" />
+                            </Button>
+                        </div>
+                    </div>
+                </header>
             )}
 
             {/* Subheader with Show Header Button when header is hidden */}
@@ -502,10 +506,10 @@ export default function BidderDashboard() {
                             </div>
                         ) : null}
                     </div>
-                    <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        onClick={() => setIsHeaderVisible(true)} 
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setIsHeaderVisible(true)}
                         className="gap-2 rounded-xl hover:bg-slate-100 text-slate-600"
                         title="Show header"
                     >
@@ -525,14 +529,24 @@ export default function BidderDashboard() {
                             <Wallet className="w-4 h-4 text-slate-400" />
                         </div>
                         <div className="space-y-4">
+                            <div className="flex items-start justify-between gap-3 lg:gap-4">
+                                <div>
+                                    <p className="text-[10px] lg:text-xs text-slate-500 mb-1">Total Spent</p>
+                                    <p className="text-xl lg:text-2xl font-black text-slate-900">
+                                        {formatCurrency(teamProfile.budget - (teamProfile.remaining_budget || teamProfile.budget))}
+                                    </p>
+                                </div>
+                                <div className="text-right">
+                                    <p className="text-[10px] lg:text-xs text-slate-500 mb-1">Remaining in Purse</p>
+                                    <p className="text-xl lg:text-2xl font-black text-slate-900">
+                                        {formatCurrency(teamProfile.remaining_budget || teamProfile.budget)}
+                                    </p>
+                                </div>
+                            </div>
                             <div>
-                                <p className="text-[10px] lg:text-xs text-slate-500 mb-1">Remaining Purse</p>
-                                <p className="text-xl lg:text-2xl font-black text-slate-900">
-                                    {formatCurrency(teamProfile.remaining_budget || teamProfile.budget)}
-                                </p>
                                 <Progress
                                     value={((teamProfile.budget - (teamProfile.remaining_budget || teamProfile.budget)) / teamProfile.budget) * 100}
-                                    className="h-1.5 lg:h-2 mt-2"
+                                    className="h-1.5 lg:h-2"
                                 />
                                 <div className="flex justify-between text-[10px] lg:text-xs mt-1 text-slate-400">
                                     <span>
@@ -563,25 +577,40 @@ export default function BidderDashboard() {
                         </div>
 
                         <TabsContent value="squad" className="flex-1 overflow-y-auto min-h-0 p-3 lg:p-4 space-y-2">
-                            {mySquad.map((player) => (
-                                <div key={player.id} className="flex items-center justify-between p-2 lg:p-3 bg-white hover:bg-slate-50 rounded-xl border border-slate-100 transition-colors">
-                                    <div className="flex items-center gap-2 lg:gap-3">
-                                        <div className="w-6 h-6 lg:w-8 lg:h-8 rounded-full bg-slate-100 flex items-center justify-center text-[10px] lg:text-xs font-bold text-slate-500">
-                                            {player.name.charAt(0)}
+                            {mySquad.map((player) => {
+                                const isRetained = player.status === 'retained';
+                                return (
+                                    <div key={player.id} className={`flex items-center justify-between p-2 lg:p-3 bg-white hover:bg-slate-50 rounded-xl border transition-colors ${isRetained ? 'border-amber-200 bg-amber-50/30' : 'border-slate-100'}`}>
+                                        <div className="flex items-center gap-2 lg:gap-3">
+                                            <div className={`relative w-6 h-6 lg:w-8 lg:h-8 rounded-full flex items-center justify-center text-[10px] lg:text-xs font-bold ${isRetained ? 'bg-amber-100 text-amber-600 ring-2 ring-amber-300' : 'bg-slate-100 text-slate-500'}`}>
+                                                {player.name.charAt(0)}
+                                                {isRetained && (
+                                                    <Crown className="absolute -top-1 -right-1 w-3 h-3 text-amber-500" />
+                                                )}
+                                            </div>
+                                            <div>
+                                                <div className="flex items-center gap-1.5">
+                                                    <p className="text-xs lg:text-sm font-semibold text-slate-800">{player.name}</p>
+                                                    {isRetained && player.badge && (
+                                                        <span className="text-[8px] lg:text-[9px] font-bold px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded-full">
+                                                            {player.badge}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <p className="text-[10px] lg:text-xs text-slate-500">{player.role}</p>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <p className="text-xs lg:text-sm font-semibold text-slate-800">{player.name}</p>
-                                            <p className="text-[10px] lg:text-xs text-slate-500">{player.role}</p>
+                                        <div className="text-right">
+                                            <p className={`text-[10px] lg:text-xs font-bold ${isRetained ? 'text-amber-600' : 'text-slate-700'}`}>
+                                                {formatCurrency(player.sold_price || player.base_price)}
+                                            </p>
+                                            <Badge variant="secondary" className={`text-[8px] lg:text-[10px] h-3 lg:h-4 px-1 ${isRetained ? 'bg-amber-100 text-amber-700' : ''}`}>
+                                                {isRetained ? 'Retained' : player.country === 'India' ? 'Indian' : 'Overseas'}
+                                            </Badge>
                                         </div>
                                     </div>
-                                    <div className="text-right">
-                                        <p className="text-[10px] lg:text-xs font-bold text-slate-700">{formatCurrency(player.sold_price || player.base_price)}</p>
-                                        <Badge variant="secondary" className="text-[8px] lg:text-[10px] h-3 lg:h-4 px-1">
-                                            {player.country === 'India' ? 'Indian' : 'Overseas'}
-                                        </Badge>
-                                    </div>
-                                </div>
-                            ))}
+                                )
+                            })}
                             {mySquad.length === 0 && (
                                 <p className="text-center text-xs lg:text-sm text-slate-400 py-8">No players purchased yet</p>
                             )}
@@ -635,22 +664,22 @@ export default function BidderDashboard() {
                                         {/* Live Animation */}
                                         <div className="relative inline-block mb-6 lg:mb-8">
                                             <div className="absolute inset-0 bg-red-500 rounded-full animate-ping opacity-30" />
-                                            <div className="relative w-20 h-20 lg:w-24 lg:h-24 rounded-full bg-gradient-to-br from-red-500 to-pink-600 flex items-center justify-center mx-auto shadow-2xl shadow-red-500/50">
-                                                <div className="w-3 h-3 lg:w-4 lg:h-4 bg-white rounded-full animate-pulse" />
+                                            <div className="relative w-8 h-8 lg:w-10 lg:h-10 rounded-full bg-gradient-to-br from-red-500 to-pink-600 flex items-center justify-center mx-auto shadow-lg shadow-red-500/50">
+                                                <div className="w-1.5 h-1.5 lg:w-2 lg:h-2 bg-white rounded-full animate-pulse" />
                                             </div>
                                         </div>
                                         <h3 className="text-2xl lg:text-4xl font-black text-slate-800 mb-3 lg:mb-4">
                                             Auction is LIVE!
                                         </h3>
                                         <div className="inline-flex items-center gap-2 px-4 py-2 bg-red-50 rounded-full border border-red-100 mb-6">
-                                            <span className="relative flex h-2 w-2">
+                                            <span className="relative flex h-1 w-1">
                                                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                                                <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                                                <span className="relative inline-flex rounded-full h-1 w-1 bg-red-500"></span>
                                             </span>
                                             <span className="text-xs font-bold text-red-600 uppercase tracking-widest">Broadcast Active</span>
                                         </div>
                                         <p className="text-slate-500 max-w-md mx-auto text-sm lg:text-lg mb-8">
-                                            Owners are reviewing strategies. The next player will appear on the block momentarily.
+                                            Be prepared! Auction is started and first player will be displayed very shortly.
                                         </p>
                                         <div className="flex justify-center gap-2">
                                             <div className="w-2 h-2 rounded-full bg-slate-300 animate-bounce" style={{ animationDelay: '0ms' }} />
@@ -707,20 +736,34 @@ export default function BidderDashboard() {
                                 <div className="grid grid-cols-1 md:grid-cols-12 gap-0 relative z-10">
 
                                     {/* Player Image & Key Stats */}
-                                    <div className="md:col-span-5 bg-gradient-to-br from-slate-50 to-slate-100 p-4 lg:p-8 flex flex-col items-center justify-center border-b md:border-b-0 md:border-r border-slate-100 relative">
-                                        <Badge className="absolute top-4 left-4 lg:top-6 lg:left-6 bg-slate-900 text-white hover:bg-slate-800 text-[10px] lg:text-xs">
+                                    <div className="md:col-span-5 bg-gradient-to-br from-slate-50 via-white to-slate-50 p-4 lg:p-8 flex flex-col items-center justify-center border-b md:border-b-0 md:border-r border-slate-100 relative overflow-hidden">
+                                        {/* Decorative gradient overlay */}
+                                        <div className="absolute inset-0 bg-gradient-to-br from-blue-50/30 via-transparent to-indigo-50/30 pointer-events-none" />
+
+                                        <Badge className="absolute top-4 left-4 lg:top-6 lg:left-6 bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200 text-[10px] lg:text-xs z-10">
                                             {currentPlayer.category || 'PLAYER'}
                                         </Badge>
 
-                                        <div className="w-48 h-48 lg:w-64 lg:h-64 md:w-80 md:h-80 rounded-2xl lg:rounded-3xl bg-white shadow-xl flex items-center justify-center mb-4 lg:mb-6 border-4 border-white relative overflow-hidden shrink-0">
-                                            {currentPlayer.image_url ? (
-                                                <img src={getImageUrl(currentPlayer.image_url)} alt={currentPlayer.name} className="w-full h-full object-cover" />
-                                            ) : (
-                                                <Users className="w-24 h-24 lg:w-32 lg:h-32 text-slate-300" />
-                                            )}
+                                        <div className="relative z-10 w-full flex items-center justify-center mb-4 lg:mb-6">
+                                            <div className="relative rounded-2xl lg:rounded-3xl overflow-hidden shadow-2xl w-56 h-56 lg:w-72 lg:h-72 md:w-80 md:h-80 shrink-0">
+                                                {/* Frame border */}
+                                                <div className="absolute inset-0 border-4 border-slate-300/50 rounded-2xl lg:rounded-3xl pointer-events-none z-10" />
+                                                <div className="absolute inset-[2px] border-2 border-slate-200/60 rounded-[18px] lg:rounded-[26px] pointer-events-none z-10" />
+
+                                                {/* Inner shadow effect */}
+                                                <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/10 rounded-2xl lg:rounded-3xl pointer-events-none z-10" />
+
+                                                {currentPlayer.image_url ? (
+                                                    <img src={getImageUrl(currentPlayer.image_url)} alt={currentPlayer.name} className="w-full h-full object-cover" />
+                                                ) : (
+                                                    <div className="w-full h-full flex items-center justify-center bg-slate-100">
+                                                        <Users className="w-24 h-24 lg:w-32 lg:h-32 text-slate-300" />
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
 
-                                        <div className="text-center w-full">
+                                        <div className="text-center w-full relative z-10">
                                             <h2 className="text-xl lg:text-3xl font-black text-slate-900 mb-1 leading-tight">{currentPlayer.name}</h2>
                                             <div className="flex items-center justify-center gap-2 mb-3 lg:mb-4">
                                                 <span className="text-lg lg:text-2xl">{currentPlayer.country_flag || '🏏'}</span>

@@ -112,3 +112,53 @@ func (h *Handlers) DeleteTeam(c *fiber.Ctx) error {
 	}
 	return c.JSON(fiber.Map{"message": "Team deleted"})
 }
+
+// RetainPlayers retains players to a team with optional badges
+func (h *Handlers) RetainPlayers(c *fiber.Ctx) error {
+	id, err := uuid.Parse(c.Params("id"))
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid team ID",
+		})
+	}
+
+	var req models.RetainPlayersRequest
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid request body",
+		})
+	}
+
+	if err := h.services.Teams.RetainPlayers(c.Context(), id, req.Players); err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": err.Error(),
+		})
+	}
+
+	// Return updated retained players
+	players, err := h.services.Teams.GetRetainedPlayers(c.Context(), id)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": err.Error(),
+		})
+	}
+	return c.JSON(players)
+}
+
+// GetRetainedPlayers returns all retained players for a team
+func (h *Handlers) GetRetainedPlayers(c *fiber.Ctx) error {
+	id, err := uuid.Parse(c.Params("id"))
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid team ID",
+		})
+	}
+
+	players, err := h.services.Teams.GetRetainedPlayers(c.Context(), id)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": err.Error(),
+		})
+	}
+	return c.JSON(players)
+}

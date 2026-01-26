@@ -172,15 +172,10 @@ export default function LoginPage() {
                         </Button>
                     </form>
 
-                    {/* Demo credentials hint */}
-                    <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg text-blue-300 text-sm">
-                        <strong>Demo:</strong> admin@auction.com / admin123
-                    </div>
-
                     {/* Footer */}
                     <p className="text-center text-sm text-slate-500">
-                        Don't have an account?{' '}
-                        <a href="mailto:admin@cricketauction.pro" className="text-blue-400 hover:text-blue-300 transition-colors font-medium">Contact Admin</a>
+                        Need help?{' '}
+                        <a href="mailto:admin@scoreindia.cloud" className="text-blue-400 hover:text-blue-300 transition-colors font-medium">Contact Support</a>
                     </p>
                 </div>
             </div>

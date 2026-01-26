@@ -38,7 +38,6 @@ echo ""
 echo "✅ AuctionApp is running!"
 echo "   Frontend: http://localhost:3000"
 echo "   Backend:  http://localhost:3001"
-echo "   Login:    admin@auction.com / admin123"
 echo ""
 echo "Press Ctrl+C to stop all servers"
 

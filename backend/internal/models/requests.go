@@ -116,3 +116,14 @@ type OverviewStats struct {
 	UnsoldPlayers    int   `json:"unsold_players"`
 	AvailablePlayers int   `json:"available_players"`
 }
+
+// RetainedPlayer represents a player being retained with a badge
+type RetainedPlayer struct {
+	PlayerID string `json:"player_id" validate:"required"`
+	Badge    string `json:"badge,omitempty"`
+}
+
+// RetainPlayersRequest for retaining players to a team
+type RetainPlayersRequest struct {
+	Players []RetainedPlayer `json:"players" validate:"required"`
+}

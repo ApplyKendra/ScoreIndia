@@ -104,13 +104,16 @@ func main() {
 	// Auth
 	protected.Get("/auth/me", h.GetCurrentUser)
 	protected.Post("/auth/logout", h.Logout)
+	protected.Post("/auth/change-password", h.ChangePassword)
 
 	// Teams
 	protected.Get("/teams", h.GetTeams)
 	protected.Get("/teams/:id", h.GetTeam)
 	protected.Get("/teams/:id/squad", h.GetTeamSquad)
+	protected.Get("/teams/:id/retained", h.GetRetainedPlayers)
 	protected.Post("/teams", middleware.RequireRole("admin", "super_admin"), h.CreateTeam)
 	protected.Put("/teams/:id", middleware.RequireRole("admin", "super_admin"), h.UpdateTeam)
+	protected.Post("/teams/:id/retain", middleware.RequireRole("admin", "super_admin"), h.RetainPlayers)
 	protected.Delete("/teams/:id", middleware.RequireRole("super_admin"), h.DeleteTeam)
 
 	// Players (note: specific routes must come before parameterized routes)
