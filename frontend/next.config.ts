@@ -4,18 +4,6 @@ const nextConfig: NextConfig = {
   // Optimized output for Vercel
   output: 'standalone',
 
-  // Development server configuration
-  ...(process.env.NODE_ENV === 'development' && {
-    // Increase memory threshold for dev server (default is ~80% of heap)
-    // This prevents automatic restarts during development
-    experimental: {
-      // Turbopack memory optimizations
-      turbo: {
-        memoryLimit: 10240, // 10GB limit (in MB) - prevents auto-restart at lower threshold
-      },
-    },
-  }),
-
   images: {
     remotePatterns: [
       {
