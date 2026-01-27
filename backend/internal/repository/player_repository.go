@@ -7,6 +7,7 @@ import (
 
 	"github.com/auctionapp/backend/internal/models"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -204,15 +205,28 @@ func (r *PlayerRepository) FindByTeamID(ctx context.Context, teamID uuid.UUID) (
 	return players, nil
 }
 
-// GetQueue returns the next N players in queue
+// GetQueue returns the next N players in queue (limit=0 means no limit)
 func (r *PlayerRepository) GetQueue(ctx context.Context, limit int) ([]models.Player, error) {
-	rows, err := r.db.Query(ctx, `
-		SELECT id, name, country, country_flag, role, base_price, category, queue_order
-		FROM players 
-		WHERE status = 'available'
-		ORDER BY COALESCE(queue_order, 999999), created_at
-		LIMIT $1
-	`, limit)
+	var rows pgx.Rows
+	var err error
+	
+	if limit > 0 {
+		rows, err = r.db.Query(ctx, `
+			SELECT id, name, country, country_flag, role, base_price, category, queue_order
+			FROM players 
+			WHERE status = 'available'
+			ORDER BY COALESCE(queue_order, 999999), created_at
+			LIMIT $1
+		`, limit)
+	} else {
+		// No limit - fetch all available players
+		rows, err = r.db.Query(ctx, `
+			SELECT id, name, country, country_flag, role, base_price, category, queue_order
+			FROM players 
+			WHERE status = 'available'
+			ORDER BY COALESCE(queue_order, 999999), created_at
+		`)
+	}
 	if err != nil {
 		return nil, err
 	}

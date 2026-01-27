@@ -68,12 +68,10 @@ export function Header() {
 
                                 {/* Logo */}
                                 <Link href="/" className="flex items-center shrink-0">
-                                    {/* ScoreIndia Logo Image - positive margin pushes logo down to center visually */}
-                                    <img
-                                        src="/ScoreIndia-Logo.png"
-                                        alt="ScoreIndia Logo"
-                                        className="h-36 sm:h-44 lg:h-48 xl:h-56 w-auto object-contain mt-4 sm:mt-5 lg:mt-6"
-                                    />
+                                    {/* ScoreIndia Animated Gradient Text Logo */}
+                                    <span className="text-3xl sm:text-4xl lg:text-4xl font-extrabold logo-gradient-text">
+                                        ScoreIndia
+                                    </span>
                                 </Link>
                             </div>
 

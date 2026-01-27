@@ -86,15 +86,17 @@ const PlayerListItem = memo(({ player }: { player: Player }) => {
                         ? formatCurrency(soldPrice)
                         : formatCurrency(basePrice)}
                 </p>
-                <div className="flex items-center gap-2">
-                    <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full ${player.status === 'sold' ? 'bg-emerald-100 text-emerald-700' :
-                            isRetained ? 'bg-amber-100 text-amber-700' :
-                                player.status === 'unsold' ? 'bg-slate-100 text-slate-600' :
-                                    'bg-blue-100 text-blue-700'
-                        }`}>
-                        {isRetained ? 'Retained' : player.status}
-                    </span>
-                </div>
+                {player.status !== 'available' && (
+                    <div className="flex items-center gap-2">
+                        <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full ${player.status === 'sold' ? 'bg-emerald-100 text-emerald-700' :
+                                isRetained ? 'bg-amber-100 text-amber-700' :
+                                    player.status === 'unsold' ? 'bg-slate-100 text-slate-600' :
+                                        'bg-blue-100 text-blue-700'
+                            }`}>
+                            {isRetained ? 'Retained' : player.status}
+                        </span>
+                    </div>
+                )}
             </div>
         </div>
     );

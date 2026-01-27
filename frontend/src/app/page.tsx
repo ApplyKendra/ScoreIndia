@@ -71,8 +71,9 @@ export default function HomePage() {
 
     fetchAuctionState();
 
-    // Poll for updates every 10 seconds
-    const interval = setInterval(fetchAuctionState, 10000);
+    // Poll for updates every 2 minutes (120 seconds)
+    // Homepage doesn't have WebSocket, so polling is necessary but we keep frequency low to save memory
+    const interval = setInterval(fetchAuctionState, 120000);
     return () => clearInterval(interval);
   }, []);
 
@@ -113,8 +114,8 @@ export default function HomePage() {
           <div className="flex items-center justify-between gap-3 mb-6 sm:mb-8">
             {/* Score India Brand - Compact on mobile */}
             <div className="flex items-center gap-2 sm:gap-3">
-              <div className="w-9 h-9 sm:w-11 sm:h-11 lg:w-12 lg:h-12 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-lg shadow-amber-500/30">
-                <Trophy className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-white" />
+              <div className="w-9 h-9 sm:w-11 sm:h-11 lg:w-12 lg:h-12 rounded-xl bg-transparent border border-amber-400/40 flex items-center justify-center">
+                <Trophy className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-amber-400" />
               </div>
               <div>
                 <h2 className="text-lg sm:text-xl lg:text-2xl font-black text-white tracking-tight">
@@ -207,11 +208,11 @@ export default function HomePage() {
                 <div className="flex items-center gap-2 sm:gap-3 sm:flex-wrap sm:justify-center lg:justify-start min-w-max sm:min-w-0">
                   <div className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-full bg-blue-500/10 border border-blue-500/20">
                     <Users className="w-3 h-3 sm:w-4 sm:h-4 text-blue-400" />
-                    <span className="text-xs sm:text-sm font-semibold text-white whitespace-nowrap">150+ Players</span>
+                    <span className="text-xs sm:text-sm font-semibold text-white whitespace-nowrap">140+ Players</span>
                   </div>
                   <div className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-full bg-purple-500/10 border border-purple-500/20">
                     <Shield className="w-3 h-3 sm:w-4 sm:h-4 text-purple-400" />
-                    <span className="text-xs sm:text-sm font-semibold text-white whitespace-nowrap">8 Teams</span>
+                    <span className="text-xs sm:text-sm font-semibold text-white whitespace-nowrap">10 Teams</span>
                   </div>
                   <div className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
                     <Zap className="w-3 h-3 sm:w-4 sm:h-4 text-emerald-400" />
@@ -324,11 +325,11 @@ export default function HomePage() {
                         </div>
                         <div className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[10px] sm:text-xs text-emerald-300 font-medium">
                           <Shield className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
-                          8 Teams
+                          10 Teams
                         </div>
                         <div className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-purple-500/10 border border-purple-500/20 text-[10px] sm:text-xs text-purple-300 font-medium">
                           <Award className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
-                          150+ Players
+                          140+ Players
                         </div>
                       </div>
                     </>

@@ -1,8 +1,12 @@
 package main
 
 import (
+	"context"
 	"log"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/auctionapp/backend/internal/config"
 	"github.com/auctionapp/backend/internal/database"
@@ -14,7 +18,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/logger"
-	"github.com/gofiber/fiber/v2/middleware/recover"
+	recovermw "github.com/gofiber/fiber/v2/middleware/recover"
 	fiberws "github.com/gofiber/websocket/v2"
 )
 
@@ -49,7 +53,61 @@ func main() {
 
 	// Initialize WebSocket hub
 	hub := websocket.NewHub()
-	go hub.Run()
+	go func() {
+		// Add panic recovery to hub goroutine
+		defer func() {
+			if r := recover(); r != nil {
+				log.Printf("CRITICAL: WebSocket hub panic recovered: %v", r)
+				// Try to restart the hub
+				go hub.Run()
+			}
+		}()
+		hub.Run()
+	}()
+
+	// Start database connection health monitoring
+	go func() {
+		// Panic recovery for health monitoring goroutine
+		defer func() {
+			if r := recover(); r != nil {
+				log.Printf("CRITICAL: Health monitoring panic recovered: %v", r)
+			}
+		}()
+
+		ticker := time.NewTicker(30 * time.Second)
+		defer ticker.Stop()
+
+		for {
+			select {
+			case <-ticker.C:
+				// Check database connection
+				ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+				if err := db.Ping(ctx); err != nil {
+					log.Printf("WARNING: Database connection health check failed: %v", err)
+				} else {
+					// Log pool stats periodically (every 5 minutes)
+					stats := db.Stat()
+					if stats.AcquireCount()%100 == 0 || stats.AcquiredConns() > 20 {
+						log.Printf("Database pool stats: Total=%d, Acquired=%d, Idle=%d, MaxConns=%d",
+							stats.TotalConns(), stats.AcquiredConns(), stats.IdleConns(), stats.MaxConns())
+					}
+					// Warn if connection pool is getting exhausted
+					if stats.AcquiredConns() > 20 {
+						log.Printf("WARNING: Database connection pool usage high: %d/%d connections in use",
+							stats.AcquiredConns(), stats.MaxConns())
+					}
+				}
+				cancel()
+
+				// Check Redis connection
+				ctx, cancel = context.WithTimeout(context.Background(), 3*time.Second)
+				if err := redisClient.Ping(ctx).Err(); err != nil {
+					log.Printf("WARNING: Redis connection health check failed: %v", err)
+				}
+				cancel()
+			}
+		}
+	}()
 
 	// Initialize Fiber app
 	app := fiber.New(fiber.Config{
@@ -65,7 +123,7 @@ func main() {
 		AllowMethods:     "GET, POST, PUT, DELETE, OPTIONS",
 		AllowCredentials: true,
 	}))
-	app.Use(recover.New())
+	app.Use(recovermw.New())
 	app.Use(logger.New())
 	
 	// Enforce Content-Type: application/json for state-changing requests (CSRF mitigation)
@@ -195,14 +253,44 @@ func main() {
 		return c.JSON(fiber.Map{"status": "ok"})
 	})
 
-	// Start server
+	// Start server with graceful shutdown
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "3001"
 	}
 
-	log.Printf("Server starting on port %s", port)
-	if err := app.Listen(":" + port); err != nil {
-		log.Fatalf("Failed to start server: %v", err)
+	// Create a channel to listen for interrupt signals
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
+
+	// Start server in a goroutine
+	go func() {
+		log.Printf("Server starting on port %s", port)
+		if err := app.Listen(":" + port); err != nil {
+			log.Fatalf("Failed to start server: %v", err)
+		}
+	}()
+
+	// Wait for interrupt signal
+	<-quit
+	log.Println("Shutting down server gracefully...")
+
+	// Create shutdown context with timeout
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	// Gracefully shutdown the server
+	if err := app.ShutdownWithContext(ctx); err != nil {
+		log.Fatalf("Server forced to shutdown: %v", err)
 	}
+
+	// Close database connections
+	log.Println("Closing database connections...")
+	db.Close()
+
+	// Close Redis connection
+	log.Println("Closing Redis connection...")
+	redisClient.Close()
+
+	log.Println("Server shutdown complete")
 }

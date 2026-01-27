@@ -195,6 +195,7 @@ export default function HostDashboard() {
     const [activePanel, setActivePanel] = useState<'teams' | 'queue'>('queue');
     const [youtubeDialogOpen, setYoutubeDialogOpen] = useState(false);
     const [presentationMode, setPresentationMode] = useState(false);
+    const [tieBreakModalOpen, setTieBreakModalOpen] = useState(false);
 
     const { user, logout, isAuthenticated, isLoading: authLoading } = useAuth();
     const router = useRouter();
@@ -213,6 +214,16 @@ export default function HostDashboard() {
             }
         }
     }, [isAuthenticated, authLoading, user, router]);
+
+    // Auto-open tie-breaker modal when a tie is detected
+    useEffect(() => {
+        const hasTie = auctionState?.tied_teams && auctionState.tied_teams.length > 1;
+        if (hasTie) {
+            setTieBreakModalOpen(true);
+        } else {
+            setTieBreakModalOpen(false);
+        }
+    }, [auctionState?.tied_teams]);
 
     // WebSocket handler
     const handleWebSocketMessage = useCallback((event: string, data: any) => {
@@ -233,11 +244,11 @@ export default function HostDashboard() {
             case 'auction:sold':
                 toast.success(`${data.player?.name} sold to ${data.team?.name}!`);
                 api.getTeams().then(t => setTeams(t || []));
-                api.getPlayerQueue(10).then(q => setQueue(q || []));
+                api.getPlayerQueue(0).then(q => setQueue(q || []));
                 break;
             case 'auction:unsold':
                 toast.info(`${data.player?.name} marked unsold`);
-                api.getPlayerQueue(10).then(q => setQueue(q || []));
+                api.getPlayerQueue(0).then(q => setQueue(q || []));
                 break;
             case 'auction:player-changed':
                 setAuctionState(prev => ({
@@ -263,6 +274,11 @@ export default function HostDashboard() {
             case 'auction:resumed':
                 setIsTimerRunning(true);
                 break;
+            case 'auction:ended':
+                setIsTimerRunning(false);
+                setTimer(0);
+                setAuctionState(prev => prev ? { ...prev, status: 'completed', current_player: undefined } : null);
+                break;
             case 'auction:bid-undone':
                 // Handle bid undo event from WebSocket
                 if (data?.bids) {
@@ -287,7 +303,7 @@ export default function HostDashboard() {
             Promise.all([
                 api.getAuctionState().catch(() => null),
                 api.getTeams().catch(() => []),
-                api.getPlayerQueue(10).catch(() => []),
+                api.getPlayerQueue(0).catch(() => []),
             ]).then(([stateData, teamsData, queueData]) => {
                 if (stateData) {
                     setAuctionState(stateData);
@@ -306,7 +322,7 @@ export default function HostDashboard() {
         try {
             const [teamsData, queueData, stateData] = await Promise.all([
                 api.getTeams().catch(() => []),
-                api.getPlayerQueue(10).catch(() => []),
+                api.getPlayerQueue(0).catch(() => []),
                 api.getAuctionState().catch(() => null),
             ]);
             setTeams(teamsData || []);
@@ -330,7 +346,8 @@ export default function HostDashboard() {
     }, []);
 
     useEffect(() => {
-        if (!isConnected || !isAuthenticated) return;
+        // Only poll when WebSocket is disconnected - when connected, WebSocket provides real-time updates
+        if (isConnected || !isAuthenticated) return;
         const interval = setInterval(async () => {
             try {
                 const [stateData, teamsData] = await Promise.all([
@@ -372,7 +389,7 @@ export default function HostDashboard() {
             if (stateData?.bids) setBidHistory(stateData.bids);
             setIsTimerRunning(true);
             setTimer(30);
-            const queueData = await api.getPlayerQueue(10).catch(() => []);
+            const queueData = await api.getPlayerQueue(0).catch(() => []);
             setQueue(queueData || []);
             const teamsData = await api.getTeams().catch(() => []);
             setTeams(teamsData || []);
@@ -387,6 +404,7 @@ export default function HostDashboard() {
         setActionLoading('pause');
         try {
             await api.pauseAuction();
+            // State will be updated via WebSocket event, but update immediately for responsiveness
             setIsTimerRunning(false);
             toast.success('Auction paused');
         } catch (error: any) {
@@ -400,6 +418,7 @@ export default function HostDashboard() {
         setActionLoading('resume');
         try {
             await api.resumeAuction();
+            // State will be updated via WebSocket event, but update immediately for responsiveness
             setIsTimerRunning(true);
             toast.success('Auction resumed');
         } catch (error: any) {
@@ -413,9 +432,10 @@ export default function HostDashboard() {
         setActionLoading('end');
         try {
             await api.endAuction();
+            // State will be updated via WebSocket event, but update immediately for responsiveness
             setIsTimerRunning(false);
             setTimer(0);
-            setAuctionState(prev => prev ? { ...prev, status: 'ended', current_player: undefined } : null);
+            setAuctionState(prev => prev ? { ...prev, status: 'completed', current_player: undefined } : null);
             toast.success('Auction ended successfully');
         } catch (error: any) {
             toast.error(error.message || 'Failed to end auction');
@@ -439,7 +459,7 @@ export default function HostDashboard() {
             setTimer(30);
             setIsTimerRunning(true);
             toast.success(`Next player: ${result.name}`);
-            const queueData = await api.getPlayerQueue(10);
+            const queueData = await api.getPlayerQueue(0);
             setQueue(queueData || []);
         } catch (error: any) {
             toast.error(error.message || 'No more players in queue');
@@ -464,7 +484,7 @@ export default function HostDashboard() {
             setIsTimerRunning(true);
             setSearchQuery('');
             toast.success(`Starting bid for: ${playerName}`);
-            const queueData = await api.getPlayerQueue(10);
+            const queueData = await api.getPlayerQueue(0);
             setQueue(queueData || []);
         } catch (error: any) {
             toast.error(error.message || 'Failed to start bid for player');
@@ -483,7 +503,7 @@ export default function HostDashboard() {
             const [teamsData, stateData, queueData] = await Promise.all([
                 api.getTeams(),
                 api.getAuctionState(),
-                api.getPlayerQueue(10).catch(() => []),
+                api.getPlayerQueue(0).catch(() => []),
             ]);
             setTeams(teamsData || []);
             setAuctionState(stateData);
@@ -509,7 +529,7 @@ export default function HostDashboard() {
             const [teamsData, stateData, queueData] = await Promise.all([
                 api.getTeams(),
                 api.getAuctionState(),
-                api.getPlayerQueue(10).catch(() => []),
+                api.getPlayerQueue(0).catch(() => []),
             ]);
             setTeams(teamsData || []);
             setAuctionState(stateData);
@@ -534,7 +554,7 @@ export default function HostDashboard() {
             setBidHistory([]);
             const [stateData, queueData] = await Promise.all([
                 api.getAuctionState(),
-                api.getPlayerQueue(10).catch(() => []),
+                api.getPlayerQueue(0).catch(() => []),
             ]);
             setAuctionState(stateData);
             setQueue(queueData || []);
@@ -601,7 +621,7 @@ export default function HostDashboard() {
             setBidHistory([]);
             const [stateData, queueData] = await Promise.all([
                 api.getAuctionState(),
-                api.getPlayerQueue(10).catch(() => []),
+                api.getPlayerQueue(0).catch(() => []),
             ]);
             setAuctionState(stateData);
             setQueue(queueData || []);
@@ -878,7 +898,6 @@ export default function HostDashboard() {
                                             if (p.role?.toLowerCase().includes(q)) return true;
                                             return false;
                                         })
-                                        .slice(0, 10)
                                         .map((p, i) => (
                                             <div key={p.id} className="flex items-center justify-between p-3 hover:bg-slate-50 rounded-lg transition-all group">
                                                 <div className="flex items-center gap-3 min-w-0">
@@ -1013,26 +1032,12 @@ export default function HostDashboard() {
                                     {formatCurrency(currentBid)}
                                 </p>
 
-                                {/* Tie Breaking */}
+                                {/* Tie Indicator Badge - Modal opens automatically */}
                                 {auctionState?.tied_teams && auctionState.tied_teams.length > 1 && (
                                     <div className="mt-2 p-2 bg-amber-50 border border-amber-300 rounded-xl w-full max-w-xs">
-                                        <div className="flex items-center gap-2 mb-2">
-                                            <AlertTriangle className="w-3 h-3 text-amber-600" />
-                                            <span className="font-bold text-amber-800 text-[10px]">Tie! Select winner:</span>
-                                        </div>
-                                        <div className="grid grid-cols-2 gap-2">
-                                            {auctionState.tied_teams.map((team) => (
-                                                <ActionButton
-                                                    key={team.id}
-                                                    onClick={() => handleSellToTeam(team.id, team.name)}
-                                                    loading={actionLoading === `sell-to-${team.id}`}
-                                                    size="sm"
-                                                    className="text-white text-xs"
-                                                    style={{ backgroundColor: team.color }}
-                                                >
-                                                    {team.short_name}
-                                                </ActionButton>
-                                            ))}
+                                        <div className="flex items-center gap-2">
+                                            <AlertTriangle className="w-4 h-4 text-amber-600 animate-pulse" />
+                                            <span className="font-bold text-amber-800 text-xs">TIE AT MAX BID - Select winner in modal</span>
                                         </div>
                                     </div>
                                 )}
@@ -1178,6 +1183,78 @@ export default function HostDashboard() {
                             </div>
                         )}
                     </ScrollArea>
+                </DialogContent>
+            </Dialog>
+
+            {/* Tie-Breaker Modal - Opens automatically when tie at max bid (₹50,000) */}
+            <Dialog open={tieBreakModalOpen} onOpenChange={setTieBreakModalOpen}>
+                <DialogContent className="!bg-gradient-to-br !from-amber-50 !to-orange-50 dark:!from-amber-50 dark:!to-orange-50 !text-slate-900 dark:!text-slate-900 border-amber-300 max-w-lg shadow-2xl">
+                    <DialogHeader className="space-y-4">
+                        <div className="flex items-center justify-center">
+                            <div className="relative">
+                                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-lg shadow-amber-500/30 animate-pulse">
+                                    <Gavel className="w-8 h-8 text-white" />
+                                </div>
+                                <div className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-red-500 flex items-center justify-center border-2 border-white">
+                                    <span className="text-white text-xs font-bold">!</span>
+                                </div>
+                            </div>
+                        </div>
+                        <DialogTitle className="text-center !text-slate-900 dark:!text-slate-900 text-xl font-black">
+                            TIE AT MAX BID!
+                        </DialogTitle>
+                        <DialogDescription className="text-center !text-slate-600 dark:!text-slate-600 text-sm">
+                            <span className="font-semibold">{auctionState?.tied_teams?.length || 0} teams</span> have bid the maximum ₹50,000 for <span className="font-bold text-slate-800">{auctionState?.current_player?.name}</span>.
+                            <br />Select the winner via toss/draw.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="py-4">
+                        <p className="text-xs font-semibold text-amber-700 uppercase tracking-wider mb-3 text-center">Select Winner (Via Toss)</p>
+                        <div className={`grid gap-3 ${(auctionState?.tied_teams?.length || 0) <= 2 ? 'grid-cols-2' : 'grid-cols-2 md:grid-cols-3'}`}>
+                            {auctionState?.tied_teams?.map((team) => (
+                                <button
+                                    key={team.id}
+                                    onClick={() => {
+                                        handleSellToTeam(team.id, team.name);
+                                        setTieBreakModalOpen(false);
+                                    }}
+                                    disabled={actionLoading === `sell-to-${team.id}`}
+                                    className="relative group flex flex-col items-center p-4 rounded-xl border-2 transition-all duration-200 hover:scale-105 hover:shadow-lg active:scale-95"
+                                    style={{
+                                        backgroundColor: `${team.color}15`,
+                                        borderColor: team.color,
+                                    }}
+                                >
+                                    {actionLoading === `sell-to-${team.id}` && (
+                                        <div className="absolute inset-0 bg-white/80 rounded-xl flex items-center justify-center">
+                                            <div className="w-6 h-6 border-2 border-amber-600 border-t-transparent rounded-full animate-spin" />
+                                        </div>
+                                    )}
+                                    <div
+                                        className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-md mb-2"
+                                        style={{ backgroundColor: team.color }}
+                                    >
+                                        {team.logo_url ? (
+                                            <img src={team.logo_url} alt={team.name} className="w-10 h-10 object-contain rounded-lg" />
+                                        ) : (
+                                            team.short_name
+                                        )}
+                                    </div>
+                                    <span className="font-bold text-slate-800 text-sm text-center">{team.name}</span>
+                                    <span className="text-xs text-slate-500 mt-1">
+                                        Budget: {formatCurrency(team.remaining_budget || team.budget)}
+                                    </span>
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    <DialogFooter className="border-t border-amber-200 pt-4">
+                        <p className="text-xs text-amber-600 text-center w-full">
+                            ⚠️ This action will sell the player to the selected team at ₹50,000
+                        </p>
+                    </DialogFooter>
                 </DialogContent>
             </Dialog>
         </div>

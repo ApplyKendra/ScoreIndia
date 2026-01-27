@@ -1,7 +1,6 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, useMemo, useCallback } from "react";
@@ -146,26 +145,8 @@ export function Sidebar() {
                             onClick={() => isMobile && toggleSidebar()}
                             className="flex items-center gap-3 group"
                         >
-                            <div className="relative">
-                                {/* Light mode logo */}
-                                <Image
-                                    src="/ScoreIndia-Logo.png"
-                                    alt="ScoreIndia"
-                                    width={48}
-                                    height={48}
-                                    className="h-10 w-10 dark:hidden"
-                                />
-                                {/* Dark mode logo */}
-                                <Image
-                                    src="/ScoreIndia-Logo.png"
-                                    alt="ScoreIndia"
-                                    width={48}
-                                    height={48}
-                                    className="h-10 w-10 hidden dark:block"
-                                />
-                            </div>
                             <div className="flex flex-col">
-                                <span className="text-lg font-bold bg-gradient-to-r from-gray-900 via-blue-600 to-gray-900 dark:from-white dark:via-blue-500 dark:to-white bg-clip-text text-transparent">
+                                <span className="text-2xl font-extrabold logo-gradient-text">
                                     ScoreIndia
                                 </span>
                                 <span className="text-xs text-gray-500 dark:text-gray-400">Cricket Auction</span>

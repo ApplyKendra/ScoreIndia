@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"strconv"
+
 	"github.com/auctionapp/backend/internal/models"
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
@@ -47,7 +49,15 @@ func (h *Handlers) GetPlayer(c *fiber.Ctx) error {
 
 // GetPlayerQueue returns the auction queue
 func (h *Handlers) GetPlayerQueue(c *fiber.Ctx) error {
-	limit := c.QueryInt("limit", 10)
+	// Handle limit parameter manually to distinguish between:
+	// - limit=0 (meaning unlimited/all players)
+	// - no limit param (use default of 10)
+	limit := 10 // default
+	if limitStr := c.Query("limit"); limitStr != "" {
+		if parsed, err := strconv.Atoi(limitStr); err == nil {
+			limit = parsed
+		}
+	}
 	queue, err := h.services.Players.GetQueue(c.Context(), limit)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{

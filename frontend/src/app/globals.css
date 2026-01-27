@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800;900&display=swap');
 @import "tailwindcss";
 @import "../css/satoshi.css";
 
@@ -490,6 +491,46 @@
 .animate-gradient-shift {
   background-size: 200% 200%;
   animation: gradientShift 8s ease-in-out infinite;
+}
+
+/* ===== ScoreIndia Logo Gradient Animation ===== */
+@keyframes logoGradientFlow {
+  0% {
+    background-position: 0% center;
+  }
+
+  50% {
+    background-position: 200% center;
+  }
+
+  100% {
+    background-position: 0% center;
+  }
+}
+
+.logo-gradient-text {
+  background: linear-gradient(90deg, #df7801, #000080, #138808, #df7801);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: transparent;
+  animation: logoGradientFlow 6s ease-in-out infinite;
+  font-family: 'Montserrat', sans-serif;
+  letter-spacing: -0.02em;
+  font-weight: 800;
+}
+
+/* Static version for footer (solid white) */
+.logo-gradient-text-static {
+  background: none !important;
+  -webkit-background-clip: unset !important;
+  -webkit-text-fill-color: white !important;
+  background-clip: unset !important;
+  color: white !important;
+  font-family: 'Montserrat', sans-serif;
+  letter-spacing: -0.02em;
+  font-weight: 800;
 }
 
 /* ===== Grid Move Animation ===== */

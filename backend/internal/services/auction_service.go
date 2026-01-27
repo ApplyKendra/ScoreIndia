@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"errors"
+	"log"
 	"sync"
 	"time"
 
@@ -28,9 +29,22 @@ func NewAuctionService(repos *repository.Repositories, redis *redis.Client) *Auc
 	}
 }
 
+// withTimeout creates a context with timeout for database operations
+// This prevents queries from hanging indefinitely
+func (s *AuctionService) withTimeout(ctx context.Context, timeout time.Duration) (context.Context, context.CancelFunc) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	return context.WithTimeout(ctx, timeout)
+}
+
 // GetState returns the current auction state
 func (s *AuctionService) GetState(ctx context.Context) (*models.AuctionState, error) {
-	auction, err := s.repos.Auctions.GetCurrent(ctx)
+	// Add timeout to prevent hanging queries (critical for real-time auction state)
+	queryCtx, cancel := s.withTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	auction, err := s.repos.Auctions.GetCurrent(queryCtx)
 	if err != nil {
 		// No active auction, return empty state
 		return &models.AuctionState{
@@ -45,7 +59,7 @@ func (s *AuctionService) GetState(ctx context.Context) (*models.AuctionState, er
 
 	// Get current player if any
 	if auction.CurrentPlayerID != nil {
-		player, err := s.repos.Players.FindByID(ctx, *auction.CurrentPlayerID)
+		player, err := s.repos.Players.FindByID(queryCtx, *auction.CurrentPlayerID)
 		if err == nil {
 			state.CurrentPlayer = player
 			
@@ -60,7 +74,7 @@ func (s *AuctionService) GetState(ctx context.Context) (*models.AuctionState, er
 
 	// Get current bidder if any
 	if auction.CurrentBidderID != nil {
-		team, err := s.repos.Teams.FindByID(ctx, *auction.CurrentBidderID)
+		team, err := s.repos.Teams.FindByID(queryCtx, *auction.CurrentBidderID)
 		if err == nil {
 			state.CurrentBidder = team
 		}
@@ -68,7 +82,7 @@ func (s *AuctionService) GetState(ctx context.Context) (*models.AuctionState, er
 
 	// Get bid history for current player (only this player's bids)
 	if auction.CurrentPlayerID != nil {
-		bids, err := s.repos.Bids.FindByPlayer(ctx, *auction.CurrentPlayerID)
+		bids, err := s.repos.Bids.FindByPlayer(queryCtx, *auction.CurrentPlayerID)
 		if err == nil {
 			state.BidHistory = bids
 			
@@ -84,7 +98,7 @@ func (s *AuctionService) GetState(ctx context.Context) (*models.AuctionState, er
 				// If more than 1 team bid 50000, it's a tie
 				if len(teamIDs) > 1 {
 					for teamID := range teamIDs {
-						team, err := s.repos.Teams.FindByID(ctx, teamID)
+						team, err := s.repos.Teams.FindByID(queryCtx, teamID)
 						if err == nil && team != nil {
 							state.TiedTeams = append(state.TiedTeams, *team)
 						}
@@ -95,13 +109,13 @@ func (s *AuctionService) GetState(ctx context.Context) (*models.AuctionState, er
 	}
 
 	// Get all teams
-	teams, err := s.repos.Teams.FindAll(ctx)
+	teams, err := s.repos.Teams.FindAll(queryCtx)
 	if err == nil {
 		state.Teams = teams
 	}
 
 	// Get next players in queue
-	queue, err := s.repos.Players.GetQueue(ctx, 5)
+	queue, err := s.repos.Players.GetQueue(queryCtx, 5)
 	if err == nil {
 		state.QueueNext = queue
 	}
@@ -186,25 +200,29 @@ func (s *AuctionService) EndAuction(ctx context.Context) error {
 
 // NextPlayer moves to the next player in queue
 func (s *AuctionService) NextPlayer(ctx context.Context) (*models.Player, error) {
-	auction, err := s.repos.Auctions.GetCurrent(ctx)
+	// Add timeout for critical operation
+	queryCtx, cancel := s.withTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	auction, err := s.repos.Auctions.GetCurrent(queryCtx)
 	if err != nil {
 		return nil, errors.New("no active auction")
 	}
 
 	// Get next player from queue
-	queue, err := s.repos.Players.GetQueue(ctx, 1)
+	queue, err := s.repos.Players.GetQueue(queryCtx, 1)
 	if err != nil || len(queue) == 0 {
 		return nil, errors.New("no more players in queue")
 	}
 
 	player := &queue[0]
-	fullPlayer, err := s.repos.Players.FindByID(ctx, player.ID)
+	fullPlayer, err := s.repos.Players.FindByID(queryCtx, player.ID)
 	if err != nil {
 		return nil, err
 	}
 
 	// Set as current player
-	if err := s.repos.Auctions.SetCurrentPlayer(ctx, auction.ID, player.ID, player.BasePrice); err != nil {
+	if err := s.repos.Auctions.SetCurrentPlayer(queryCtx, auction.ID, player.ID, player.BasePrice); err != nil {
 		return nil, err
 	}
 
@@ -281,7 +299,11 @@ func isValidBidAmount(amount int64) bool {
 
 // PlaceBid places a bid on the current player
 func (s *AuctionService) PlaceBid(ctx context.Context, teamID uuid.UUID, amount int64) (*models.Bid, error) {
-	auction, err := s.repos.Auctions.GetCurrent(ctx)
+	// Add timeout for critical bid operation (10 seconds for write operations)
+	queryCtx, cancel := s.withTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	auction, err := s.repos.Auctions.GetCurrent(queryCtx)
 	if err != nil || auction.Status != "live" {
 		return nil, errors.New("auction is not active")
 	}
@@ -309,7 +331,7 @@ func (s *AuctionService) PlaceBid(ctx context.Context, teamID uuid.UUID, amount 
 	}
 
 	// Get team to validate budget
-	team, err := s.repos.Teams.FindByID(ctx, teamID)
+	team, err := s.repos.Teams.FindByID(queryCtx, teamID)
 	if err != nil {
 		return nil, errors.New("team not found")
 	}
@@ -331,7 +353,7 @@ func (s *AuctionService) PlaceBid(ctx context.Context, teamID uuid.UUID, amount 
 		}
 	} else {
 		// First bid: must be at least base price
-		player, err := s.repos.Players.FindByID(ctx, *auction.CurrentPlayerID)
+		player, err := s.repos.Players.FindByID(queryCtx, *auction.CurrentPlayerID)
 		if err != nil {
 			return nil, err
 		}
@@ -350,12 +372,12 @@ func (s *AuctionService) PlaceBid(ctx context.Context, teamID uuid.UUID, amount 
 		TeamID:    teamID,
 		Amount:    amount,
 	}
-	if err := s.repos.Bids.Create(ctx, bid); err != nil {
+	if err := s.repos.Bids.Create(queryCtx, bid); err != nil {
 		return nil, err
 	}
 
 	// Update auction current bid
-	if err := s.repos.Auctions.UpdateCurrentBid(ctx, auction.ID, amount, teamID); err != nil {
+	if err := s.repos.Auctions.UpdateCurrentBid(queryCtx, auction.ID, amount, teamID); err != nil {
 		return nil, err
 	}
 
@@ -599,6 +621,15 @@ func (s *AuctionService) StartTimer(ctx context.Context, onTick func(remaining i
 	s.redis.Set(ctx, "auction:timer_running", true, 0)
 
 	go func() {
+		// Panic recovery to prevent timer goroutine from crashing the server
+		defer func() {
+			if r := recover(); r != nil {
+				log.Printf("CRITICAL: Timer goroutine panic recovered: %v", r)
+				// Ensure timer state is set to stopped on panic
+				s.redis.Set(context.Background(), "auction:timer_running", false, 0)
+			}
+		}()
+
 		ticker := time.NewTicker(1 * time.Second)
 		defer ticker.Stop()
 
@@ -607,19 +638,27 @@ func (s *AuctionService) StartTimer(ctx context.Context, onTick func(remaining i
 			case <-timerCtx.Done():
 				return
 			case <-ticker.C:
-				remaining, _ := s.redis.Get(context.Background(), "auction:timer_remaining").Int()
-				if remaining <= 0 {
-					s.redis.Set(context.Background(), "auction:timer_running", false, 0)
-					if onComplete != nil {
-						onComplete()
+				// Panic recovery for each tick operation
+				func() {
+					defer func() {
+						if r := recover(); r != nil {
+							log.Printf("Error in timer tick operation: %v", r)
+						}
+					}()
+					remaining, _ := s.redis.Get(context.Background(), "auction:timer_remaining").Int()
+					if remaining <= 0 {
+						s.redis.Set(context.Background(), "auction:timer_running", false, 0)
+						if onComplete != nil {
+							onComplete()
+						}
+						return
 					}
-					return
-				}
-				remaining--
-				s.redis.Set(context.Background(), "auction:timer_remaining", remaining, 0)
-				if onTick != nil {
-					onTick(remaining)
-				}
+					remaining--
+					s.redis.Set(context.Background(), "auction:timer_remaining", remaining, 0)
+					if onTick != nil {
+						onTick(remaining)
+					}
+				}()
 			}
 		}
 	}()

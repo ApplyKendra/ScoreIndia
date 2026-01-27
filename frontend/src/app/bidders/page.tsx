@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import {
     Trophy,
@@ -113,6 +113,7 @@ export default function BidderDashboard() {
     const [isBidding, setIsBidding] = useState(false);
     const [notifications, setNotifications] = useState<string[]>([]);
     const [isHeaderVisible, setIsHeaderVisible] = useState(true);
+    const [upcomingSearchQuery, setUpcomingSearchQuery] = useState<string>('');
 
     const { user, logout, isAuthenticated, isLoading: authLoading } = useAuth();
     const router = useRouter();
@@ -163,7 +164,7 @@ export default function BidderDashboard() {
                     api.getTeamSquad(user.team_id).then(s => setMySquad(s || []));
                 }
                 // Refresh upcoming queue after player is sold
-                api.getPlayerQueue(10).then(queue => setUpcomingQueue(queue || [])).catch(() => { });
+                api.getPlayerQueue(0).then(queue => setUpcomingQueue(queue || [])).catch(() => { });
                 break;
             case 'auction:player-changed':
                 setAuctionState(prev => ({
@@ -176,11 +177,11 @@ export default function BidderDashboard() {
                 }));
                 setBidHistory([]);
                 // Refresh upcoming queue when player changes
-                api.getPlayerQueue(10).then(queue => setUpcomingQueue(queue || [])).catch(() => { });
+                api.getPlayerQueue(0).then(queue => setUpcomingQueue(queue || [])).catch(() => { });
                 break;
             case 'auction:unsold':
                 // Refresh upcoming queue after player is marked unsold
-                api.getPlayerQueue(10).then(queue => setUpcomingQueue(queue || [])).catch(() => { });
+                api.getPlayerQueue(0).then(queue => setUpcomingQueue(queue || [])).catch(() => { });
                 break;
             case 'auction:live':
                 // Auction is now live - show notification and update state
@@ -192,7 +193,7 @@ export default function BidderDashboard() {
                 toast.info('Auction has been reset');
                 Promise.all([
                     api.getAuctionState().catch(() => null),
-                    api.getPlayerQueue(10).catch(() => [])
+                    api.getPlayerQueue(0).catch(() => [])
                 ]).then(([state, queue]) => {
                     if (state) {
                         setAuctionState(state);
@@ -217,7 +218,7 @@ export default function BidderDashboard() {
             // Sync state on WebSocket connection/reconnection
             Promise.all([
                 api.getAuctionState().catch(() => null),
-                api.getPlayerQueue(10).catch(() => [])
+                api.getPlayerQueue(0).catch(() => [])
             ]).then(([state, queue]) => {
                 if (state) {
                     setAuctionState(state);
@@ -236,7 +237,7 @@ export default function BidderDashboard() {
             // Fetch auction state and queue
             const [stateData, queueData] = await Promise.all([
                 api.getAuctionState().catch(() => null),
-                api.getPlayerQueue(10).catch(() => []),
+                api.getPlayerQueue(0).catch(() => []),
             ]);
 
             setAuctionState(stateData);
@@ -267,15 +268,16 @@ export default function BidderDashboard() {
         fetchData();
     }, [fetchData]);
 
-    // Periodic state sync for robustness (every 30 seconds)
+    // Periodic state sync for robustness (only when WebSocket is disconnected)
+    // When WebSocket is connected, it provides real-time updates - no polling needed
     useEffect(() => {
-        if (!isConnected || !isAuthenticated) return;
+        if (isConnected || !isAuthenticated) return; // Skip polling if WebSocket is connected
 
         const interval = setInterval(async () => {
             try {
                 const [stateData, queueData] = await Promise.all([
                     api.getAuctionState().catch(() => null),
-                    api.getPlayerQueue(10).catch(() => [])
+                    api.getPlayerQueue(0).catch(() => [])
                 ]);
                 if (stateData) {
                     setAuctionState(stateData);
@@ -304,6 +306,18 @@ export default function BidderDashboard() {
             return () => clearTimeout(timer);
         }
     }, [auctionState?.bid_frozen]);
+
+    // Filter upcoming queue based on search query (must be before conditional returns)
+    const filteredUpcomingQueue = useMemo(() => {
+        if (!upcomingSearchQuery.trim()) {
+            return upcomingQueue;
+        }
+        const query = upcomingSearchQuery.toLowerCase();
+        return upcomingQueue.filter((player) => 
+            player.name.toLowerCase().includes(query) ||
+            player.role.toLowerCase().includes(query)
+        );
+    }, [upcomingQueue, upcomingSearchQuery]);
 
     // Bid ladder - same as backend
     const BID_LADDER = [
@@ -616,24 +630,43 @@ export default function BidderDashboard() {
                             )}
                         </TabsContent>
 
-                        <TabsContent value="upcoming" className="flex-1 overflow-y-auto min-h-0 p-3 lg:p-4 space-y-2">
-                            {upcomingQueue.map((player, index) => (
-                                <div key={player.id} className="flex items-center justify-between p-2 lg:p-3 bg-white hover:bg-slate-50 rounded-xl border border-slate-100 transition-colors opacity-75 hover:opacity-100">
-                                    <div className="flex items-center gap-2 lg:gap-3">
-                                        <div className="w-6 h-6 lg:w-8 lg:h-8 rounded-full bg-orange-50 flex items-center justify-center text-[10px] lg:text-xs font-bold text-orange-500">
-                                            {index + 1}
-                                        </div>
-                                        <div>
-                                            <p className="text-xs lg:text-sm font-semibold text-slate-800">{player.name}</p>
-                                            <p className="text-[10px] lg:text-xs text-slate-500">{player.role}</p>
-                                        </div>
-                                    </div>
-                                    <Badge variant="outline" className="text-[10px]">{formatCurrency(player.base_price)}</Badge>
+                        <TabsContent value="upcoming" className="flex-1 flex flex-col min-h-0">
+                            {/* Search Bar */}
+                            <div className="px-3 lg:px-4 pt-3 lg:pt-4 pb-2">
+                                <div className="relative">
+                                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                                    <input
+                                        type="text"
+                                        placeholder="Search players by name or role..."
+                                        value={upcomingSearchQuery}
+                                        onChange={(e) => setUpcomingSearchQuery(e.target.value)}
+                                        className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white transition-all text-sm font-medium placeholder:text-slate-400"
+                                    />
                                 </div>
-                            ))}
-                            {upcomingQueue.length === 0 && (
-                                <p className="text-center text-xs lg:text-sm text-slate-400 py-8">No players in queue</p>
-                            )}
+                            </div>
+                            
+                            {/* Player List */}
+                            <div className="flex-1 overflow-y-auto min-h-0 p-3 lg:p-4 space-y-2">
+                                {filteredUpcomingQueue.map((player, index) => (
+                                    <div key={player.id} className="flex items-center justify-between p-2 lg:p-3 bg-white hover:bg-slate-50 rounded-xl border border-slate-100 transition-colors opacity-75 hover:opacity-100">
+                                        <div className="flex items-center gap-2 lg:gap-3">
+                                            <div className="w-6 h-6 lg:w-8 lg:h-8 rounded-full bg-orange-50 flex items-center justify-center text-[10px] lg:text-xs font-bold text-orange-500">
+                                                {index + 1}
+                                            </div>
+                                            <div>
+                                                <p className="text-xs lg:text-sm font-semibold text-slate-800">{player.name}</p>
+                                                <p className="text-[10px] lg:text-xs text-slate-500">{player.role}</p>
+                                            </div>
+                                        </div>
+                                        <Badge variant="outline" className="text-[10px]">{formatCurrency(player.base_price)}</Badge>
+                                    </div>
+                                ))}
+                                {filteredUpcomingQueue.length === 0 && (
+                                    <p className="text-center text-xs lg:text-sm text-slate-400 py-8">
+                                        {upcomingSearchQuery.trim() ? 'No players found matching your search' : 'No players in queue'}
+                                    </p>
+                                )}
+                            </div>
                         </TabsContent>
                     </Tabs>
                 </aside>
@@ -776,6 +809,46 @@ export default function BidderDashboard() {
                                     <div className="md:col-span-7 p-4 lg:p-8 flex flex-col justify-between h-full bg-white">
 
                                         <div className="space-y-4 lg:space-y-6">
+                                            {/* Action Buttons */}
+                                            <div className={`transition-opacity duration-300 ${isFrozen && !isMyBid ? 'opacity-50' : 'opacity-100'}`}>
+                                                <div className="flex flex-col gap-3 lg:gap-4">
+
+                                                    {isFrozen && !isMyBid && (
+                                                        <p className="text-center text-xs lg:text-sm text-amber-600 bg-amber-50 p-2 lg:p-3 rounded-lg animate-pulse">
+                                                            ⏳ Bid in progress... Please wait
+                                                        </p>
+                                                    )}
+
+                                                    {isMyBid && (
+                                                        <p className="text-center text-xs lg:text-sm text-green-600 bg-green-50 p-2 lg:p-3 rounded-lg">
+                                                            ✓ You're the leading bidder! Wait for another team to bid.
+                                                        </p>
+                                                    )}
+
+                                                    <div className="flex gap-2 lg:gap-4 items-center">
+                                                        <Button
+                                                            className={`flex-1 h-12 lg:h-14 text-sm lg:text-lg font-bold shadow-xl rounded-xl relative overflow-hidden group transition-all ${isMyBid || isFrozen ? 'bg-slate-400 cursor-not-allowed' : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-blue-500/20'}`}
+                                                            disabled={isBidding || !myTeam || isMyBid || isFrozen}
+                                                            onClick={() => handlePlaceBid()}
+                                                        >
+                                                            <span className="relative z-10 flex items-center justify-center gap-2">
+                                                                <Gavel className="w-4 h-4 lg:w-5 lg:h-5 group-hover:rotate-12 transition-transform" />
+                                                                {isBidding ? 'Placing...' : isMyBid ? 'Waiting...' : isFrozen ? 'Please wait...' : `Bid ${formatCurrency(getNextBidAmount())}`}
+                                                            </span>
+                                                            {/* Shine Effect */}
+                                                            {!isMyBid && !isFrozen && <div className="absolute top-0 -inset-full h-full w-1/2 z-5 block transform -skew-x-12 bg-gradient-to-r from-transparent to-white opacity-20 group-hover:animate-shine" />}
+                                                        </Button>
+                                                    </div>
+
+                                                    {!myTeam && (
+                                                        <p className="text-center text-xs lg:text-sm text-amber-600 bg-amber-50 p-2 lg:p-3 rounded-lg">
+                                                            ⚠️ You are not assigned to a team. Contact admin.
+                                                        </p>
+                                                    )}
+
+                                                </div>
+                                            </div>
+
                                             {/* Current Bid Status */}
                                             <div className={`rounded-2xl p-4 lg:p-6 border relative overflow-hidden ${isMyBid ? 'bg-green-50 border-green-200' : 'bg-slate-50 border-slate-100'}`}>
                                                 <div className={`absolute top-0 left-0 w-1 h-full ${isMyBid ? 'bg-green-500' : 'bg-orange-500'}`} />
@@ -826,46 +899,6 @@ export default function BidderDashboard() {
                                                         <p className="text-xs lg:text-sm text-slate-400 text-center py-2 lg:py-4">No bids yet - be the first!</p>
                                                     )}
                                                 </div>
-                                            </div>
-                                        </div>
-
-                                        {/* Action Buttons */}
-                                        <div className={`mt-4 pt-4 lg:mt-8 lg:pt-8 border-t border-slate-100 transition-opacity duration-300 ${isFrozen && !isMyBid ? 'opacity-50' : 'opacity-100'}`}>
-                                            <div className="flex flex-col gap-3 lg:gap-4">
-
-                                                {isFrozen && !isMyBid && (
-                                                    <p className="text-center text-xs lg:text-sm text-amber-600 bg-amber-50 p-2 lg:p-3 rounded-lg animate-pulse">
-                                                        ⏳ Bid in progress... Please wait
-                                                    </p>
-                                                )}
-
-                                                {isMyBid && (
-                                                    <p className="text-center text-xs lg:text-sm text-green-600 bg-green-50 p-2 lg:p-3 rounded-lg">
-                                                        ✓ You're the leading bidder! Wait for another team to bid.
-                                                    </p>
-                                                )}
-
-                                                <div className="flex gap-2 lg:gap-4 items-center">
-                                                    <Button
-                                                        className={`flex-1 h-12 lg:h-14 text-sm lg:text-lg font-bold shadow-xl rounded-xl relative overflow-hidden group transition-all ${isMyBid || isFrozen ? 'bg-slate-400 cursor-not-allowed' : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-blue-500/20'}`}
-                                                        disabled={isBidding || !myTeam || isMyBid || isFrozen}
-                                                        onClick={() => handlePlaceBid()}
-                                                    >
-                                                        <span className="relative z-10 flex items-center justify-center gap-2">
-                                                            <Gavel className="w-4 h-4 lg:w-5 lg:h-5 group-hover:rotate-12 transition-transform" />
-                                                            {isBidding ? 'Placing...' : isMyBid ? 'Waiting...' : isFrozen ? 'Please wait...' : `Bid ${formatCurrency(getNextBidAmount())}`}
-                                                        </span>
-                                                        {/* Shine Effect */}
-                                                        {!isMyBid && !isFrozen && <div className="absolute top-0 -inset-full h-full w-1/2 z-5 block transform -skew-x-12 bg-gradient-to-r from-transparent to-white opacity-20 group-hover:animate-shine" />}
-                                                    </Button>
-                                                </div>
-
-                                                {!myTeam && (
-                                                    <p className="text-center text-xs lg:text-sm text-amber-600 bg-amber-50 p-2 lg:p-3 rounded-lg">
-                                                        ⚠️ You are not assigned to a team. Contact admin.
-                                                    </p>
-                                                )}
-
                                             </div>
                                         </div>
 

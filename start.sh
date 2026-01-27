@@ -30,7 +30,8 @@ sleep 2
 # Start frontend
 echo "🎨 Starting Frontend on port 3000..."
 cd frontend
-NODE_OPTIONS="--max-old-space-size=8192" npm run dev &
+# Increase memory limit to 12GB for development (Turbopack can be memory-intensive)
+NODE_OPTIONS="--max-old-space-size=12288" npm run dev &
 FRONTEND_PID=$!
 cd ..
 

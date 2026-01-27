@@ -40,7 +40,12 @@ func (h *Handlers) PauseAuction(c *fiber.Ctx) error {
 		})
 	}
 
+	// Broadcast pause event
 	h.hub.Broadcast <- []byte(`{"event":"auction:paused"}`)
+
+	// Broadcast full state for immediate synchronization
+	state, _ := h.services.Auction.GetState(c.Context())
+	h.hub.BroadcastJSON("auction:state", state)
 
 	return c.JSON(fiber.Map{"message": "Auction paused"})
 }
@@ -53,7 +58,12 @@ func (h *Handlers) ResumeAuction(c *fiber.Ctx) error {
 		})
 	}
 
+	// Broadcast resume event
 	h.hub.Broadcast <- []byte(`{"event":"auction:resumed"}`)
+
+	// Broadcast full state for immediate synchronization
+	state, _ := h.services.Auction.GetState(c.Context())
+	h.hub.BroadcastJSON("auction:state", state)
 
 	return c.JSON(fiber.Map{"message": "Auction resumed"})
 }
@@ -68,7 +78,12 @@ func (h *Handlers) EndAuction(c *fiber.Ctx) error {
 		})
 	}
 
+	// Broadcast end event
 	h.hub.Broadcast <- []byte(`{"event":"auction:ended"}`)
+
+	// Broadcast full state for immediate synchronization
+	state, _ := h.services.Auction.GetState(c.Context())
+	h.hub.BroadcastJSON("auction:state", state)
 
 	return c.JSON(fiber.Map{"message": "Auction ended"})
 }

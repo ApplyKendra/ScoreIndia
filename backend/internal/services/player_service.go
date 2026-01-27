@@ -43,11 +43,9 @@ func (s *PlayerService) GetByID(ctx context.Context, id uuid.UUID) (*models.Play
 	return s.repos.Players.FindByID(ctx, id)
 }
 
-// GetQueue returns the auction queue
+// GetQueue returns the auction queue (limit=0 means no limit)
 func (s *PlayerService) GetQueue(ctx context.Context, limit int) ([]models.Player, error) {
-	if limit == 0 {
-		limit = 10
-	}
+	// limit=0 means unlimited, don't override it
 	return s.repos.Players.GetQueue(ctx, limit)
 }
 

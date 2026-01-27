@@ -43,63 +43,97 @@ func NewHub() *Hub {
 
 // Run starts the Hub event loop
 func (h *Hub) Run() {
+	// Panic recovery to prevent hub from crashing the entire server
+	defer func() {
+		if r := recover(); r != nil {
+			log.Printf("CRITICAL: WebSocket hub panic recovered: %v", r)
+			// Restart the hub to maintain service availability
+			log.Println("Attempting to restart WebSocket hub...")
+			go h.Run()
+		}
+	}()
+
 	for {
 		select {
 		case client := <-h.register:
-			h.mu.Lock()
-			// Enforce connection limit
-			if len(h.clients) >= MaxConnections {
+			func() {
+				// Panic recovery for individual operations
+				defer func() {
+					if r := recover(); r != nil {
+						log.Printf("Error in hub register operation: %v", r)
+					}
+				}()
+				h.mu.Lock()
+				// Enforce connection limit
+				if len(h.clients) >= MaxConnections {
+					h.mu.Unlock()
+					close(client.send)
+					log.Printf("Connection rejected: max connections (%d) reached", MaxConnections)
+					return
+				}
+				h.clients[client] = true
+				h.totalConnections++
+				clientCount := len(h.clients)
 				h.mu.Unlock()
-				close(client.send)
-				log.Printf("Connection rejected: max connections (%d) reached", MaxConnections)
-				continue
-			}
-			h.clients[client] = true
-			h.totalConnections++
-			clientCount := len(h.clients)
-			h.mu.Unlock()
-			
-			// Log every 100th connection or when fewer than 20 clients (development)
-			if h.totalConnections%100 == 1 || clientCount < 20 {
-				log.Printf("Client connected: %s (role: %s, total: %d)", client.UserID, client.Role, clientCount)
-			}
+				
+				// Log every 100th connection or when fewer than 20 clients (development)
+				if h.totalConnections%100 == 1 || clientCount < 20 {
+					log.Printf("Client connected: %s (role: %s, total: %d)", client.UserID, client.Role, clientCount)
+				}
+			}()
 
 		case client := <-h.unregister:
-			h.mu.Lock()
-			if _, ok := h.clients[client]; ok {
-				delete(h.clients, client)
-				close(client.send)
-			}
-			clientCount := len(h.clients)
-			h.mu.Unlock()
-			
-			// Log disconnects only when fewer than 20 clients (development)
-			if clientCount < 20 {
-				log.Printf("Client disconnected: %s (remaining: %d)", client.UserID, clientCount)
-			}
+			func() {
+				// Panic recovery for individual operations
+				defer func() {
+					if r := recover(); r != nil {
+						log.Printf("Error in hub unregister operation: %v", r)
+					}
+				}()
+				h.mu.Lock()
+				if _, ok := h.clients[client]; ok {
+					delete(h.clients, client)
+					close(client.send)
+				}
+				clientCount := len(h.clients)
+				h.mu.Unlock()
+				
+				// Log disconnects only when fewer than 20 clients (development)
+				if clientCount < 20 {
+					log.Printf("Client disconnected: %s (remaining: %d)", client.UserID, clientCount)
+				}
+			}()
 
 		case message := <-h.Broadcast:
-			var toRemove []*Client
-			h.mu.RLock()
-			for client := range h.clients {
-				select {
-				case client.send <- message:
-				default:
-					toRemove = append(toRemove, client)
-				}
-			}
-			h.mu.RUnlock()
-			// Remove disconnected clients with write lock
-			if len(toRemove) > 0 {
-				h.mu.Lock()
-				for _, client := range toRemove {
-					if _, ok := h.clients[client]; ok {
-						close(client.send)
-						delete(h.clients, client)
+			func() {
+				// Panic recovery for broadcast operations
+				defer func() {
+					if r := recover(); r != nil {
+						log.Printf("Error in hub broadcast operation: %v", r)
+					}
+				}()
+				var toRemove []*Client
+				h.mu.RLock()
+				for client := range h.clients {
+					select {
+					case client.send <- message:
+					default:
+						toRemove = append(toRemove, client)
 					}
 				}
-				h.mu.Unlock()
-			}
+				h.mu.RUnlock()
+				// Remove disconnected clients with write lock
+				if len(toRemove) > 0 {
+					h.mu.Lock()
+					for _, client := range toRemove {
+						if _, ok := h.clients[client]; ok {
+							close(client.send)
+							delete(h.clients, client)
+						}
+					}
+					h.mu.Unlock()
+				}
+			}()
 		}
 	}
 }
