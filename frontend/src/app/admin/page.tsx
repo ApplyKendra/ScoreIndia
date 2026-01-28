@@ -211,7 +211,7 @@ export default function AdminDashboard() {
                 const [statsData, teamsData, playersData, usersData] = await Promise.all([
                     api.getOverviewStats().catch(() => null),
                     api.getTeams().catch(() => []),
-                    api.getPlayers({ limit: 100 }).catch(() => ({ data: [] })),
+                    api.getPlayers({ limit: 1000 }).catch(() => ({ data: [] })),
                     api.getUsers().catch(() => []),
                 ]);
 
@@ -307,7 +307,7 @@ export default function AdminDashboard() {
             // Refresh teams and players
             const [teamsData, playersData] = await Promise.all([
                 api.getTeams(),
-                api.getPlayers({ limit: 200 })
+                api.getPlayers({ limit: 1000 })
             ]);
             setTeams(teamsData);
             setPlayers(playersData?.data || []);
@@ -388,7 +388,7 @@ export default function AdminDashboard() {
             setIsAddPlayerOpen(false);
             setNewPlayer({ name: '', country: 'India', role: 'Batsman', base_price: 2000, category: 'Set 1', image_url: '' });
             // Refresh players
-            const playersData = await api.getPlayers({ limit: 100 });
+            const playersData = await api.getPlayers({ limit: 1000 });
             setPlayers(playersData?.data || []);
         } catch (error: any) {
             toast.error(error.message || 'Failed to create player');
@@ -418,7 +418,7 @@ export default function AdminDashboard() {
             }
             toast.success('20 random players populated successfully!');
             // Refresh players
-            const playersData = await api.getPlayers({ limit: 100 });
+            const playersData = await api.getPlayers({ limit: 1000 });
             setPlayers(playersData?.data || []);
         } catch (error: any) {
             toast.error(error.message || 'Failed to populate players');
@@ -454,7 +454,7 @@ export default function AdminDashboard() {
             setIsEditPlayerOpen(false);
             setEditingPlayer(null);
             // Refresh players
-            const playersData = await api.getPlayers({ limit: 100 });
+            const playersData = await api.getPlayers({ limit: 1000 });
             setPlayers(playersData?.data || []);
         } catch (error: any) {
             toast.error(error.message || 'Failed to update player');
@@ -1010,6 +1010,7 @@ export default function AdminDashboard() {
                                 <Table>
                                     <TableHeader>
                                         <TableRow>
+                                            <TableHead className="w-16">S.No</TableHead>
                                             <TableHead>Player Name</TableHead>
                                             <TableHead>Role</TableHead>
                                             <TableHead>Base Price</TableHead>
@@ -1019,8 +1020,9 @@ export default function AdminDashboard() {
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {players.map((player) => (
+                                        {players.map((player, index) => (
                                             <TableRow key={player.id}>
+                                                <TableCell className="text-slate-600">{index + 1}</TableCell>
                                                 <TableCell className="font-medium text-slate-900">{player.name}</TableCell>
                                                 <TableCell>{player.role}</TableCell>
                                                 <TableCell>{formatCurrency(player.base_price)}</TableCell>
@@ -1057,7 +1059,7 @@ export default function AdminDashboard() {
                                         ))}
                                         {players.length === 0 && (
                                             <TableRow>
-                                                <TableCell colSpan={6} className="text-center py-8 text-slate-400">
+                                                <TableCell colSpan={7} className="text-center py-8 text-slate-400">
                                                     No players yet. Click "Add Player" to create one.
                                                 </TableCell>
                                             </TableRow>
@@ -1504,7 +1506,7 @@ export default function AdminDashboard() {
                                                                         // Refresh data in parallel for faster UI update
                                                                         await Promise.all([
                                                                             api.getTeams().then(t => setTeams(t || [])).catch(() => {}),
-                                                                            api.getPlayers({ limit: 100 }).then(p => setPlayers(p?.data || [])).catch(() => {}),
+                                                                            api.getPlayers({ limit: 1000 }).then(p => setPlayers(p?.data || [])).catch(() => {}),
                                                                             api.getOverviewStats().then(s => setStats(s)).catch(() => {}),
                                                                         ]);
                                                                     } catch (error: any) {
@@ -1579,7 +1581,7 @@ export default function AdminDashboard() {
                                                                         // Refresh all data in parallel for faster UI update
                                                                         await Promise.all([
                                                                             api.getTeams().then(t => setTeams(t || [])).catch(() => {}),
-                                                                            api.getPlayers({ limit: 100 }).then(p => setPlayers(p?.data || [])).catch(() => {}),
+                                                                            api.getPlayers({ limit: 1000 }).then(p => setPlayers(p?.data || [])).catch(() => {}),
                                                                             api.getOverviewStats().then(s => setStats(s)).catch(() => null),
                                                                         ]);
                                                                     } catch (error: any) {
