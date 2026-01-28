@@ -176,9 +176,9 @@ export function ImageUpload({ value, onChange, label = "Upload Image", className
 
             {/* Crop Dialog */}
             <Dialog open={isCropOpen} onOpenChange={setIsCropOpen}>
-                <DialogContent className="sm:max-w-xl">
+                <DialogContent className="sm:max-w-xl bg-white border-slate-200">
                     <DialogHeader>
-                        <DialogTitle>Crop Image</DialogTitle>
+                        <DialogTitle className="text-slate-900">Crop Image</DialogTitle>
                     </DialogHeader>
                     <div className="relative w-full h-80 bg-slate-900 rounded-md overflow-hidden">
                         {imageSrc && (

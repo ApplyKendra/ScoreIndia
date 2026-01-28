@@ -867,7 +867,7 @@ export default function AuctionsPage() {
                                             </div>
                                             <h2 className="text-3xl font-black text-white mb-3">Session Paused</h2>
                                             <p className="text-lg text-indigo-200/80 max-w-md mx-auto leading-relaxed">
-                                                The auctioneer has called a temporary recess. Bidding will resume shortly.
+                                                The auctioneer has called a Short Break. Bidding will resume shortly.
                                             </p>
                                         </div>
                                     ) : auctionState?.status === 'completed' ? (
@@ -875,7 +875,7 @@ export default function AuctionsPage() {
                                             <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-linear-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/30">
                                                 <Trophy className="w-12 h-12 text-white" />
                                             </div>
-                                            <h2 className="text-3xl sm:text-4xl font-black text-white mb-4">Auction Concluded</h2>
+                                            <h2 className="text-3xl sm:text-4xl font-black text-white mb-4">Auction Ended</h2>
                                             <p className="text-lg text-indigo-200 mb-8 max-w-lg mx-auto">
                                                 The auction session has officially concluded. Please review the final summaries below.
                                             </p>

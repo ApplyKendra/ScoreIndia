@@ -78,11 +78,15 @@ func (h *Handlers) EndAuction(c *fiber.Ctx) error {
 		})
 	}
 
-	// Broadcast end event
-	h.hub.Broadcast <- []byte(`{"event":"auction:ended"}`)
-
-	// Broadcast full state for immediate synchronization
+	// Get updated state first (with completed status)
 	state, _ := h.services.Auction.GetState(c.Context())
+
+	// Broadcast end event with proper format
+	h.hub.BroadcastJSON("auction:ended", fiber.Map{
+		"status": "completed",
+	})
+
+	// Broadcast full state for immediate synchronization (this ensures status is "completed")
 	h.hub.BroadcastJSON("auction:state", state)
 
 	return c.JSON(fiber.Map{"message": "Auction ended"})

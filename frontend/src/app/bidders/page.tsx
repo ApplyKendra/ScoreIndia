@@ -206,6 +206,18 @@ export default function BidderDashboard() {
                     api.getTeamSquad(user.team_id).then(s => setMySquad(s || []));
                 }
                 break;
+            case 'auction:ended':
+                // Auction has ended - update state to show completed status immediately
+                setAuctionState(prev => prev ? {
+                    ...prev,
+                    status: 'completed',
+                    current_player: undefined,
+                    current_bid: undefined,
+                    current_bidder: undefined,
+                    bids: [],
+                } : { status: 'completed' });
+                setBidHistory([]);
+                break;
         }
     }, [myTeam, user?.team_id, auctionState?.current_bidder?.id]);
 
@@ -739,7 +751,7 @@ export default function BidderDashboard() {
                                         <div className="w-16 h-16 lg:w-24 lg:h-24 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg shadow-indigo-500/20">
                                             <Trophy className="w-8 h-8 lg:w-12 lg:h-12 text-white" />
                                         </div>
-                                        <h3 className="text-xl lg:text-3xl font-black text-slate-800 mb-2">Auction Concluded</h3>
+                                        <h3 className="text-xl lg:text-3xl font-black text-slate-800 mb-2">Auction Ended</h3>
                                         <p className="text-slate-500 max-w-md mx-auto text-sm lg:text-lg mb-6">
                                             The auction session has finished. Thank you for your participation.
                                         </p>

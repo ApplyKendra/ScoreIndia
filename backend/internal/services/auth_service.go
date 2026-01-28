@@ -3,23 +3,31 @@ package services
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/auctionapp/backend/internal/config"
 	"github.com/auctionapp/backend/internal/models"
 	"github.com/auctionapp/backend/internal/repository"
 	"github.com/auctionapp/backend/internal/utils"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
+	"github.com/redis/go-redis/v9"
 )
 
 // AuthService handles authentication operations
 type AuthService struct {
-	repos *repository.Repositories
-	cfg   *config.Config
+	repos       *repository.Repositories
+	cfg         *config.Config
+	redis       *redis.Client
 }
 
 // NewAuthService creates a new auth service
-func NewAuthService(repos *repository.Repositories, cfg *config.Config) *AuthService {
-	return &AuthService{repos: repos, cfg: cfg}
+func NewAuthService(repos *repository.Repositories, cfg *config.Config, redis *redis.Client) *AuthService {
+	return &AuthService{
+		repos: repos,
+		cfg:   cfg,
+		redis: redis,
+	}
 }
 
 // Login authenticates a user and returns tokens
@@ -70,6 +78,12 @@ func (s *AuthService) Login(ctx context.Context, req models.LoginRequest) (*mode
 
 // RefreshToken generates new tokens from a refresh token
 func (s *AuthService) RefreshToken(ctx context.Context, refreshToken string) (*models.LoginResponse, error) {
+	// Check if refresh token is blacklisted
+	blacklisted, err := s.IsRefreshTokenBlacklisted(ctx, refreshToken)
+	if err == nil && blacklisted {
+		return nil, errors.New("refresh token has been revoked")
+	}
+
 	// Validate refresh token
 	userID, err := utils.ValidateRefreshToken(refreshToken, s.cfg.JWTSecret)
 	if err != nil {
@@ -101,6 +115,20 @@ func (s *AuthService) RefreshToken(ctx context.Context, refreshToken string) (*m
 	newRefreshToken, err := utils.GenerateRefreshToken(user.ID, s.cfg.JWTSecret, refreshDuration)
 	if err != nil {
 		return nil, err
+	}
+
+	// Blacklist the old refresh token (token rotation)
+	// Get expiry from token claims
+	if claims, parseErr := jwt.ParseWithClaims(refreshToken, &jwt.RegisteredClaims{}, func(token *jwt.Token) (interface{}, error) {
+		return []byte(s.cfg.JWTSecret), nil
+	}); parseErr == nil {
+		if oldClaims, ok := claims.Claims.(*jwt.RegisteredClaims); ok && oldClaims.ExpiresAt != nil {
+			expiryTime := oldClaims.ExpiresAt.Time
+			remainingMinutes := int(time.Until(expiryTime).Minutes())
+			if remainingMinutes > 0 {
+				s.BlacklistRefreshToken(ctx, refreshToken, remainingMinutes)
+			}
+		}
 	}
 
 	user.PasswordHash = ""
@@ -158,4 +186,66 @@ func (s *AuthService) ChangePassword(ctx context.Context, userID uuid.UUID, curr
 
 	// Update password
 	return s.repos.Users.UpdatePassword(ctx, userID, newHash)
+}
+
+// BlacklistToken adds a token to the blacklist in Redis
+// The token will be blacklisted until its natural expiration time
+func (s *AuthService) BlacklistToken(ctx context.Context, tokenString string, expiryMinutes int) error {
+	if s.redis == nil {
+		// If Redis is not available, silently fail (fail-open for availability)
+		return nil
+	}
+
+	// Create a hash of the token for the key (for security, don't store full token)
+	key := "blacklist:token:" + tokenString
+	
+	// Set the token as blacklisted with expiration matching token expiry
+	// Add 5 minutes buffer to ensure it's blacklisted even if clock skew occurs
+	expiry := time.Duration(expiryMinutes+5) * time.Minute
+	
+	return s.redis.Set(ctx, key, "1", expiry).Err()
+}
+
+// IsTokenBlacklisted checks if a token is blacklisted
+func (s *AuthService) IsTokenBlacklisted(ctx context.Context, tokenString string) (bool, error) {
+	if s.redis == nil {
+		// If Redis is not available, assume token is not blacklisted (fail-open)
+		return false, nil
+	}
+
+	key := "blacklist:token:" + tokenString
+	exists, err := s.redis.Exists(ctx, key).Result()
+	if err != nil {
+		// On error, assume not blacklisted (fail-open)
+		return false, nil
+	}
+
+	return exists > 0, nil
+}
+
+// BlacklistRefreshToken adds a refresh token to the blacklist
+func (s *AuthService) BlacklistRefreshToken(ctx context.Context, tokenString string, expiryMinutes int) error {
+	if s.redis == nil {
+		return nil
+	}
+
+	key := "blacklist:refresh:" + tokenString
+	expiry := time.Duration(expiryMinutes+5) * time.Minute
+	
+	return s.redis.Set(ctx, key, "1", expiry).Err()
+}
+
+// IsRefreshTokenBlacklisted checks if a refresh token is blacklisted
+func (s *AuthService) IsRefreshTokenBlacklisted(ctx context.Context, tokenString string) (bool, error) {
+	if s.redis == nil {
+		return false, nil
+	}
+
+	key := "blacklist:refresh:" + tokenString
+	exists, err := s.redis.Exists(ctx, key).Result()
+	if err != nil {
+		return false, nil
+	}
+
+	return exists > 0, nil
 }

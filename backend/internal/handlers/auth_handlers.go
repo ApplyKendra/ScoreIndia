@@ -2,10 +2,13 @@ package handlers
 
 import (
 	"os"
+	"strings"
 	"time"
 
 	"github.com/auctionapp/backend/internal/models"
+	"github.com/auctionapp/backend/internal/utils"
 	"github.com/gofiber/fiber/v2"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 )
 
@@ -55,6 +58,54 @@ func (h *Handlers) Login(c *fiber.Ctx) error {
 
 // Logout handles user logout
 func (h *Handlers) Logout(c *fiber.Ctx) error {
+	// Get tokens from cookies or headers
+	var accessToken, refreshToken string
+
+	// Get access token
+	authHeader := c.Get("Authorization")
+	if authHeader != "" {
+		parts := strings.Split(authHeader, " ")
+		if len(parts) == 2 && strings.ToLower(parts[0]) == "bearer" {
+			accessToken = parts[1]
+		}
+	}
+	if accessToken == "" {
+		accessToken = c.Cookies("access_token")
+	}
+
+	// Get refresh token
+	refreshToken = c.Cookies("refresh_token")
+
+	// Blacklist tokens if they exist
+	if accessToken != "" {
+		// Parse token to get expiry
+		if claims, err := utils.ValidateJWT(accessToken, h.cfg.JWTSecret); err == nil {
+			// Calculate remaining time until expiry
+			if claims.ExpiresAt != nil {
+				expiryTime := claims.ExpiresAt.Time
+				remainingMinutes := int(time.Until(expiryTime).Minutes())
+				if remainingMinutes > 0 {
+					h.services.Auth.BlacklistToken(c.Context(), accessToken, remainingMinutes)
+				}
+			}
+		}
+	}
+
+	if refreshToken != "" {
+		// Parse refresh token once to get both validity and expiry
+		if token, parseErr := jwt.ParseWithClaims(refreshToken, &jwt.RegisteredClaims{}, func(token *jwt.Token) (interface{}, error) {
+			return []byte(h.cfg.JWTSecret), nil
+		}); parseErr == nil && token.Valid {
+			if claims, ok := token.Claims.(*jwt.RegisteredClaims); ok && claims.ExpiresAt != nil {
+				expiryTime := claims.ExpiresAt.Time
+				remainingMinutes := int(time.Until(expiryTime).Minutes())
+				if remainingMinutes > 0 {
+					h.services.Auth.BlacklistRefreshToken(c.Context(), refreshToken, remainingMinutes)
+				}
+			}
+		}
+	}
+
 	// Clear cookies
 	c.Cookie(&fiber.Cookie{
 		Name:     "access_token",

@@ -170,6 +170,10 @@ export default function AdminDashboard() {
     const [retainedPlayers, setRetainedPlayers] = useState<{ player_id: string; badge: string; name?: string }[]>([]);
     const [loadingRetained, setLoadingRetained] = useState(false);
 
+    // Reset operation loading states
+    const [isResettingAuction, setIsResettingAuction] = useState(false);
+    const [isResettingEverything, setIsResettingEverything] = useState(false);
+
     const { user, logout, isAuthenticated, isLoading: authLoading } = useAuth();
     const router = useRouter();
 
@@ -1347,27 +1351,37 @@ export default function AdminDashboard() {
                                                             </DialogDescription>
                                                         </DialogHeader>
                                                         <DialogFooter className="mt-4">
-                                                            <Button variant="outline">Cancel</Button>
+                                                            <Button variant="outline" disabled={isResettingAuction}>Cancel</Button>
                                                             <Button
                                                                 variant="destructive"
                                                                 className="bg-red-600 hover:bg-red-700 text-white border-red-700"
+                                                                disabled={isResettingAuction}
                                                                 onClick={async () => {
+                                                                    setIsResettingAuction(true);
                                                                     try {
                                                                         await api.resetAuction();
                                                                         toast.success('Auction reset successfully!');
-                                                                        // Refresh data
-                                                                        const [teamsData, playersData] = await Promise.all([
-                                                                            api.getTeams(),
-                                                                            api.getPlayers({ limit: 100 }),
+                                                                        // Refresh data in parallel for faster UI update
+                                                                        await Promise.all([
+                                                                            api.getTeams().then(t => setTeams(t || [])).catch(() => {}),
+                                                                            api.getPlayers({ limit: 100 }).then(p => setPlayers(p?.data || [])).catch(() => {}),
+                                                                            api.getOverviewStats().then(s => setStats(s)).catch(() => {}),
                                                                         ]);
-                                                                        setTeams(teamsData);
-                                                                        setPlayers(playersData?.data || []);
                                                                     } catch (error: any) {
                                                                         toast.error(error.message || 'Failed to reset auction');
+                                                                    } finally {
+                                                                        setIsResettingAuction(false);
                                                                     }
                                                                 }}
                                                             >
-                                                                Yes, Reset Everything
+                                                                {isResettingAuction ? (
+                                                                    <>
+                                                                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                                                                        Resetting...
+                                                                    </>
+                                                                ) : (
+                                                                    'Yes, Reset Everything'
+                                                                )}
                                                             </Button>
                                                         </DialogFooter>
                                                     </DialogContent>
@@ -1412,29 +1426,37 @@ export default function AdminDashboard() {
                                                             </DialogDescription>
                                                         </DialogHeader>
                                                         <DialogFooter className="mt-4">
-                                                            <Button variant="outline">Cancel</Button>
+                                                            <Button variant="outline" disabled={isResettingEverything}>Cancel</Button>
                                                             <Button
                                                                 variant="destructive"
                                                                 className="bg-red-700 hover:bg-red-800 text-white border-red-800"
+                                                                disabled={isResettingEverything}
                                                                 onClick={async () => {
+                                                                    setIsResettingEverything(true);
                                                                     try {
                                                                         await api.resetEverything();
                                                                         toast.success('System reset complete - all data deleted!');
-                                                                        // Refresh all data
-                                                                        const [teamsData, playersData, statsData] = await Promise.all([
-                                                                            api.getTeams(),
-                                                                            api.getPlayers({ limit: 100 }),
-                                                                            api.getOverviewStats().catch(() => null),
+                                                                        // Refresh all data in parallel for faster UI update
+                                                                        await Promise.all([
+                                                                            api.getTeams().then(t => setTeams(t || [])).catch(() => {}),
+                                                                            api.getPlayers({ limit: 100 }).then(p => setPlayers(p?.data || [])).catch(() => {}),
+                                                                            api.getOverviewStats().then(s => setStats(s)).catch(() => null),
                                                                         ]);
-                                                                        setTeams(teamsData || []);
-                                                                        setPlayers(playersData?.data || []);
-                                                                        setStats(statsData);
                                                                     } catch (error: any) {
                                                                         toast.error(error.message || 'Failed to reset system');
+                                                                    } finally {
+                                                                        setIsResettingEverything(false);
                                                                     }
                                                                 }}
                                                             >
-                                                                Yes, DELETE EVERYTHING
+                                                                {isResettingEverything ? (
+                                                                    <>
+                                                                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                                                                        Resetting...
+                                                                    </>
+                                                                ) : (
+                                                                    'Yes, DELETE EVERYTHING'
+                                                                )}
                                                             </Button>
                                                         </DialogFooter>
                                                     </DialogContent>

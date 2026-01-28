@@ -12,7 +12,7 @@ import (
 )
 
 // JWTAuth middleware validates JWT tokens
-func JWTAuth(secret string) fiber.Handler {
+func JWTAuth(secret string, redisClient *redis.Client) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		var token string
 
@@ -35,6 +35,18 @@ func JWTAuth(secret string) fiber.Handler {
 				"error": "Missing authorization",
 			})
 		}
+
+		// Check if token is blacklisted (if Redis is available)
+		if redisClient != nil {
+			key := "blacklist:token:" + token
+			exists, err := redisClient.Exists(c.Context(), key).Result()
+			if err == nil && exists > 0 {
+				return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+					"error": "Token has been revoked",
+				})
+			}
+		}
+
 		claims, err := utils.ValidateJWT(token, secret)
 		if err != nil {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{

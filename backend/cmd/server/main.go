@@ -157,7 +157,7 @@ func main() {
 	api.Get("/public/stream-url", h.GetStreamUrl)
 
 	// Protected routes
-	protected := api.Group("", middleware.JWTAuth(cfg.JWTSecret))
+	protected := api.Group("", middleware.JWTAuth(cfg.JWTSecret, redisClient))
 	
 	// Auth
 	protected.Get("/auth/me", h.GetCurrentUser)

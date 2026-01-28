@@ -764,8 +764,8 @@ export default function HostDashboard() {
                                 </DialogTrigger>
                                 <DialogContent className="bg-white border-slate-200">
                                     <DialogHeader>
-                                        <DialogTitle>End Auction?</DialogTitle>
-                                        <DialogDescription>This will end the auction session.</DialogDescription>
+                                        <DialogTitle className="text-slate-900">End Auction?</DialogTitle>
+                                        <DialogDescription className="text-slate-600">This will end the auction session.</DialogDescription>
                                     </DialogHeader>
                                     <DialogFooter>
                                         <Button variant="outline">Cancel</Button>
@@ -792,11 +792,11 @@ export default function HostDashboard() {
                         </DialogTrigger>
                         <DialogContent className="bg-white border-slate-200 max-w-md">
                             <DialogHeader>
-                                <DialogTitle className="flex items-center gap-2">
+                                <DialogTitle className="flex items-center gap-2 text-slate-900">
                                     <Youtube className="w-5 h-5 text-red-500" />
                                     YouTube Live Stream
                                 </DialogTitle>
-                                <DialogDescription>Set the YouTube live stream URL</DialogDescription>
+                                <DialogDescription className="text-slate-600">Set the YouTube live stream URL</DialogDescription>
                             </DialogHeader>
                             <div className="py-4">
                                 <input
@@ -1125,9 +1125,9 @@ export default function HostDashboard() {
 
             {/* Team Squad Dialog */}
             <Dialog open={!!selectedTeam} onOpenChange={(open) => !open && setSelectedTeam(null)}>
-                <DialogContent className="!bg-white dark:!bg-white !text-slate-900 dark:!text-slate-900 border-slate-200 max-w-lg max-h-[70vh]">
+                <DialogContent className="!bg-white !text-slate-900 border-slate-200 max-w-lg max-h-[70vh]">
                     <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2 text-base !text-slate-900 dark:!text-slate-900">
+                        <DialogTitle className="flex items-center gap-2 text-base !text-slate-900">
                             {selectedTeam && (
                                 <>
                                     {selectedTeam.logo_url ? (
@@ -1141,7 +1141,7 @@ export default function HostDashboard() {
                                 </>
                             )}
                         </DialogTitle>
-                        <DialogDescription className="!text-slate-600 dark:!text-slate-600">
+                        <DialogDescription className="!text-slate-600">
                             {selectedTeam && (
                                 <span className="text-xs">
                                     Spent: <span className="font-bold text-emerald-600">{formatCurrency(selectedTeam.spent || 0)}</span> •

@@ -137,17 +137,17 @@ export function NotificationModal() {
                     className="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity duration-300"
                     onClick={() => setIsOpen(false)}
                 />
-                <div className="relative w-full max-w-sm overflow-hidden bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/20 ring-1 ring-black/5 p-8 text-center">
-                    <div className="mx-auto mb-5 w-16 h-16 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
-                        <Bell className="w-8 h-8 text-gray-400 dark:text-gray-500" />
+                <div className="relative w-full max-w-sm overflow-hidden bg-white/90 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/20 ring-1 ring-black/5 p-8 text-center">
+                    <div className="mx-auto mb-5 w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center">
+                        <Bell className="w-8 h-8 text-gray-400" />
                     </div>
-                    <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">No Notifications</h3>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-6 leading-relaxed">
+                    <h3 className="text-xl font-bold text-gray-900 mb-2">No Notifications</h3>
+                    <p className="text-sm text-gray-500 mb-6 leading-relaxed">
                         You're all caught up! Check back later for new announcements.
                     </p>
                     <Button
                         onClick={() => setIsOpen(false)}
-                        className="w-full rounded-xl bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100"
+                        className="w-full rounded-xl bg-gray-900 text-white hover:bg-gray-800"
                     >
                         Close
                     </Button>
@@ -165,24 +165,24 @@ export function NotificationModal() {
             />
 
             {/* Modal Card - Width adapted for list */}
-            <div className="relative w-full max-w-md bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/20 ring-1 ring-black/5 flex flex-col max-h-[80vh]">
+            <div className="relative w-full max-w-md bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/20 ring-1 ring-black/5 flex flex-col max-h-[80vh]">
 
                 {/* Header */}
-                <div className="p-5 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between sticky top-0 bg-white/50 dark:bg-gray-900/50 backdrop-blur-md z-10 rounded-t-2xl">
+                <div className="p-5 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white/50 backdrop-blur-md z-10 rounded-t-2xl">
                     <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-full bg-[#5750F1]/10 flex items-center justify-center">
                             <Bell className="w-4 h-4 text-[#5750F1]" />
                         </div>
                         <div>
-                            <h3 className="font-bold text-gray-900 dark:text-white">Announcements</h3>
+                            <h3 className="font-bold text-gray-900">Announcements</h3>
                             <p className="text-xs text-gray-500">{notifications.length} new update{notifications.length !== 1 ? 's' : ''}</p>
                         </div>
                     </div>
                     <button
                         onClick={() => setIsOpen(false)}
-                        className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
+                        className="p-2 hover:bg-gray-100 rounded-full transition-colors"
                     >
-                        <X className="w-5 h-5 text-gray-500" />
+                        <X className="w-5 h-5 text-gray-500 hover:text-gray-700" />
                     </button>
                 </div>
 
@@ -191,13 +191,13 @@ export function NotificationModal() {
                     {notifications.map((notification) => (
                         <div
                             key={notification.id}
-                            className="group relative p-4 rounded-xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 hover:border-[#5750F1]/30 dark:hover:border-[#5750F1]/30 transition-all duration-200 shadow-sm hover:shadow-md"
+                            className="group relative p-4 rounded-xl bg-white border border-gray-100 hover:border-[#5750F1]/30 transition-all duration-200 shadow-sm hover:shadow-md"
                         >
                             <div className="flex justify-between items-start gap-4">
                                 <div className="flex-1">
                                     <div className="flex items-center gap-2 mb-1">
                                         {notification.priority > 0 && (
-                                            <span className="px-2 py-0.5 rounded-full bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 text-[10px] font-bold uppercase tracking-wider">
+                                            <span className="px-2 py-0.5 rounded-full bg-amber-50 text-amber-600 text-[10px] font-bold uppercase tracking-wider">
                                                 Important
                                             </span>
                                         )}
@@ -205,10 +205,10 @@ export function NotificationModal() {
                                             {new Date(notification.createdAt).toLocaleDateString()}
                                         </span>
                                     </div>
-                                    <h4 className="font-semibold text-gray-900 dark:text-white mb-1.5">
+                                    <h4 className="font-semibold text-gray-900 mb-1.5">
                                         {notification.title}
                                     </h4>
-                                    <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">
+                                    <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap">
                                         {notification.message}
                                     </p>
                                 </div>
@@ -217,7 +217,7 @@ export function NotificationModal() {
                                         e.stopPropagation();
                                         handleDismiss(notification.id);
                                     }}
-                                    className="opacity-0 group-hover:opacity-100 transition-opacity p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full"
+                                    className="opacity-0 group-hover:opacity-100 transition-opacity p-2 hover:bg-gray-100 rounded-full"
                                     title="Mark as read"
                                 >
                                     <Check className="w-4 h-4 text-[#5750F1]" />
@@ -228,11 +228,11 @@ export function NotificationModal() {
                 </div>
 
                 {/* Footer */}
-                <div className="p-4 border-t border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/50 rounded-b-2xl">
+                <div className="p-4 border-t border-gray-100 bg-gray-50/50 rounded-b-2xl">
                     <Button
                         onClick={handleDismissAll}
                         variant="ghost"
-                        className="w-full text-gray-500 hover:text-gray-900 dark:hover:text-white"
+                        className="w-full text-gray-500 hover:text-gray-900"
                     >
                         Mark all as read
                     </Button>

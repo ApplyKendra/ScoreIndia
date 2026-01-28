@@ -677,68 +677,112 @@ func (s *AuctionService) StopTimer() {
 }
 
 // ResetAuction completely resets the auction - clears all bids, player statuses, team spent amounts
+// Optimized with transaction for atomicity and performance
 func (s *AuctionService) ResetAuction(ctx context.Context) error {
-	// Stop any running timer
+	// Stop any running timer first (non-blocking)
 	s.StopTimer()
 
-	// Reset all players to available status
-	if err := s.repos.Players.ResetAllPlayers(ctx); err != nil {
+	// Use a transaction to ensure atomicity and improve performance
+	tx, err := s.repos.GetDB().Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+
+	// Execute all reset operations in a single transaction
+	// This reduces round trips and ensures atomicity
+	
+	// 1. Delete all bids (fastest operation, do first)
+	if _, err := tx.Exec(ctx, "DELETE FROM bids"); err != nil {
 		return err
 	}
 
-	// Reset all team spent amounts to 0
-	if err := s.repos.Teams.ResetAllSpent(ctx); err != nil {
+	// 2. Reset all players to available status (bulk update)
+	if _, err := tx.Exec(ctx, `
+		UPDATE players SET 
+			status = 'available', 
+			sold_price = NULL, 
+			team_id = NULL, 
+			sold_at = NULL, 
+			badge = NULL, 
+			updated_at = NOW()
+	`); err != nil {
 		return err
 	}
 
-	// Delete all bids
-	if err := s.repos.Bids.DeleteAll(ctx); err != nil {
+	// 3. Reset all team spent amounts to 0 (bulk update)
+	if _, err := tx.Exec(ctx, "UPDATE teams SET spent = 0, updated_at = NOW()"); err != nil {
 		return err
 	}
 
-	// Delete/reset auction record
-	if err := s.repos.Auctions.DeleteCurrent(ctx); err != nil {
-		// Ignore error if no auction exists
+	// 4. Clear player references from auctions before deletion
+	if _, err := tx.Exec(ctx, "UPDATE auctions SET current_player_id = NULL, current_bidder_id = NULL WHERE status IN ('live', 'paused', 'pending')"); err != nil {
+		return err
 	}
 
-	// Clear Redis state
+	// 5. Delete current auction records
+	if _, err := tx.Exec(ctx, "DELETE FROM auctions WHERE status IN ('live', 'paused', 'pending')"); err != nil {
+		return err
+	}
+
+	// Commit transaction - all operations succeed or all fail
+	if err := tx.Commit(ctx); err != nil {
+		return err
+	}
+
+	// Clear Redis state (non-critical, don't fail if this fails)
 	s.redis.Del(ctx, "auction:timer_remaining", "auction:timer_running", "auction:bid_freeze")
 
 	return nil
 }
 
 // ResetEverything performs a complete reset - deletes all teams, players, bids, and auctions
+// Optimized with transaction for atomicity and performance
 func (s *AuctionService) ResetEverything(ctx context.Context) error {
-	// Stop any running timer
+	// Stop any running timer first (non-blocking)
 	s.StopTimer()
 
-	// Delete all bids first (due to foreign key constraints)
-	if err := s.repos.Bids.DeleteAll(ctx); err != nil {
+	// Use a transaction to ensure atomicity and improve performance
+	tx, err := s.repos.GetDB().Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+
+	// Execute all delete operations in a single transaction
+	// Order matters due to foreign key constraints
+	
+	// 1. Delete all bids first (no dependencies)
+	if _, err := tx.Exec(ctx, "DELETE FROM bids"); err != nil {
 		return err
 	}
 
-	// Clear ALL player references from ALL auctions (not just active ones)
-	// This is critical to avoid foreign key constraint violations
-	if err := s.repos.Auctions.ClearAllPlayerReferences(ctx); err != nil {
+	// 2. Clear ALL player references from ALL auctions (critical for FK constraints)
+	if _, err := tx.Exec(ctx, "UPDATE auctions SET current_player_id = NULL, current_bidder_id = NULL"); err != nil {
 		return err
 	}
 
-	// Delete all players (now safe since all references are cleared)
-	if err := s.repos.Players.DeleteAll(ctx); err != nil {
+	// 3. Delete all players (safe now that references are cleared)
+	if _, err := tx.Exec(ctx, "DELETE FROM players"); err != nil {
 		return err
 	}
 
-	// Delete all auctions (including completed ones)
-	if err := s.repos.Auctions.DeleteAll(ctx); err != nil {
+	// 4. Delete all auctions (including completed ones)
+	if _, err := tx.Exec(ctx, "DELETE FROM auctions"); err != nil {
 		return err
 	}
 
-	// Delete all teams
-	if err := s.repos.Teams.DeleteAll(ctx); err != nil {
+	// 5. Delete all teams (last, as players reference teams)
+	if _, err := tx.Exec(ctx, "DELETE FROM teams"); err != nil {
 		return err
 	}
 
-	// Clear Redis state
+	// Commit transaction - all operations succeed or all fail
+	if err := tx.Commit(ctx); err != nil {
+		return err
+	}
+
+	// Clear Redis state (non-critical, don't fail if this fails)
 	s.redis.Del(ctx, "auction:timer_remaining", "auction:timer_running", "auction:bid_freeze")
 
 	return nil

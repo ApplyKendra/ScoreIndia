@@ -20,7 +20,7 @@ type Services struct {
 // NewServices creates all service instances
 func NewServices(repos *repository.Repositories, redis *redis.Client, cfg *config.Config) *Services {
 	return &Services{
-		Auth:     NewAuthService(repos, cfg),
+		Auth:     NewAuthService(repos, cfg, redis),
 		Teams:    NewTeamService(repos),
 		Players:  NewPlayerService(repos),
 		Auction:  NewAuctionService(repos, redis),
