@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Gavel, Mail, Lock, ArrowRight } from 'lucide-react';
+import { Gavel, Mail, Lock, ArrowRight, Trophy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
@@ -91,11 +91,11 @@ export default function LoginPage() {
                 <div className="w-full max-w-md mx-auto space-y-8">
                     {/* Brand */}
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/30">
-                            <Gavel className="w-5 h-5 text-white" />
+                        <div className="w-10 h-10 rounded-xl bg-transparent border border-amber-400/40 flex items-center justify-center">
+                            <Trophy className="w-5 h-5 text-amber-400" />
                         </div>
                         <h1 className="text-xl font-bold text-white">
-                            CricketAuction<span className="text-blue-400">Pro</span>
+                            Score<span className="text-amber-400">India</span>
                         </h1>
                     </div>
 
@@ -124,7 +124,7 @@ export default function LoginPage() {
                                     <Input
                                         id="email"
                                         type="email"
-                                        placeholder="admin@auction.com"
+                                        placeholder="sonu@scoreindia.cloud"
                                         value={email}
                                         onChange={(e) => setEmail(e.target.value)}
                                         className="pl-10 h-12 bg-slate-800/50 border-slate-700 text-white placeholder:text-slate-500 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 rounded-xl transition-all"

@@ -81,6 +81,7 @@ interface Player {
     category: string;
     status: string;
     image_url?: string;
+    country?: string;
 }
 
 interface User {
@@ -142,6 +143,7 @@ export default function AdminDashboard() {
     const [isAddTeamOpen, setIsAddTeamOpen] = useState(false);
     const [isEditTeamOpen, setIsEditTeamOpen] = useState(false);
     const [isAddPlayerOpen, setIsAddPlayerOpen] = useState(false);
+    const [isEditPlayerOpen, setIsEditPlayerOpen] = useState(false);
 
     // Data states
     const [stats, setStats] = useState<Stats | null>(null);
@@ -165,6 +167,9 @@ export default function AdminDashboard() {
 
     // Edit Team State
     const [editingTeam, setEditingTeam] = useState<Team | null>(null);
+
+    // Edit Player State
+    const [editingPlayer, setEditingPlayer] = useState<Player | null>(null);
 
     // Retained Players State
     const [retainedPlayers, setRetainedPlayers] = useState<{ player_id: string; badge: string; name?: string }[]>([]);
@@ -434,6 +439,28 @@ export default function AdminDashboard() {
         }
     };
 
+    const handleUpdatePlayer = async () => {
+        if (!editingPlayer) return;
+        try {
+            await api.updatePlayer(editingPlayer.id, {
+                name: editingPlayer.name,
+                country: editingPlayer.country || 'India',
+                role: editingPlayer.role,
+                base_price: editingPlayer.base_price,
+                category: editingPlayer.category,
+                image_url: editingPlayer.image_url || '',
+            });
+            toast.success('Player updated successfully!');
+            setIsEditPlayerOpen(false);
+            setEditingPlayer(null);
+            // Refresh players
+            const playersData = await api.getPlayers({ limit: 100 });
+            setPlayers(playersData?.data || []);
+        } catch (error: any) {
+            toast.error(error.message || 'Failed to update player');
+        }
+    };
+
     const handleDeletePlayer = async (id: string) => {
         if (!confirm('Are you sure you want to delete this player?')) return;
         try {
@@ -530,6 +557,14 @@ export default function AdminDashboard() {
                         >
                             <Settings className="w-4 h-4 mr-3" />
                             Settings
+                        </Button>
+                        <Button
+                            variant="ghost"
+                            className="w-full justify-start mt-2 text-red-400 hover:text-red-300 hover:bg-red-900/20"
+                            onClick={handleLogout}
+                        >
+                            <LogOut className="w-4 h-4 mr-3" />
+                            Logout
                         </Button>
                     </div>
                 </nav>
@@ -1000,9 +1035,23 @@ export default function AdminDashboard() {
                                                     </Badge>
                                                 </TableCell>
                                                 <TableCell className="text-right">
-                                                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => handleDeletePlayer(player.id)}>
-                                                        <Trash2 className="w-4 h-4 text-red-500" />
-                                                    </Button>
+                                                    <div className="flex items-center justify-end gap-2">
+                                                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={async () => {
+                                                            try {
+                                                                // Fetch full player data to ensure we have all fields
+                                                                const fullPlayer = await api.getPlayer(player.id);
+                                                                setEditingPlayer(fullPlayer);
+                                                                setIsEditPlayerOpen(true);
+                                                            } catch (error: any) {
+                                                                toast.error('Failed to load player details');
+                                                            }
+                                                        }}>
+                                                            <Edit2 className="w-4 h-4 text-slate-600" />
+                                                        </Button>
+                                                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => handleDeletePlayer(player.id)}>
+                                                            <Trash2 className="w-4 h-4 text-red-500" />
+                                                        </Button>
+                                                    </div>
                                                 </TableCell>
                                             </TableRow>
                                         ))}
@@ -1016,6 +1065,97 @@ export default function AdminDashboard() {
                                     </TableBody>
                                 </Table>
                             </Card>
+
+                            {/* Edit Player Dialog */}
+                            <Dialog open={isEditPlayerOpen} onOpenChange={(open) => {
+                                setIsEditPlayerOpen(open);
+                                if (!open) {
+                                    setEditingPlayer(null);
+                                }
+                            }}>
+                                <DialogContent className="sm:max-w-md !bg-white dark:!bg-white !text-slate-900 dark:!text-slate-900">
+                                    <DialogHeader>
+                                        <DialogTitle className="!text-slate-900 dark:!text-slate-900">Edit Player</DialogTitle>
+                                        <DialogDescription className="!text-slate-600 dark:!text-slate-600">Update player information.</DialogDescription>
+                                    </DialogHeader>
+                                    {editingPlayer && (
+                                        <div className="space-y-4 py-4">
+                                            <div className="grid gap-2">
+                                                <Label className="!text-slate-900 dark:!text-slate-900">Player Name</Label>
+                                                <Input
+                                                    value={editingPlayer.name}
+                                                    onChange={(e) => setEditingPlayer({ ...editingPlayer, name: e.target.value })}
+                                                    placeholder="Virat Kohli"
+                                                    className="!text-slate-900 dark:!text-slate-900 !bg-white dark:!bg-white"
+                                                />
+                                            </div>
+                                            <div className="grid gap-2">
+                                                <Label className="!text-slate-900 dark:!text-slate-900">Player Image</Label>
+                                                <ImageUpload
+                                                    value={editingPlayer.image_url}
+                                                    onChange={(url) => setEditingPlayer({ ...editingPlayer, image_url: url })}
+                                                    label="Upload Photo"
+                                                />
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div className="grid gap-2">
+                                                    <Label className="!text-slate-900 dark:!text-slate-900">Country</Label>
+                                                    <Input
+                                                        value={editingPlayer.country || 'India'}
+                                                        onChange={(e) => setEditingPlayer({ ...editingPlayer, country: e.target.value })}
+                                                        placeholder="India"
+                                                        className="!text-slate-900 dark:!text-slate-900 !bg-white dark:!bg-white"
+                                                    />
+                                                </div>
+                                                <div className="grid gap-2">
+                                                    <Label className="!text-slate-900 dark:!text-slate-900">Role</Label>
+                                                    <Select value={editingPlayer.role} onValueChange={(v) => setEditingPlayer({ ...editingPlayer, role: v })}>
+                                                        <SelectTrigger className="!text-slate-900 dark:!text-slate-900 !bg-white dark:!bg-white">
+                                                            <SelectValue />
+                                                        </SelectTrigger>
+                                                        <SelectContent className="!bg-white dark:!bg-white !text-slate-900 dark:!text-slate-900">
+                                                            <SelectItem value="Batsman" className="!text-slate-900 dark:!text-slate-900">Batsman</SelectItem>
+                                                            <SelectItem value="Bowler" className="!text-slate-900 dark:!text-slate-900">Bowler</SelectItem>
+                                                            <SelectItem value="All-rounder" className="!text-slate-900 dark:!text-slate-900">All-rounder</SelectItem>
+                                                            <SelectItem value="Wicketkeeper" className="!text-slate-900 dark:!text-slate-900">Wicketkeeper</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                </div>
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div className="grid gap-2">
+                                                    <Label className="!text-slate-900 dark:!text-slate-900">Base Price</Label>
+                                                    <Input
+                                                        type="number"
+                                                        value={editingPlayer.base_price}
+                                                        onChange={(e) => setEditingPlayer({ ...editingPlayer, base_price: parseInt(e.target.value) || 0 })}
+                                                        className="!text-slate-900 dark:!text-slate-900 !bg-white dark:!bg-white"
+                                                    />
+                                                    <p className="text-xs text-slate-500">Current: {formatCurrency(editingPlayer.base_price)}</p>
+                                                </div>
+                                                <div className="grid gap-2">
+                                                    <Label className="!text-slate-900 dark:!text-slate-900">Category</Label>
+                                                    <Select value={editingPlayer.category} onValueChange={(v) => setEditingPlayer({ ...editingPlayer, category: v })}>
+                                                        <SelectTrigger className="!text-slate-900 dark:!text-slate-900 !bg-white dark:!bg-white">
+                                                            <SelectValue />
+                                                        </SelectTrigger>
+                                                        <SelectContent className="!bg-white dark:!bg-white !text-slate-900 dark:!text-slate-900">
+                                                            <SelectItem value="Marquee" className="!text-slate-900 dark:!text-slate-900">Marquee</SelectItem>
+                                                            <SelectItem value="Set 1" className="!text-slate-900 dark:!text-slate-900">Set 1</SelectItem>
+                                                            <SelectItem value="Set 2" className="!text-slate-900 dark:!text-slate-900">Set 2</SelectItem>
+                                                            <SelectItem value="Set 3" className="!text-slate-900 dark:!text-slate-900">Set 3</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                    <DialogFooter>
+                                        <Button variant="outline" onClick={() => setIsEditPlayerOpen(false)}>Cancel</Button>
+                                        <Button onClick={handleUpdatePlayer}>Update Player</Button>
+                                    </DialogFooter>
+                                </DialogContent>
+                            </Dialog>
                         </div>
                     )
                 }
