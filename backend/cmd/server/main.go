@@ -112,7 +112,7 @@ func main() {
 	// Initialize Fiber app
 	app := fiber.New(fiber.Config{
 		ErrorHandler: handlers.ErrorHandler,
-		BodyLimit:    25 * 1024 * 1024, // 25MB to support 20MB file uploads
+		BodyLimit:    30 * 1024 * 1024, // 30MB to support 20MB file uploads with some buffer
 	})
 
 	// Middleware

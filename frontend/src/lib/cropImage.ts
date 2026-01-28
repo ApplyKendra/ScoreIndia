@@ -32,7 +32,8 @@ export default async function getCroppedImg(
     imageSrc: string,
     pixelCrop: { x: number; y: number; width: number; height: number },
     rotation = 0,
-    flip = { horizontal: false, vertical: false }
+    flip = { horizontal: false, vertical: false },
+    quality = 0.85
 ): Promise<Blob | null> {
     const image = await createImage(imageSrc)
     const canvas = document.createElement('canvas')
@@ -78,10 +79,10 @@ export default async function getCroppedImg(
     // paste generated rotate image at the top left corner
     ctx.putImageData(data, 0, 0)
 
-    // As Blob
+    // As Blob with quality compression to reduce file size
     return new Promise((resolve, reject) => {
         canvas.toBlob((file) => {
             resolve(file)
-        }, 'image/jpeg')
+        }, 'image/jpeg', quality) // Configurable quality - default 85% for good balance between quality and file size
     })
 }

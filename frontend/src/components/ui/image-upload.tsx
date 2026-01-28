@@ -7,7 +7,7 @@ import { cn, getImageUrl } from '@/lib/utils';
 import api from '@/lib/api';
 import Cropper from 'react-easy-crop';
 import getCroppedImg from '@/lib/cropImage';
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Slider } from '@/components/ui/slider';
 
 interface ImageUploadProps {
@@ -78,14 +78,37 @@ export function ImageUpload({ value, onChange, label = "Upload Image", className
 
         try {
             setLoading(true);
-            const croppedImageBlob = await getCroppedImg(imageSrc, croppedAreaPixels);
+            setError(null);
+            
+            // Try with progressively lower quality if file is too large
+            let croppedImageBlob: Blob | null = null;
+            let quality = 0.85; // Start with 85% quality
+            const maxSize = 20 * 1024 * 1024; // 20MB
+            
+            // Try up to 3 times with decreasing quality
+            for (let attempt = 0; attempt < 3; attempt++) {
+                croppedImageBlob = await getCroppedImg(imageSrc, croppedAreaPixels, 0, { horizontal: false, vertical: false }, quality);
+                
+                if (!croppedImageBlob) {
+                    throw new Error("Failed to crop image");
+                }
 
-            if (!croppedImageBlob) {
-                throw new Error("Failed to crop image");
+                // If file size is acceptable, break
+                if (croppedImageBlob.size <= maxSize) {
+                    break;
+                }
+
+                // Reduce quality for next attempt
+                quality = Math.max(0.6, quality - 0.1); // Don't go below 60% quality
+                
+                // If this is the last attempt and still too large, throw error
+                if (attempt === 2) {
+                    throw new Error(`Image is too large (${(croppedImageBlob.size / 1024 / 1024).toFixed(2)}MB) even after compression. Please try a smaller image or crop a smaller area.`);
+                }
             }
 
             // Create a File from the Blob
-            const file = new File([croppedImageBlob], originalFilename, { type: "image/jpeg" });
+            const file = new File([croppedImageBlob!], originalFilename, { type: "image/jpeg" });
 
             const data = await api.uploadImage(file);
             onChange(data.url);
@@ -93,7 +116,12 @@ export function ImageUpload({ value, onChange, label = "Upload Image", className
             setIsCropOpen(false);
             setImageSrc(null);
         } catch (err: any) {
-            setError(err.message || "Upload failed. Please try again.");
+            // Handle specific HTTP 413 error
+            if (err.message?.includes('413') || err.message?.includes('Content Too Large') || err.message?.includes('Failed to fetch')) {
+                setError("Image file is too large. Please try a smaller image or crop a smaller area.");
+            } else {
+                setError(err.message || "Upload failed. Please try again.");
+            }
             console.error(err);
         } finally {
             setLoading(false);
@@ -179,6 +207,9 @@ export function ImageUpload({ value, onChange, label = "Upload Image", className
                 <DialogContent className="sm:max-w-xl bg-white border-slate-200">
                     <DialogHeader>
                         <DialogTitle className="text-slate-900">Crop Image</DialogTitle>
+                        <DialogDescription className="text-slate-600">
+                            Adjust the crop area and zoom level, then click "Crop & Upload" to save.
+                        </DialogDescription>
                     </DialogHeader>
                     <div className="relative w-full h-80 bg-slate-900 rounded-md overflow-hidden">
                         {imageSrc && (
