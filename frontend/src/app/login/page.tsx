@@ -196,16 +196,16 @@ export default function LoginPage() {
 
                             <div className="grid grid-cols-3 gap-4 w-full pt-4 border-t border-slate-700/50">
                                 <div className="text-center">
-                                    <p className="text-2xl font-bold text-white">150+</p>
-                                    <p className="text-xs text-slate-500 uppercase tracking-widest mt-1">Players</p>
+                                    <p className="text-2xl font-bold text-white">140+</p>
+                                    <p className="text-xs text-slate-500 uppercase tracking-widest mt-1">players</p>
                                 </div>
                                 <div className="text-center border-l border-slate-700/50 border-r">
-                                    <p className="text-2xl font-bold text-white">₹85Cr</p>
-                                    <p className="text-xs text-slate-500 uppercase tracking-widest mt-1">Value</p>
+                                    <p className="text-2xl font-bold text-white">₹15L</p>
+                                    <p className="text-xs text-slate-500 uppercase tracking-widest mt-1">value</p>
                                 </div>
                                 <div className="text-center">
-                                    <p className="text-2xl font-bold text-white">12</p>
-                                    <p className="text-xs text-slate-500 uppercase tracking-widest mt-1">Teams</p>
+                                    <p className="text-2xl font-bold text-white">10</p>
+                                    <p className="text-xs text-slate-500 uppercase tracking-widest mt-1">teams</p>
                                 </div>
                             </div>
                         </Card>
