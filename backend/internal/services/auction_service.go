@@ -130,6 +130,10 @@ func (s *AuctionService) GetState(ctx context.Context) (*models.AuctionState, er
 	now := time.Now().UnixMilli()
 	state.BidFrozen = freeze > 0 && now-freeze < 1000
 
+	// Check if bidder bidding is disabled
+	bidderBiddingDisabled, _ := s.redis.Get(ctx, "auction:bidder_bidding_disabled").Bool()
+	state.BidderBiddingDisabled = bidderBiddingDisabled
+
 	return state, nil
 }
 
@@ -234,6 +238,7 @@ func (s *AuctionService) NextPlayer(ctx context.Context) (*models.Player, error)
 }
 
 // StartBidForPlayer starts bidding for a specific player (manual selection by host)
+// Allows selecting both available and unsold players (unsold players are made available again)
 func (s *AuctionService) StartBidForPlayer(ctx context.Context, playerID uuid.UUID) (*models.Player, error) {
 	auction, err := s.repos.Auctions.GetCurrent(ctx)
 	if err != nil {
@@ -246,9 +251,17 @@ func (s *AuctionService) StartBidForPlayer(ctx context.Context, playerID uuid.UU
 		return nil, errors.New("player not found")
 	}
 
-	// Validate player is available for auction
-	if player.Status != "available" {
+	// Validate player is available for auction (allow both 'available' and 'unsold')
+	if player.Status != "available" && player.Status != "unsold" {
 		return nil, errors.New("player is not available for auction")
+	}
+
+	// If player is unsold, change status back to available so they can be bid on
+	if player.Status == "unsold" {
+		if err := s.repos.Players.UpdateStatus(ctx, playerID, "available"); err != nil {
+			return nil, errors.New("failed to update player status")
+		}
+		player.Status = "available"
 	}
 
 	// Set as current player
@@ -298,7 +311,9 @@ func isValidBidAmount(amount int64) bool {
 }
 
 // PlaceBid places a bid on the current player
-func (s *AuctionService) PlaceBid(ctx context.Context, teamID uuid.UUID, amount int64) (*models.Bid, error) {
+// skipBidderCheck: if true, skips the bidder bidding disabled check (for host/admin placing bids)
+// skipFreezeCheck: if true, skips the freeze time check (for host/admin placing bids)
+func (s *AuctionService) PlaceBid(ctx context.Context, teamID uuid.UUID, amount int64, skipBidderCheck bool, skipFreezeCheck bool) (*models.Bid, error) {
 	// Add timeout for critical bid operation (10 seconds for write operations)
 	queryCtx, cancel := s.withTimeout(ctx, 10*time.Second)
 	defer cancel()
@@ -312,12 +327,22 @@ func (s *AuctionService) PlaceBid(ctx context.Context, teamID uuid.UUID, amount 
 		return nil, errors.New("no player currently on block")
 	}
 
-	// Check freeze time - prevent bids within 1 second of the last bid
+	// Check freeze time - prevent bids within 1 second of the last bid (only for regular bidders)
 	freezeKey := "auction:bid_freeze"
-	freeze, _ := s.redis.Get(ctx, freezeKey).Int64()
-	now := time.Now().UnixMilli()
-	if freeze > 0 && now-freeze < 1000 {
-		return nil, errors.New("please wait - bid in progress")
+	if !skipFreezeCheck {
+		freeze, _ := s.redis.Get(ctx, freezeKey).Int64()
+		now := time.Now().UnixMilli()
+		if freeze > 0 && now-freeze < 1000 {
+			return nil, errors.New("please wait - bid in progress")
+		}
+	}
+
+	// Check if bidder bidding is disabled (only for regular bidders, not for host/admin)
+	if !skipBidderCheck {
+		bidderBiddingDisabled, _ := s.redis.Get(ctx, "auction:bidder_bidding_disabled").Bool()
+		if bidderBiddingDisabled {
+			return nil, errors.New("bidder bidding is currently disabled by host")
+		}
 	}
 
 	// Prevent same team from bidding consecutively - must wait for another team to bid
@@ -362,8 +387,10 @@ func (s *AuctionService) PlaceBid(ctx context.Context, teamID uuid.UUID, amount 
 		}
 	}
 
-	// Set freeze time BEFORE creating bid to prevent race conditions
-	s.redis.Set(ctx, freezeKey, time.Now().UnixMilli(), 2*time.Second)
+	// Set freeze time BEFORE creating bid to prevent race conditions (only for regular bidders)
+	if !skipFreezeCheck {
+		s.redis.Set(ctx, freezeKey, time.Now().UnixMilli(), 2*time.Second)
+	}
 
 	// Create bid
 	bid := &models.Bid{
@@ -811,4 +838,9 @@ func (s *AuctionService) SetLiveStatus(ctx context.Context) error {
 
 	// Update existing auction to live status
 	return s.repos.Auctions.UpdateStatus(ctx, auction.ID, "live")
+}
+
+// SetBidderBiddingDisabled sets whether bidder bidding is disabled
+func (s *AuctionService) SetBidderBiddingDisabled(ctx context.Context, disabled bool) {
+	s.redis.Set(ctx, "auction:bidder_bidding_disabled", disabled, 0)
 }

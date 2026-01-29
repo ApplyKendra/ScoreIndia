@@ -281,6 +281,13 @@ class ApiClient {
         });
     }
 
+    async placeBidForTeam(teamId: string, amount: number) {
+        return this.request<any>('/bids/for-team', {
+            method: 'POST',
+            body: JSON.stringify({ team_id: teamId, amount }),
+        });
+    }
+
     async getBidHistory(playerId: string) {
         return this.request<any[]>(`/bids/history/${playerId}`);
     }
@@ -360,6 +367,13 @@ class ApiClient {
         return this.request<{ message: string; url: string }>('/auction/stream-url', {
             method: 'POST',
             body: JSON.stringify({ url }),
+        });
+    }
+
+    async toggleBidderBidding(disabled: boolean) {
+        return this.request<{ disabled: boolean; message: string }>('/auction/toggle-bidder-bidding', {
+            method: 'POST',
+            body: JSON.stringify({ disabled }),
         });
     }
 }

@@ -29,6 +29,8 @@ import {
     History,
     Zap,
     Search,
+    Volume2,
+    VolumeX,
 } from 'lucide-react';
 import PlayerListItem from './PlayerListItem';
 import { useWebSocket } from '@/hooks/useWebSocket';
@@ -146,6 +148,8 @@ export default function AuctionsPage() {
 
     // YouTube live stream URL
     const [liveStreamUrl, setLiveStreamUrl] = useState<string>('');
+    // YouTube stream mute state
+    const [isMuted, setIsMuted] = useState<boolean>(false);
 
     const [isVisible, setIsVisible] = useState(true);
 
@@ -662,35 +666,6 @@ export default function AuctionsPage() {
 
             {/* Main Content */}
             <main className="mx-auto max-w-7xl px-2 sm:px-6 lg:px-8 py-4 sm:py-8">
-                {/* On The Block Card - Always Visible */}
-                {/* YouTube Live Stream Player - Desktop only (above grid) */}
-                {liveStreamUrl && getYouTubeVideoId(liveStreamUrl) && auctionState?.status !== 'completed' && (
-                    <div className="mb-6 hidden lg:block">
-                        <Card className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-lg">
-                            <div className="p-3 border-b border-slate-800 bg-slate-800/50">
-                                <div className="flex items-center gap-2">
-                                    <div className="relative">
-                                        <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                                        <div className="absolute inset-0 w-2 h-2 bg-red-500 rounded-full animate-ping" />
-                                    </div>
-                                    <Youtube className="w-4 h-4 text-red-500" />
-                                    <span className="text-sm font-bold text-white">Live Stream</span>
-                                </div>
-                            </div>
-                            <div className="relative w-full" style={{ paddingBottom: '40%' }}>
-                                <iframe
-                                    className="absolute inset-0 w-full h-full"
-                                    src={`https://www.youtube.com/embed/${getYouTubeVideoId(liveStreamUrl)}?autoplay=1&mute=1&rel=0`}
-                                    title="Live Stream"
-                                    frameBorder="0"
-                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                    allowFullScreen
-                                />
-                            </div>
-                        </Card>
-                    </div>
-                )}
-
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
                     {/* Current Player - On The Block Card */}
                     <div className="lg:col-span-2 space-y-6">
@@ -701,28 +676,45 @@ export default function AuctionsPage() {
                                         <div className="absolute bottom-[-30%] left-[-15%] w-[400px] h-[400px] rounded-full bg-linear-to-br from-purple-500/25 to-pink-500/15 blur-3xl" />
                                     </div>
 
-                                    {/* YouTube Live Stream - VISIBLE ON MOBILE/TABLET ONLY, hidden on desktop where we show the separate stream above */}
+                                    {/* YouTube Live Stream - VISIBLE ON ALL SCREEN SIZES */}
                                     {liveStreamUrl && getYouTubeVideoId(liveStreamUrl) && auctionState?.status !== 'completed' && (
-                                        <div className="-mx-3 -mt-3 sm:-mx-8 sm:-mt-8 mb-4 relative z-10 lg:hidden">
+                                        <div className="-mx-3 -mt-3 sm:-mx-8 sm:-mt-8 mb-4 relative z-10">
                                             {/* Live Stream Strip Header */}
-                                            <div className="flex items-center gap-2 px-3 py-2 sm:px-4 sm:py-2.5 bg-gradient-to-r from-red-600 to-rose-600">
-                                                <div className="relative">
-                                                    <div className="w-2 h-2 rounded-full bg-white animate-pulse" />
-                                                    <div className="absolute inset-0 w-2 h-2 rounded-full bg-white animate-ping" />
+                                            <div className="flex items-center justify-between gap-2 px-3 py-2 sm:px-4 sm:py-2.5 bg-gradient-to-r from-blue-600 to-cyan-600">
+                                                <div className="flex items-center gap-2">
+                                                    <div className="relative">
+                                                        <div className="w-2 h-2 rounded-full bg-white animate-pulse" />
+                                                        <div className="absolute inset-0 w-2 h-2 rounded-full bg-white animate-ping" />
+                                                    </div>
+                                                    <Youtube className="w-4 h-4 text-white" />
+                                                    <span className="text-xs font-bold text-white uppercase tracking-wider">Live Stream</span>
                                                 </div>
-                                                <Youtube className="w-4 h-4 text-white" />
-                                                <span className="text-xs font-bold text-white uppercase tracking-wider">Live Stream</span>
+                                                {/* Sound Toggle Button */}
+                                                <button
+                                                    onClick={() => setIsMuted(!isMuted)}
+                                                    className="p-1.5 sm:p-2 rounded-lg bg-white/20 hover:bg-white/30 transition-colors flex items-center justify-center"
+                                                    aria-label={isMuted ? "Unmute" : "Mute"}
+                                                >
+                                                    {isMuted ? (
+                                                        <VolumeX className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                                                    ) : (
+                                                        <Volume2 className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                                                    )}
+                                                </button>
                                             </div>
                                             {/* YouTube Player */}
-                                            <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
-                                                <iframe
-                                                    className="absolute inset-0 w-full h-full"
-                                                    src={`https://www.youtube.com/embed/${getYouTubeVideoId(liveStreamUrl)}?autoplay=1&mute=1&rel=0&playsinline=1`}
-                                                    title="Live Stream"
-                                                    frameBorder="0"
-                                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                                    allowFullScreen
-                                                />
+                                            <div className="px-2 py-2 bg-slate-800/30">
+                                                <div className="relative w-full border-2 border-blue-500/50 rounded-lg overflow-hidden shadow-lg" style={{ paddingBottom: '56.25%' }}>
+                                                    <iframe
+                                                        key={`stream-${isMuted}`}
+                                                        className="absolute inset-0 w-full h-full"
+                                                        src={`https://www.youtube.com/embed/${getYouTubeVideoId(liveStreamUrl)}?autoplay=1&mute=${isMuted ? 1 : 0}&rel=0&playsinline=1`}
+                                                        title="Live Stream"
+                                                        frameBorder="0"
+                                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                                        allowFullScreen
+                                                    />
+                                                </div>
                                             </div>
                                         </div>
                                     )}

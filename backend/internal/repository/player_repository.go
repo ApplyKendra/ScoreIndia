@@ -206,25 +206,32 @@ func (r *PlayerRepository) FindByTeamID(ctx context.Context, teamID uuid.UUID) (
 }
 
 // GetQueue returns the next N players in queue (limit=0 means no limit)
+// Includes both available and unsold players (unsold players can be selected again)
 func (r *PlayerRepository) GetQueue(ctx context.Context, limit int) ([]models.Player, error) {
 	var rows pgx.Rows
 	var err error
 	
 	if limit > 0 {
 		rows, err = r.db.Query(ctx, `
-			SELECT id, name, country, country_flag, role, base_price, category, queue_order
+			SELECT id, name, country, country_flag, role, base_price, category, queue_order, status
 			FROM players 
-			WHERE status = 'available'
-			ORDER BY COALESCE(queue_order, 999999), created_at
+			WHERE status IN ('available', 'unsold')
+			ORDER BY 
+				CASE WHEN status = 'available' THEN 0 ELSE 1 END,
+				COALESCE(queue_order, 999999), 
+				created_at
 			LIMIT $1
 		`, limit)
 	} else {
-		// No limit - fetch all available players
+		// No limit - fetch all available and unsold players
 		rows, err = r.db.Query(ctx, `
-			SELECT id, name, country, country_flag, role, base_price, category, queue_order
+			SELECT id, name, country, country_flag, role, base_price, category, queue_order, status
 			FROM players 
-			WHERE status = 'available'
-			ORDER BY COALESCE(queue_order, 999999), created_at
+			WHERE status IN ('available', 'unsold')
+			ORDER BY 
+				CASE WHEN status = 'available' THEN 0 ELSE 1 END,
+				COALESCE(queue_order, 999999), 
+				created_at
 		`)
 	}
 	if err != nil {
@@ -235,7 +242,7 @@ func (r *PlayerRepository) GetQueue(ctx context.Context, limit int) ([]models.Pl
 	var players []models.Player
 	for rows.Next() {
 		var p models.Player
-		err := rows.Scan(&p.ID, &p.Name, &p.Country, &p.CountryFlag, &p.Role, &p.BasePrice, &p.Category, &p.QueueOrder)
+		err := rows.Scan(&p.ID, &p.Name, &p.Country, &p.CountryFlag, &p.Role, &p.BasePrice, &p.Category, &p.QueueOrder, &p.Status)
 		if err != nil {
 			return nil, err
 		}
@@ -285,6 +292,14 @@ func (r *PlayerRepository) MarkUnsold(ctx context.Context, playerID uuid.UUID) e
 	_, err := r.db.Exec(ctx, `
 		UPDATE players SET status = 'unsold', updated_at = NOW() WHERE id = $1
 	`, playerID)
+	return err
+}
+
+// UpdateStatus updates a player's status
+func (r *PlayerRepository) UpdateStatus(ctx context.Context, playerID uuid.UUID, status string) error {
+	_, err := r.db.Exec(ctx, `
+		UPDATE players SET status = $2, updated_at = NOW() WHERE id = $1
+	`, playerID, status)
 	return err
 }
 

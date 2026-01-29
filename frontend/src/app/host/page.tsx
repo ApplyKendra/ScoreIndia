@@ -42,6 +42,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Switch } from '@/components/ui/switch';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import api from '@/lib/api';
@@ -100,6 +101,7 @@ interface AuctionState {
     timer_remaining?: number;
     bids?: Bid[];
     tied_teams?: Team[];
+    bidder_bidding_disabled?: boolean;
 }
 
 // --- Helpers ---
@@ -193,6 +195,7 @@ export default function HostDashboard() {
     const [youtubeUrl, setYoutubeUrl] = useState('');
     const [isStreamLoading, setIsStreamLoading] = useState(false);
     const [activePanel, setActivePanel] = useState<'teams' | 'queue'>('queue');
+    const [activePage, setActivePage] = useState<'dashboard' | 'master-bids'>('dashboard');
     const [youtubeDialogOpen, setYoutubeDialogOpen] = useState(false);
     const [presentationMode, setPresentationMode] = useState(false);
     const [tieBreakModalOpen, setTieBreakModalOpen] = useState(false);
@@ -704,6 +707,98 @@ export default function HostDashboard() {
         }
     };
 
+    // Bid ladder - same as backend
+    const BID_LADDER = [
+        2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000,
+        12000, 14000, 16000, 18000, 20000,
+        24000, 28000, 32000, 36000, 40000, 45000, 50000,
+    ];
+    const MAX_BID = 50000;
+
+    // Get next valid bid amount from the ladder
+    const getNextBidAmount = () => {
+        const currentBid = auctionState?.current_bid || 0;
+        const basePrice = auctionState?.current_player?.base_price || 2000;
+        const hasBidder = !!auctionState?.current_bidder;
+
+        // If no bids yet (no current bidder), first bid should be at base_price
+        if (!hasBidder) {
+            // Find the first ladder amount >= base_price
+            for (const amount of BID_LADDER) {
+                if (amount >= basePrice) {
+                    return amount;
+                }
+            }
+            return basePrice;
+        }
+
+        // If there's a current bidder, find the next amount > current_bid
+        for (const amount of BID_LADDER) {
+            if (amount > currentBid) {
+                return amount;
+            }
+        }
+
+        // If at or above max, return max
+        return MAX_BID;
+    };
+
+    // Handle placing a bid for a team (Master Bid Controls)
+    const handlePlaceBidForTeam = async (team: Team) => {
+        if (!currentPlayer) {
+            toast.error('No player currently on block');
+            return;
+        }
+
+        const bidAmount = getNextBidAmount();
+
+        // Check budget
+        const remainingBudget = team.remaining_budget || (team.budget - (team.spent || 0));
+        if (bidAmount > remainingBudget) {
+            toast.error(`${team.name} has insufficient budget for this bid`);
+            return;
+        }
+
+        setActionLoading(`bid-${team.id}`);
+        try {
+            const result = await api.placeBidForTeam(team.id, bidAmount);
+            toast.success(`Bid placed for ${team.name}: ${formatCurrency(bidAmount)}`);
+            
+            // Refresh auction state
+            const stateData = await api.getAuctionState();
+            setAuctionState(stateData);
+            if (stateData?.bids) {
+                setBidHistory(stateData.bids);
+            }
+            
+            // Refresh teams to update budgets
+            const teamsData = await api.getTeams();
+            setTeams(teamsData || []);
+        } catch (error: any) {
+            console.error('Error placing bid for team:', error);
+            toast.error(error.message || `Failed to place bid for ${team.name}`);
+        } finally {
+            setActionLoading(null);
+        }
+    };
+
+    // Handle toggling bidder bidding disabled state
+    const handleToggleBidderBidding = async (disabled: boolean) => {
+        setActionLoading('toggle-bidder-bidding');
+        try {
+            await api.toggleBidderBidding(disabled);
+            toast.success(disabled ? 'Bidder bidding disabled' : 'Bidder bidding enabled');
+            
+            // Refresh auction state to get updated disabled state
+            const stateData = await api.getAuctionState();
+            setAuctionState(stateData);
+        } catch (error: any) {
+            toast.error(error.message || 'Failed to toggle bidder bidding');
+        } finally {
+            setActionLoading(null);
+        }
+    };
+
     if (authLoading || loading) {
         return (
             <div className="h-screen bg-slate-50 flex items-center justify-center">
@@ -725,124 +820,352 @@ export default function HostDashboard() {
         <div className="h-screen bg-slate-100 flex flex-col overflow-hidden">
 
             {/* Compact Sub-Header */}
-            <header className="bg-white border-b border-slate-200 px-3 py-2 flex items-center justify-between gap-3 shrink-0 shadow-sm">
-                {/* Left: Logo & Connection */}
-                <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center shadow">
-                        <Gavel className="w-4 h-4 text-white" />
+            <header className="bg-white border-b border-slate-200 flex flex-col shrink-0 shadow-sm">
+                {/* Top Row: Logo, Tabs, Controls, User */}
+                <div className="px-3 py-2 flex items-center gap-3">
+                    {/* Left: Logo, Connection & Dashboard */}
+                    <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center shadow">
+                            <Gavel className="w-4 h-4 text-white" />
+                        </div>
+                        <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`} />
+                        <button
+                            onClick={() => setActivePage('dashboard')}
+                            className={`px-4 py-1.5 text-sm font-semibold rounded-lg transition-all ${
+                                activePage === 'dashboard'
+                                    ? 'text-indigo-600'
+                                    : 'text-slate-600 hover:text-slate-900'
+                            }`}
+                        >
+                            Dashboard
+                        </button>
                     </div>
-                    <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`} />
-                </div>
 
-                {/* Center: Timer & Controls */}
-                <div className="flex items-center gap-2 flex-1 justify-center">
-                    <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-mono border ${timer < 10 ? 'bg-red-50 text-red-600 border-red-200' : 'bg-slate-100 text-slate-800 border-slate-200'}`}>
-                        <Timer className="w-4 h-4" />
-                        <span className="text-lg font-bold tabular-nums w-8 text-center">{timer}s</span>
-                    </div>
+                    {/* Center: Master Bid Controls, Timer & Controls */}
+                    <div className="flex items-center gap-2 flex-1 justify-center">
+                        {/* Master Bid Controls Tab */}
+                        <button
+                            onClick={() => setActivePage('master-bids')}
+                            className={`px-4 py-1.5 text-sm font-semibold rounded-lg transition-all flex items-center gap-1.5 border-2 ${
+                                activePage === 'master-bids'
+                                    ? 'border-indigo-600 text-indigo-600'
+                                    : 'border-slate-300 text-slate-600 hover:border-slate-400 hover:text-slate-900'
+                            }`}
+                        >
+                            <Zap className="w-4 h-4" />
+                            Master Bid Controls
+                        </button>
 
-                    {isAuctionLive ? (
-                        <>
-                            <ActionButton
-                                onClick={isPaused ? handleResumeAuction : handlePauseAuction}
-                                loading={actionLoading === 'pause' || actionLoading === 'resume'}
-                                variant={isPaused ? 'success' : 'warning'}
-                                size="sm"
-                            >
-                                {isPaused ? <><Play className="w-3 h-3" /> Resume</> : <><Pause className="w-3 h-3" /> Hold</>}
+                        <div className="w-px h-6 bg-slate-200 mx-1" />
+
+                        {/* Timer & Controls */}
+                        <div className="flex items-center gap-2">
+                            <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-mono border ${timer < 10 ? 'bg-red-50 text-red-600 border-red-200' : 'bg-slate-100 text-slate-800 border-slate-200'}`}>
+                                <Timer className="w-4 h-4" />
+                                <span className="text-lg font-bold tabular-nums w-8 text-center">{timer}s</span>
+                            </div>
+
+                            {isAuctionLive ? (
+                            <>
+                                <ActionButton
+                                    onClick={isPaused ? handleResumeAuction : handlePauseAuction}
+                                    loading={actionLoading === 'pause' || actionLoading === 'resume'}
+                                    variant={isPaused ? 'success' : 'warning'}
+                                    size="sm"
+                                >
+                                    {isPaused ? <><Play className="w-3 h-3" /> Resume</> : <><Pause className="w-3 h-3" /> Hold</>}
+                                </ActionButton>
+
+                                <ActionButton onClick={handleResetTimer} loading={actionLoading === 'timer'} variant="outline" size="sm">
+                                    <RotateCcw className="w-3 h-3" />
+                                </ActionButton>
+
+                                <Dialog>
+                                    <DialogTrigger asChild>
+                                        <button className="h-8 px-3 text-xs font-semibold bg-red-50 hover:bg-red-100 active:bg-red-200 active:scale-[0.97] text-red-600 border border-red-200 rounded-lg transition-all flex items-center gap-1">
+                                            <Power className="w-3 h-3" /> End
+                                        </button>
+                                    </DialogTrigger>
+                                    <DialogContent className="bg-white border-slate-200">
+                                        <DialogHeader>
+                                            <DialogTitle className="text-slate-900">End Auction?</DialogTitle>
+                                            <DialogDescription className="text-slate-600">This will end the auction session.</DialogDescription>
+                                        </DialogHeader>
+                                        <DialogFooter>
+                                            <Button variant="outline">Cancel</Button>
+                                            <Button onClick={handleEndAuction} className="bg-red-600 hover:bg-red-700 text-white">End</Button>
+                                        </DialogFooter>
+                                    </DialogContent>
+                                </Dialog>
+                            </>
+                        ) : (
+                            <ActionButton onClick={handleBroadcastLive} loading={actionLoading === 'broadcast'} variant="danger" size="sm">
+                                <Radio className="w-3 h-3" /> Go Live
                             </ActionButton>
+                        )}
 
-                            <ActionButton onClick={handleResetTimer} loading={actionLoading === 'timer'} variant="outline" size="sm">
-                                <RotateCcw className="w-3 h-3" />
-                            </ActionButton>
+                            <div className="w-px h-6 bg-slate-200 mx-1" />
 
-                            <Dialog>
+                            {/* YouTube Button */}
+                            <Dialog open={youtubeDialogOpen} onOpenChange={setYoutubeDialogOpen}>
                                 <DialogTrigger asChild>
-                                    <button className="h-8 px-3 text-xs font-semibold bg-red-50 hover:bg-red-100 active:bg-red-200 active:scale-[0.97] text-red-600 border border-red-200 rounded-lg transition-all flex items-center gap-1">
-                                        <Power className="w-3 h-3" /> End
+                                    <button className={`h-8 px-3 text-xs font-semibold rounded-lg transition-all flex items-center gap-1.5 ${youtubeUrl ? 'bg-red-100 text-red-600 border border-red-200' : 'bg-slate-100 text-slate-600 border border-slate-200 hover:bg-slate-200'}`}>
+                                        <Youtube className="w-4 h-4" />
+                                        {youtubeUrl ? 'Stream Set' : 'Set Stream'}
                                     </button>
                                 </DialogTrigger>
-                                <DialogContent className="bg-white border-slate-200">
+                                <DialogContent className="bg-white border-slate-200 max-w-md">
                                     <DialogHeader>
-                                        <DialogTitle className="text-slate-900">End Auction?</DialogTitle>
-                                        <DialogDescription className="text-slate-600">This will end the auction session.</DialogDescription>
+                                        <DialogTitle className="flex items-center gap-2 text-slate-900">
+                                            <Youtube className="w-5 h-5 text-red-500" />
+                                            YouTube Live Stream
+                                        </DialogTitle>
+                                        <DialogDescription className="text-slate-600">Set the YouTube live stream URL</DialogDescription>
                                     </DialogHeader>
-                                    <DialogFooter>
-                                        <Button variant="outline">Cancel</Button>
-                                        <Button onClick={handleEndAuction} className="bg-red-600 hover:bg-red-700 text-white">End</Button>
+                                    <div className="py-4">
+                                        <input
+                                            type="url"
+                                            value={youtubeUrl}
+                                            onChange={(e) => setYoutubeUrl(e.target.value)}
+                                            placeholder="https://youtube.com/live/..."
+                                            className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:border-red-500"
+                                        />
+                                    </div>
+                                    <DialogFooter className="gap-2">
+                                        {youtubeUrl && (
+                                            <Button variant="outline" onClick={handleClearStreamUrl} disabled={isStreamLoading}>Clear</Button>
+                                        )}
+                                        <Button onClick={handleSetStreamUrl} disabled={!youtubeUrl.trim() || isStreamLoading} className="bg-red-600 hover:bg-red-700 text-white">
+                                            <Link2 className="w-4 h-4 mr-1" />
+                                            {isStreamLoading ? 'Setting...' : 'Set Stream'}
+                                        </Button>
                                     </DialogFooter>
                                 </DialogContent>
                             </Dialog>
-                        </>
-                    ) : (
-                        <ActionButton onClick={handleBroadcastLive} loading={actionLoading === 'broadcast'} variant="danger" size="sm">
-                            <Radio className="w-3 h-3" /> Go Live
-                        </ActionButton>
-                    )}
 
-                    <div className="w-px h-6 bg-slate-200 mx-1" />
-
-                    {/* YouTube Button */}
-                    <Dialog open={youtubeDialogOpen} onOpenChange={setYoutubeDialogOpen}>
-                        <DialogTrigger asChild>
-                            <button className={`h-8 px-3 text-xs font-semibold rounded-lg transition-all flex items-center gap-1.5 ${youtubeUrl ? 'bg-red-100 text-red-600 border border-red-200' : 'bg-slate-100 text-slate-600 border border-slate-200 hover:bg-slate-200'}`}>
-                                <Youtube className="w-4 h-4" />
-                                {youtubeUrl ? 'Stream Set' : 'Set Stream'}
+                            {/* Presentation Mode Button */}
+                            <button
+                                onClick={() => setPresentationMode(!presentationMode)}
+                                className={`h-8 px-3 text-xs font-semibold rounded-lg transition-all flex items-center gap-1.5 ${presentationMode ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'bg-slate-100 text-slate-600 border border-slate-200 hover:bg-slate-200'}`}
+                            >
+                                {presentationMode ? <Minimize2 className="w-4 h-4" /> : <Monitor className="w-4 h-4" />}
+                                {presentationMode ? 'Exit' : 'Present'}
                             </button>
-                        </DialogTrigger>
-                        <DialogContent className="bg-white border-slate-200 max-w-md">
-                            <DialogHeader>
-                                <DialogTitle className="flex items-center gap-2 text-slate-900">
-                                    <Youtube className="w-5 h-5 text-red-500" />
-                                    YouTube Live Stream
-                                </DialogTitle>
-                                <DialogDescription className="text-slate-600">Set the YouTube live stream URL</DialogDescription>
-                            </DialogHeader>
-                            <div className="py-4">
-                                <input
-                                    type="url"
-                                    value={youtubeUrl}
-                                    onChange={(e) => setYoutubeUrl(e.target.value)}
-                                    placeholder="https://youtube.com/live/..."
-                                    className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:border-red-500"
-                                />
-                            </div>
-                            <DialogFooter className="gap-2">
-                                {youtubeUrl && (
-                                    <Button variant="outline" onClick={handleClearStreamUrl} disabled={isStreamLoading}>Clear</Button>
-                                )}
-                                <Button onClick={handleSetStreamUrl} disabled={!youtubeUrl.trim() || isStreamLoading} className="bg-red-600 hover:bg-red-700 text-white">
-                                    <Link2 className="w-4 h-4 mr-1" />
-                                    {isStreamLoading ? 'Setting...' : 'Set Stream'}
-                                </Button>
-                            </DialogFooter>
-                        </DialogContent>
-                    </Dialog>
+                        </div>
+                    </div>
 
-                    {/* Presentation Mode Button */}
-                    <button
-                        onClick={() => setPresentationMode(!presentationMode)}
-                        className={`h-8 px-3 text-xs font-semibold rounded-lg transition-all flex items-center gap-1.5 ${presentationMode ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'bg-slate-100 text-slate-600 border border-slate-200 hover:bg-slate-200'}`}
-                    >
-                        {presentationMode ? <Minimize2 className="w-4 h-4" /> : <Monitor className="w-4 h-4" />}
-                        {presentationMode ? 'Exit' : 'Present'}
-                    </button>
-                </div>
-
-                {/* Right: User */}
-                <div className="flex items-center gap-2">
-                    <Avatar className="w-7 h-7 border border-slate-200">
-                        <AvatarFallback className="bg-indigo-100 text-indigo-600 text-xs font-semibold">{user?.name?.charAt(0) || 'H'}</AvatarFallback>
-                    </Avatar>
-                    <button onClick={handleLogout} className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-all">
-                        <LogOut className="w-4 h-4" />
-                    </button>
+                    {/* User */}
+                    <div className="flex items-center gap-2">
+                        <Avatar className="w-7 h-7 border border-slate-200">
+                            <AvatarFallback className="bg-indigo-100 text-indigo-600 text-xs font-semibold">{user?.name?.charAt(0) || 'H'}</AvatarFallback>
+                        </Avatar>
+                        <button onClick={handleLogout} className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-all">
+                            <LogOut className="w-4 h-4" />
+                        </button>
+                    </div>
                 </div>
             </header>
 
             {/* Main Content */}
             <main className="flex-1 flex overflow-hidden">
+                {activePage === 'master-bids' ? (
+                    /* Master Bid Controls Page */
+                    <div className="flex-1 flex flex-col overflow-hidden bg-slate-50">
+                        <div className="flex-1 overflow-auto p-6">
+                            <div className="max-w-6xl mx-auto">
+                                <div className="mb-6">
+                                    <div className="flex items-center justify-between mb-2">
+                                        <div>
+                                            <h1 className="text-2xl font-bold text-slate-900 mb-1">Master Bid Controls</h1>
+                                            <p className="text-sm text-slate-600">Place bids on behalf of any team for the current player</p>
+                                        </div>
+                                        <Card className="p-4 bg-white border-slate-200 shadow-sm">
+                                            <div className="flex items-center gap-4">
+                                                <div className="flex-1">
+                                                    <p className="text-sm font-semibold text-slate-800 mb-0.5">Disable Bidder Bidding</p>
+                                                    <p className="text-xs text-slate-500">
+                                                        {auctionState?.bidder_bidding_disabled ? 'Bidders cannot place bids' : 'Bidders can place bids'}
+                                                    </p>
+                                                </div>
+                                                <button
+                                                    onClick={() => handleToggleBidderBidding(!auctionState?.bidder_bidding_disabled)}
+                                                    disabled={actionLoading === 'toggle-bidder-bidding'}
+                                                    className={`relative inline-flex h-7 w-12 items-center rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-inner ${
+                                                        auctionState?.bidder_bidding_disabled
+                                                            ? 'bg-red-600 hover:bg-red-700'
+                                                            : 'bg-slate-300 hover:bg-slate-400'
+                                                    }`}
+                                                >
+                                                    {actionLoading === 'toggle-bidder-bidding' ? (
+                                                        <div className="absolute inset-0 flex items-center justify-center">
+                                                            <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                                        </div>
+                                                    ) : (
+                                                        <span
+                                                            className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform duration-200 ${
+                                                                auctionState?.bidder_bidding_disabled
+                                                                    ? 'translate-x-6'
+                                                                    : 'translate-x-1'
+                                                            }`}
+                                                        />
+                                                    )}
+                                                </button>
+                                            </div>
+                                        </Card>
+                                    </div>
+                                </div>
 
+                                {!currentPlayer ? (
+                                    <Card className="p-8 text-center bg-white border-slate-200">
+                                        <AlertTriangle className="w-16 h-16 text-amber-500 mx-auto mb-4" />
+                                        <h2 className="text-lg font-semibold text-slate-800 mb-2">No Player on Block</h2>
+                                        <p className="text-sm text-slate-500">Select a player from the queue to enable master bid controls</p>
+                                    </Card>
+                                ) : (
+                                    <>
+                                        {/* Current Player Info Card */}
+                                        <Card className="mb-6 p-4 bg-gradient-to-br from-indigo-50 to-purple-50 border-indigo-200">
+                                            <div className="flex items-center gap-4">
+                                                {currentPlayer.image_url ? (
+                                                    <img src={getImageUrl(currentPlayer.image_url)} alt={currentPlayer.name} className="w-16 h-16 rounded-lg object-cover" />
+                                                ) : (
+                                                    <div className="w-16 h-16 rounded-lg bg-slate-300 flex items-center justify-center">
+                                                        <Users className="w-8 h-8 text-slate-500" />
+                                                    </div>
+                                                )}
+                                                <div className="flex-1">
+                                                    <h2 className="text-xl font-bold text-slate-900 mb-1">{currentPlayer.name}</h2>
+                                                    <div className="flex items-center gap-3 text-sm text-slate-600">
+                                                        <span>{currentPlayer.country_flag || '🏏'}</span>
+                                                        <span>{currentPlayer.country}</span>
+                                                        <Badge className="bg-indigo-100 text-indigo-700 border-indigo-300">{currentPlayer.role}</Badge>
+                                                        <span>•</span>
+                                                        <span>Base: {formatCurrency(currentPlayer.base_price)}</span>
+                                                    </div>
+                                                </div>
+                                                <div className="text-right">
+                                                    <p className="text-xs text-slate-500 mb-1">Current Bid</p>
+                                                    <p className="text-2xl font-bold text-indigo-600">{formatCurrency(currentBid)}</p>
+                                                    {currentBidder && (
+                                                        <div className="mt-2 flex items-center justify-end gap-2">
+                                                            <span className="text-xs text-slate-500">Leading:</span>
+                                                            <div className="flex items-center gap-1.5 px-2 py-1 rounded" style={{ backgroundColor: `${currentBidder.color}15` }}>
+                                                                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: currentBidder.color }}></div>
+                                                                <span className="text-xs font-semibold" style={{ color: currentBidder.color }}>{currentBidder.name}</span>
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <div className="mt-4 pt-4 border-t border-indigo-200">
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-sm text-slate-600">Next Bid Amount:</span>
+                                                    <span className="text-lg font-bold text-indigo-700">{formatCurrency(getNextBidAmount())}</span>
+                                                </div>
+                                            </div>
+                                        </Card>
+
+                                        {/* Teams Grid */}
+                                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+                                            {teams.map(team => {
+                                                const spent = team.spent || 0;
+                                                const remaining = team.remaining_budget || (team.budget - spent);
+                                                const budgetUsedPercent = (spent / team.budget) * 100;
+                                                const nextBid = getNextBidAmount();
+                                                const canBid = remaining >= nextBid;
+                                                const isCurrentBidder = currentBidder?.id === team.id;
+                                                const isLoading = actionLoading === `bid-${team.id}`;
+
+                                                return (
+                                                    <Card
+                                                        key={team.id}
+                                                        className={`p-3 border-2 transition-all cursor-pointer ${
+                                                            isCurrentBidder
+                                                                ? 'bg-amber-50 border-amber-300'
+                                                                : canBid
+                                                                ? 'bg-white border-slate-200 hover:border-indigo-400 hover:shadow-lg active:scale-[0.98]'
+                                                                : 'bg-slate-50 border-slate-200 opacity-60'
+                                                        }`}
+                                                        onClick={() => !isCurrentBidder && canBid && !isLoading && handlePlaceBidForTeam(team)}
+                                                    >
+                                                        <div className="flex items-start gap-2 mb-2">
+                                                            {team.logo_url ? (
+                                                                <img src={getImageUrl(team.logo_url)} alt={team.name} className="w-8 h-8 rounded object-contain bg-white border border-slate-200" />
+                                                            ) : (
+                                                                <div className="w-8 h-8 rounded flex items-center justify-center text-[10px] font-bold text-white" style={{ backgroundColor: team.color }}>
+                                                                    {team.short_name}
+                                                                </div>
+                                                            )}
+                                                            <div className="flex-1 min-w-0">
+                                                                <div className="flex items-center gap-1 mb-0.5">
+                                                                    <h3 className="font-semibold text-slate-900 text-xs truncate">{team.name}</h3>
+                                                                    {isCurrentBidder && (
+                                                                        <Crown className="w-3 h-3 text-amber-500 flex-shrink-0" />
+                                                                    )}
+                                                                </div>
+                                                                <p className="text-[10px] text-slate-500">
+                                                                    {team.player_count || 0} players
+                                                                </p>
+                                                            </div>
+                                                            {isLoading ? (
+                                                                <div className="w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin flex-shrink-0" />
+                                                            ) : (
+                                                                <Zap className={`w-4 h-4 flex-shrink-0 ${canBid && !isCurrentBidder ? 'text-indigo-600' : 'text-slate-400'}`} />
+                                                            )}
+                                                        </div>
+
+                                                        <Progress value={budgetUsedPercent} className="h-1.5 mb-2" />
+
+                                                        <div className="space-y-1">
+                                                            <div className="flex justify-between text-[10px]">
+                                                                <span className="text-slate-500">Spent:</span>
+                                                                <span className="font-semibold text-emerald-600">{formatCurrency(spent)}</span>
+                                                            </div>
+                                                            <div className="flex justify-between text-[10px]">
+                                                                <span className="text-slate-500">Left:</span>
+                                                                <span className={`font-semibold ${canBid ? 'text-slate-700' : 'text-red-600'}`}>
+                                                                    {formatCurrency(remaining)}
+                                                                </span>
+                                                            </div>
+                                                            <div className="pt-1.5 mt-1.5 border-t border-slate-200">
+                                                                {isCurrentBidder ? (
+                                                                    <div className="text-center">
+                                                                        <Badge className="bg-amber-100 text-amber-700 border-amber-300 text-[10px] px-1.5 py-0.5">
+                                                                            Leader
+                                                                        </Badge>
+                                                                    </div>
+                                                                ) : canBid ? (
+                                                                    <button
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            handlePlaceBidForTeam(team);
+                                                                        }}
+                                                                        disabled={isLoading}
+                                                                        className="w-full py-1.5 px-2 bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-semibold rounded-md transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                                                    >
+                                                                        {isLoading ? '...' : `Bid ${formatCurrency(nextBid)}`}
+                                                                    </button>
+                                                                ) : (
+                                                                    <div className="text-center">
+                                                                        <Badge className="bg-red-100 text-red-700 border-red-300 text-[10px] px-1.5 py-0.5">
+                                                                            No Budget
+                                                                        </Badge>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    </Card>
+                                                );
+                                            })}
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                ) : (
+                    /* Original Dashboard */
+                    <>
                 {/* Left Sidebar - Hidden in presentation mode */}
                 <aside className={`bg-white border-r border-slate-200 flex flex-col shrink-0 transition-all duration-300 ${presentationMode ? 'w-0 opacity-0 pointer-events-none overflow-hidden' : 'w-80'}`}>
                     <div className="flex border-b border-slate-200 shrink-0">
@@ -898,28 +1221,38 @@ export default function HostDashboard() {
                                             if (p.role?.toLowerCase().includes(q)) return true;
                                             return false;
                                         })
-                                        .map((p, i) => (
-                                            <div key={p.id} className="flex items-center justify-between p-3 hover:bg-slate-50 rounded-lg transition-all group">
-                                                <div className="flex items-center gap-3 min-w-0">
-                                                    <span className="text-xs text-slate-400 font-mono w-6">#{p.queue_order || i + 1}</span>
-                                                    <div className="min-w-0">
-                                                        <p className="text-sm text-slate-800 truncate font-medium">{p.name}</p>
-                                                        <p className="text-xs text-slate-400">{p.role} • {formatCurrency(p.base_price)}</p>
+                                        .map((p, i) => {
+                                            const isUnsold = p.status === 'unsold';
+                                            return (
+                                                <div key={p.id} className={`flex items-center justify-between p-3 hover:bg-slate-50 rounded-lg transition-all group ${isUnsold ? 'bg-amber-50/50 border border-amber-200' : ''}`}>
+                                                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                                                        <span className="text-xs text-slate-400 font-mono w-6">#{p.queue_order || i + 1}</span>
+                                                        <div className="min-w-0 flex-1">
+                                                            <div className="flex items-center gap-2">
+                                                                <p className="text-sm text-slate-800 truncate font-medium">{p.name}</p>
+                                                                {isUnsold && (
+                                                                    <Badge className="bg-amber-100 text-amber-700 border-amber-300 text-[10px] px-1.5 py-0 flex-shrink-0">
+                                                                        Unsold
+                                                                    </Badge>
+                                                                )}
+                                                            </div>
+                                                            <p className="text-xs text-slate-400">{p.role} • {formatCurrency(p.base_price)}</p>
+                                                        </div>
                                                     </div>
+                                                    <ActionButton
+                                                        onClick={() => handleStartBidForPlayer(p.id, p.name)}
+                                                        disabled={!!currentPlayer}
+                                                        loading={actionLoading === `start-${p.id}`}
+                                                        variant="primary"
+                                                        size="sm"
+                                                        className="opacity-0 group-hover:opacity-100 h-7 px-3 text-xs flex items-center gap-1"
+                                                    >
+                                                        <Zap className="w-3 h-3" />
+                                                        <span>Bid</span>
+                                                    </ActionButton>
                                                 </div>
-                                                <ActionButton
-                                                    onClick={() => handleStartBidForPlayer(p.id, p.name)}
-                                                    disabled={!!currentPlayer}
-                                                    loading={actionLoading === `start-${p.id}`}
-                                                    variant="primary"
-                                                    size="sm"
-                                                    className="opacity-0 group-hover:opacity-100 h-7 px-3 text-xs flex items-center gap-1"
-                                                >
-                                                    <Zap className="w-3 h-3" />
-                                                    <span>Bid</span>
-                                                </ActionButton>
-                                            </div>
-                                        ))}
+                                            );
+                                        })}
                                 </div>
                             </div>
                         ) : (
@@ -1121,6 +1454,8 @@ export default function HostDashboard() {
                         </ActionButton>
                     </div>
                 </aside>
+                    </>
+                )}
             </main>
 
             {/* Team Squad Dialog */}

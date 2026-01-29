@@ -117,7 +117,8 @@ type AuctionState struct {
 	BidHistory    []Bid     `json:"bids"`
 	Teams         []Team    `json:"teams"`
 	QueueNext     []Player  `json:"queue_next"`
-	TimerRunning  bool      `json:"timer_running"`
-	BidFrozen     bool      `json:"bid_frozen"`
-	TiedTeams     []Team    `json:"tied_teams,omitempty"` // Teams that bid 50000 (max) - for tie-breaking
+	TimerRunning          bool      `json:"timer_running"`
+	BidFrozen             bool      `json:"bid_frozen"`
+	BidderBiddingDisabled bool      `json:"bidder_bidding_disabled"`
+	TiedTeams             []Team    `json:"tied_teams,omitempty"` // Teams that bid 50000 (max) - for tie-breaking
 }

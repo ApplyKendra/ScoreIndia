@@ -86,6 +86,12 @@ type PlaceBidRequest struct {
 	Amount int64 `json:"amount" validate:"required,gt=0"`
 }
 
+// PlaceBidForTeamRequest for host/admin to place bid on behalf of a team
+type PlaceBidForTeamRequest struct {
+	TeamID string `json:"team_id" validate:"required"`
+	Amount int64  `json:"amount" validate:"required,gt=0"`
+}
+
 // PlayerFilter for filtering players
 type PlayerFilter struct {
 	Status   string `query:"status"`

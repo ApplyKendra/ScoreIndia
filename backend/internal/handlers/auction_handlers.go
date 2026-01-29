@@ -280,7 +280,7 @@ func (h *Handlers) PlaceBid(c *fiber.Ctx) error {
 		})
 	}
 
-	bid, err := h.services.Auction.PlaceBid(c.Context(), *teamID, req.Amount)
+	bid, err := h.services.Auction.PlaceBid(c.Context(), *teamID, req.Amount, false, false)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": err.Error(),
@@ -291,6 +291,60 @@ func (h *Handlers) PlaceBid(c *fiber.Ctx) error {
 	h.hub.BroadcastJSON("auction:bid", bid)
 
 	return c.JSON(bid)
+}
+
+// PlaceBidForTeam allows host/admin to place a bid on behalf of a team
+func (h *Handlers) PlaceBidForTeam(c *fiber.Ctx) error {
+	var req models.PlaceBidForTeamRequest
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid request body",
+		})
+	}
+
+	teamID, err := uuid.Parse(req.TeamID)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid team ID",
+		})
+	}
+
+	// Skip bidder check and freeze check for host/admin placed bids
+	bid, err := h.services.Auction.PlaceBid(c.Context(), teamID, req.Amount, true, true)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": err.Error(),
+		})
+	}
+
+	// Broadcast bid to all clients
+	h.hub.BroadcastJSON("auction:bid", bid)
+
+	return c.JSON(bid)
+}
+
+// ToggleBidderBidding toggles the bidder bidding disabled state
+func (h *Handlers) ToggleBidderBidding(c *fiber.Ctx) error {
+	var req struct {
+		Disabled bool `json:"disabled"`
+	}
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid request body",
+		})
+	}
+
+	// Set the disabled state in Redis
+	h.services.Auction.SetBidderBiddingDisabled(c.Context(), req.Disabled)
+
+	// Broadcast updated state to all clients
+	state, _ := h.services.Auction.GetState(c.Context())
+	h.hub.BroadcastJSON("auction:state", state)
+
+	return c.JSON(fiber.Map{
+		"disabled": req.Disabled,
+		"message":  "Bidder bidding state updated",
+	})
 }
 
 // GetBidHistory returns bid history for a player

@@ -208,9 +208,11 @@ func main() {
 	protected.Post("/auction/reset-everything", middleware.RequireRole("super_admin"), h.ResetEverything) // Complete system reset
 	protected.Post("/auction/broadcast-live", middleware.RequireRole("host", "admin", "super_admin"), h.BroadcastLive) // Go live
 	protected.Post("/auction/stream-url", middleware.RequireRole("host", "admin", "super_admin"), h.SetStreamUrl) // Set YouTube stream URL
+	protected.Post("/auction/toggle-bidder-bidding", middleware.RequireRole("host", "admin", "super_admin"), h.ToggleBidderBidding) // Toggle bidder bidding disabled
 
 	// Bids
 	protected.Post("/bids", middleware.RequireRole("bidder"), h.PlaceBid)
+	protected.Post("/bids/for-team", middleware.RequireRole("host", "admin", "super_admin"), h.PlaceBidForTeam)
 	protected.Get("/bids/history/:playerId", h.GetBidHistory)
 
 	// Settings
