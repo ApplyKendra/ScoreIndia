@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import {
     LayoutDashboard,
@@ -151,6 +151,9 @@ export default function AdminDashboard() {
     const [players, setPlayers] = useState<Player[]>([]);
     const [users, setUsers] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
+    
+    // Player search state (frontend-only filtering)
+    const [playerSearchQuery, setPlayerSearchQuery] = useState<string>('');
 
     // Form states
     const [newTeam, setNewTeam] = useState({ name: '', short_name: '', color: '#0066FF', budget: 150000, logo_url: '' });
@@ -174,6 +177,12 @@ export default function AdminDashboard() {
     // Retained Players State
     const [retainedPlayers, setRetainedPlayers] = useState<{ player_id: string; badge: string; name?: string }[]>([]);
     const [loadingRetained, setLoadingRetained] = useState(false);
+    
+    // Retained players search state (frontend-only filtering)
+    const [retainedPlayersSearchQuery, setRetainedPlayersSearchQuery] = useState<string>('');
+    
+    // Modal state for selecting retained players
+    const [isSelectPlayerModalOpen, setIsSelectPlayerModalOpen] = useState(false);
 
     // Reset operation loading states
     const [isResettingAuction, setIsResettingAuction] = useState(false);
@@ -228,6 +237,21 @@ export default function AdminDashboard() {
 
         fetchData();
     }, [isAuthenticated]);
+
+    // Filter players based on search query (frontend-only)
+    const filteredPlayers = useMemo(() => {
+        if (!playerSearchQuery.trim()) {
+            return players;
+        }
+        const query = playerSearchQuery.toLowerCase().trim();
+        return players.filter(player => 
+            player.name.toLowerCase().includes(query) ||
+            player.role.toLowerCase().includes(query) ||
+            player.category?.toLowerCase().includes(query) ||
+            player.status.toLowerCase().includes(query) ||
+            player.country?.toLowerCase().includes(query)
+        );
+    }, [players, playerSearchQuery]);
 
     // Handlers
     const handleUpdateUser = async () => {
@@ -338,8 +362,32 @@ export default function AdminDashboard() {
         const player = players.find(p => p.id === playerId);
         if (player && !retainedPlayers.find(rp => rp.player_id === playerId)) {
             setRetainedPlayers([...retainedPlayers, { player_id: playerId, badge: '', name: player.name }]);
+            setRetainedPlayersSearchQuery(''); // Clear search after adding
+            setIsSelectPlayerModalOpen(false); // Close modal after adding
         }
     };
+    
+    // Filter available players for retained players dropdown (frontend-only)
+    const availablePlayersForRetain = useMemo(() => {
+        const available = players.filter(p => p.status === 'available' && !retainedPlayers.find(rp => rp.player_id === p.id));
+        
+        if (!retainedPlayersSearchQuery || !retainedPlayersSearchQuery.trim()) {
+            return available;
+        }
+        
+        const query = retainedPlayersSearchQuery.toLowerCase().trim();
+        return available.filter(player => {
+            const name = (player.name || '').toLowerCase();
+            const role = (player.role || '').toLowerCase();
+            const category = (player.category || '').toLowerCase();
+            const country = (player.country || '').toLowerCase();
+            
+            return name.includes(query) || 
+                   role.includes(query) || 
+                   category.includes(query) || 
+                   country.includes(query);
+        });
+    }, [players, retainedPlayers, retainedPlayersSearchQuery]);
 
     // Remove a retained player
     const removeRetainedPlayer = (playerId: string) => {
@@ -748,6 +796,7 @@ export default function AdminDashboard() {
                             setIsEditTeamOpen(open);
                             if (!open) {
                                 setRetainedPlayers([]);
+                                setRetainedPlayersSearchQuery(''); // Clear search when dialog closes
                             }
                         }}>
                             <DialogContent className="sm:max-w-2xl !bg-white dark:!bg-white !text-slate-900 dark:!text-slate-900 max-h-[90vh] overflow-y-auto">
@@ -814,25 +863,95 @@ export default function AdminDashboard() {
                                             </Label>
                                             <p className="text-xs text-slate-500 mb-3">These players will be pre-assigned to this team and won&apos;t participate in the auction.</p>
 
-                                            {/* Add Player Dropdown */}
+                                            {/* Add Player Modal */}
                                             <div className="mb-3">
-                                                <Select
-                                                    value=""
-                                                    onValueChange={(playerId) => addRetainedPlayer(playerId)}
-                                                >
-                                                    <SelectTrigger className="!text-slate-900 dark:!text-slate-900 !bg-white dark:!bg-white">
-                                                        <SelectValue placeholder="Add a player to retain..." />
-                                                    </SelectTrigger>
-                                                    <SelectContent className="!bg-white dark:!bg-white !text-slate-900 dark:!text-slate-900 max-h-60">
-                                                        {players
-                                                            .filter(p => p.status === 'available' && !retainedPlayers.find(rp => rp.player_id === p.id))
-                                                            .map(player => (
-                                                                <SelectItem key={player.id} value={player.id} className="!text-slate-900 dark:!text-slate-900">
-                                                                    {player.name} ({player.role})
-                                                                </SelectItem>
-                                                            ))}
-                                                    </SelectContent>
-                                                </Select>
+                                                <Dialog open={isSelectPlayerModalOpen} onOpenChange={(open) => {
+                                                    setIsSelectPlayerModalOpen(open);
+                                                    if (!open) {
+                                                        setRetainedPlayersSearchQuery(''); // Clear search when modal closes
+                                                    }
+                                                }}>
+                                                    <DialogTrigger asChild>
+                                                        <Button variant="outline" className="w-full justify-start !text-slate-900 dark:!text-slate-900 !bg-white dark:!bg-white">
+                                                            <Plus className="w-4 h-4 mr-2" />
+                                                            Add a player to retain...
+                                                        </Button>
+                                                    </DialogTrigger>
+                                                    <DialogContent className="sm:max-w-2xl !bg-white dark:!bg-white !text-slate-900 dark:!text-slate-900 max-h-[80vh] flex flex-col">
+                                                        <DialogHeader>
+                                                            <DialogTitle className="!text-slate-900 dark:!text-slate-900">Select Player to Retain</DialogTitle>
+                                                            <DialogDescription className="!text-slate-600 dark:!text-slate-600">
+                                                                Search and select a player to pre-assign to this team.
+                                                            </DialogDescription>
+                                                        </DialogHeader>
+                                                        
+                                                        {/* Search Bar */}
+                                                        <div className="relative mb-4">
+                                                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
+                                                            <Input
+                                                                type="text"
+                                                                placeholder="Search players by name, role, category, or country..."
+                                                                value={retainedPlayersSearchQuery}
+                                                                onChange={(e) => setRetainedPlayersSearchQuery(e.target.value)}
+                                                                className="pl-10 !text-slate-900 dark:!text-slate-900 !bg-white dark:!bg-white"
+                                                                autoFocus
+                                                            />
+                                                        </div>
+                                                        
+                                                        {/* Players List */}
+                                                        <ScrollArea className="flex-1 min-h-0 border border-slate-200 rounded-md">
+                                                            <div className="p-2">
+                                                                {availablePlayersForRetain.length > 0 ? (
+                                                                    <div className="space-y-1">
+                                                                        {availablePlayersForRetain.map(player => (
+                                                                            <button
+                                                                                key={player.id}
+                                                                                onClick={() => addRetainedPlayer(player.id)}
+                                                                                className="w-full text-left p-3 rounded-lg border border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-colors"
+                                                                            >
+                                                                                <div className="flex items-center justify-between">
+                                                                                    <div className="flex-1">
+                                                                                        <p className="font-medium text-slate-900">{player.name}</p>
+                                                                                        <div className="flex items-center gap-2 mt-1">
+                                                                                            <Badge variant="secondary" className="text-xs">
+                                                                                                {player.role}
+                                                                                            </Badge>
+                                                                                            {player.category && (
+                                                                                                <Badge variant="outline" className="text-xs">
+                                                                                                    {player.category}
+                                                                                                </Badge>
+                                                                                            )}
+                                                                                            {player.country && (
+                                                                                                <span className="text-xs text-slate-500">{player.country}</span>
+                                                                                            )}
+                                                                                        </div>
+                                                                                    </div>
+                                                                                    <div className="text-right">
+                                                                                        <p className="text-sm font-semibold text-slate-900">{formatCurrency(player.base_price)}</p>
+                                                                                    </div>
+                                                                                </div>
+                                                                            </button>
+                                                                        ))}
+                                                                    </div>
+                                                                ) : (
+                                                                    <div className="text-center py-8 text-slate-500">
+                                                                        {retainedPlayersSearchQuery ? (
+                                                                            <p>No players found matching your search.</p>
+                                                                        ) : (
+                                                                            <p>No available players to retain.</p>
+                                                                        )}
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </ScrollArea>
+                                                        
+                                                        <DialogFooter>
+                                                            <Button variant="outline" onClick={() => setIsSelectPlayerModalOpen(false)}>
+                                                                Cancel
+                                                            </Button>
+                                                        </DialogFooter>
+                                                    </DialogContent>
+                                                </Dialog>
                                             </div>
 
                                             {/* Retained Players List */}
@@ -1006,6 +1125,30 @@ export default function AdminDashboard() {
                                 </div>
                             </div>
 
+                            {/* Search Bar */}
+                            <div className="flex items-center gap-2">
+                                <div className="relative flex-1 max-w-md">
+                                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
+                                    <Input
+                                        type="text"
+                                        placeholder="Search players by name, role, category, status, or country..."
+                                        value={playerSearchQuery}
+                                        onChange={(e) => setPlayerSearchQuery(e.target.value)}
+                                        className="pl-10 !text-slate-900 dark:!text-slate-900 !bg-white dark:!bg-white"
+                                    />
+                                </div>
+                                {playerSearchQuery && (
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => setPlayerSearchQuery('')}
+                                        className="text-slate-500"
+                                    >
+                                        Clear
+                                    </Button>
+                                )}
+                            </div>
+
                             <Card className="border-slate-200">
                                 <Table>
                                     <TableHeader>
@@ -1020,10 +1163,23 @@ export default function AdminDashboard() {
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {players.map((player, index) => (
+                                        {filteredPlayers.map((player, index) => (
                                             <TableRow key={player.id}>
                                                 <TableCell className="text-slate-600">{index + 1}</TableCell>
-                                                <TableCell className="font-medium text-slate-900">{player.name}</TableCell>
+                                                <TableCell className="font-medium text-slate-900">
+                                                    <div className="flex items-center gap-1.5">
+                                                        <span>{player.name}</span>
+                                                        {player.image_url && player.image_url.trim() ? (
+                                                            <Badge variant="default" className="bg-emerald-500 text-white text-[10px] px-1.5 py-0.5 h-5 flex items-center">
+                                                                Image
+                                                            </Badge>
+                                                        ) : (
+                                                            <Badge variant="outline" className="bg-slate-100 text-slate-600 text-[10px] px-1.5 py-0.5 h-5 flex items-center border-slate-300">
+                                                                No Image
+                                                            </Badge>
+                                                        )}
+                                                    </div>
+                                                </TableCell>
                                                 <TableCell>{player.role}</TableCell>
                                                 <TableCell>{formatCurrency(player.base_price)}</TableCell>
                                                 <TableCell>
@@ -1057,6 +1213,13 @@ export default function AdminDashboard() {
                                                 </TableCell>
                                             </TableRow>
                                         ))}
+                                        {filteredPlayers.length === 0 && players.length > 0 && (
+                                            <TableRow>
+                                                <TableCell colSpan={7} className="text-center py-8 text-slate-400">
+                                                    No players found matching your search.
+                                                </TableCell>
+                                            </TableRow>
+                                        )}
                                         {players.length === 0 && (
                                             <TableRow>
                                                 <TableCell colSpan={7} className="text-center py-8 text-slate-400">

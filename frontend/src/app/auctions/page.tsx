@@ -186,7 +186,7 @@ export default function AuctionsPage() {
                 if (data.player) {
                     // Attach team data to player if available
                     const playerWithTeam = data.team ? { ...data.player, team: data.team } : data.player;
-                    setRecentSales(prev => [playerWithTeam, ...prev.slice(0, 9)]);
+                    setRecentSales(prev => [playerWithTeam, ...prev.slice(0, 149)]);
                     // Set last sold player with team data - this must happen BEFORE auction:state
                     setLastSoldPlayer(playerWithTeam);
                     setLastUnsoldPlayer(null);
@@ -218,7 +218,7 @@ export default function AuctionsPage() {
                     currentBidsRef.current = [];
                 }
                 api.getPublicTeams().then(t => setTeams(t || []));
-                api.getPublicTopBuys(10).then(t => setTopBuys(t || []));
+                api.getPublicTopBuys(150).then(t => setTopBuys(t || []));
                 api.getPublicPlayers({ limit: 200 }).then(p => setAllPlayers(p?.data || []));
                 break;
             case 'auction:unsold':
@@ -277,8 +277,8 @@ export default function AuctionsPage() {
                 api.getPublicAuctionState().then(state => setAuctionState(state));
                 api.getPublicTeams().then(t => setTeams(t || []));
                 api.getPublicPlayers({ limit: 200 }).then(p => setAllPlayers(p?.data || []));
-                api.getPublicRecentSales(10).then(r => setRecentSales(r || []));
-                api.getPublicTopBuys(10).then(t => setTopBuys(t || []));
+                api.getPublicRecentSales(150).then(r => setRecentSales(r || []));
+                api.getPublicTopBuys(150).then(t => setTopBuys(t || []));
                 break;
             case 'auction:stream-url':
                 // Host has set/updated the YouTube live stream URL
@@ -298,8 +298,8 @@ export default function AuctionsPage() {
             Promise.all([
                 api.getPublicAuctionState().catch(() => null),
                 api.getPublicTeams().catch(() => []),
-                api.getPublicRecentSales(10).catch(() => []),
-                api.getPublicTopBuys(10).catch(() => []),
+                api.getPublicRecentSales(150).catch(() => []),
+                api.getPublicTopBuys(150).catch(() => []),
             ]).then(([stateData, teamsData, recentData, topData]) => {
                 if (stateData) setAuctionState(stateData);
                 if (teamsData) setTeams(teamsData);
@@ -327,8 +327,8 @@ export default function AuctionsPage() {
                     api.getPublicTeams().catch(() => []),
                     api.getPublicPlayers({ limit: 200 }).catch(() => ({ data: [] })),
                     api.getPublicAuctionState().catch(() => null),
-                    api.getPublicRecentSales(10).catch(() => []),
-                    api.getPublicTopBuys(10).catch(() => []),
+                    api.getPublicRecentSales(150).catch(() => []),
+                    api.getPublicTopBuys(150).catch(() => []),
                 ]);
 
                 if (isMounted) {
@@ -666,7 +666,8 @@ export default function AuctionsPage() {
 
             {/* Main Content */}
             <main className="mx-auto max-w-7xl px-2 sm:px-6 lg:px-8 py-4 sm:py-8">
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
+                {/* Live Tab Content - Show on all screens, but only when activeTab is 'live' on lg screens */}
+                <div className={`grid grid-cols-1 ${activeTab === 'live' ? 'lg:grid-cols-3' : 'lg:hidden'} gap-6 lg:gap-8`}>
                     {/* Current Player - On The Block Card */}
                     <div className="lg:col-span-2 space-y-6">
                                 <Card className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 border-0 rounded-3xl p-3 sm:p-8 shadow-2xl shadow-blue-900/30">
@@ -678,7 +679,7 @@ export default function AuctionsPage() {
 
                                     {/* YouTube Live Stream - VISIBLE ON ALL SCREEN SIZES */}
                                     {liveStreamUrl && getYouTubeVideoId(liveStreamUrl) && auctionState?.status !== 'completed' && (
-                                        <div className="-mx-3 -mt-3 sm:-mx-8 sm:-mt-8 mb-4 relative z-10">
+                                        <div className="-mx-3 -mt-3 sm:-mx-8 sm:-mt-8 -mb-5 relative z-10">
                                             {/* Live Stream Strip Header */}
                                             <div className="flex items-center justify-between gap-2 px-3 py-2 sm:px-4 sm:py-2.5 bg-gradient-to-r from-blue-600 to-cyan-600">
                                                 <div className="flex items-center gap-2">
@@ -1504,7 +1505,7 @@ export default function AuctionsPage() {
                 {/* Available Players Tab */}
                 {
                     activeTab === 'available' && (
-                        <div className="space-y-6">
+                        <div className={`space-y-6 ${activeTab === 'available' ? 'lg:block' : 'lg:hidden'}`}>
                             {/* Sub Tabs & Filters */}
                             <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
                                 <div className="p-1 bg-slate-100 rounded-xl inline-flex">
@@ -1611,7 +1612,7 @@ export default function AuctionsPage() {
                 {/* Squads Tab */}
                 {
                     activeTab === 'squads' && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 ${activeTab === 'squads' ? 'lg:block' : 'lg:hidden'}`}>
                             {teams.map((team) => (
                                 <Card key={team.id} className="group overflow-hidden border border-slate-200 shadow-sm hover:shadow-xl hover:border-blue-500/30 transition-all duration-300 bg-white">
                                     <div className="p-4 flex flex-row gap-4">

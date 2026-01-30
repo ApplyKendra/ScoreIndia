@@ -38,14 +38,16 @@ const PlayerListItem = memo(({ player }: { player: Player }) => {
     return (
         <div className="group flex items-center gap-4 p-3 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors">
             {/* Avatar / Icon */}
-            <div className={`relative w-10 h-10 flex-shrink-0 rounded-lg bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center text-xl border border-slate-200/60 overflow-hidden ${isRetained ? 'ring-2 ring-amber-400' : ''}`}>
-                {player.image_url ? (
-                    <img src={getImageUrl(player.image_url)} alt={player.name} className="w-full h-full object-cover" />
-                ) : (
-                    <span>{player.role === 'Batsman' ? '🏏' : player.role === 'Bowler' ? '🎯' : player.role === 'Wicketkeeper' ? '🧤' : '⭐'}</span>
-                )}
+            <div className="relative flex-shrink-0">
+                <div className={`relative w-10 h-10 rounded-lg bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center text-xl border border-slate-200/60 overflow-hidden ${isRetained ? 'ring-2 ring-amber-400' : ''}`}>
+                    {player.image_url ? (
+                        <img src={getImageUrl(player.image_url)} alt={player.name} className="w-full h-full object-cover" />
+                    ) : (
+                        <span>{player.role === 'Batsman' ? '🏏' : player.role === 'Bowler' ? '🎯' : player.role === 'Wicketkeeper' ? '🧤' : '⭐'}</span>
+                    )}
+                </div>
                 {isRetained && (
-                    <div className="absolute -top-1 -right-1 w-4 h-4 bg-amber-400 rounded-full flex items-center justify-center shadow-sm">
+                    <div className="absolute -top-1 -right-1 w-4 h-4 bg-amber-400 rounded-full flex items-center justify-center shadow-sm z-10">
                         <Crown className="w-2.5 h-2.5 text-amber-800" />
                     </div>
                 )}
