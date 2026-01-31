@@ -53,20 +53,19 @@ const PlayerListItem = memo(({ player }: { player: Player }) => {
                 )}
             </div>
 
-            {/* Name & Country */}
+            {/* Name */}
             <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                    <h3 className="font-bold text-slate-900 truncate">{player.name}</h3>
-                    <span className="text-xs text-slate-500 font-medium px-1.5 py-0.5 bg-slate-100 rounded text-center min-w-[24px]">
-                        {player.country_flag || player.country}
-                    </span>
-                    {/* Badge for retained players */}
-                    {isRetained && player.badge && (
-                        <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 flex items-center gap-1 whitespace-nowrap">
+                {/* Badge for retained players - above player name */}
+                {isRetained && player.badge && (
+                    <div className="mb-1">
+                        <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 flex items-center gap-1 whitespace-nowrap inline-flex">
                             <Crown className="w-2.5 h-2.5" />
                             {player.badge}
                         </span>
-                    )}
+                    </div>
+                )}
+                <div className="flex items-center gap-2">
+                    <h3 className="font-bold text-slate-900 truncate">{player.name}</h3>
                 </div>
                 <p className="text-xs text-slate-500">{player.role}</p>
             </div>

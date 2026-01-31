@@ -199,6 +199,9 @@ export default function HostDashboard() {
     const [youtubeDialogOpen, setYoutubeDialogOpen] = useState(false);
     const [presentationMode, setPresentationMode] = useState(false);
     const [tieBreakModalOpen, setTieBreakModalOpen] = useState(false);
+    const [randomBidModalOpen, setRandomBidModalOpen] = useState(false);
+    const [selectedRandomTeam, setSelectedRandomTeam] = useState<Team | null>(null);
+    const [selectedRandomBidAmount, setSelectedRandomBidAmount] = useState<number | null>(null);
 
     const { user, logout, isAuthenticated, isLoading: authLoading } = useAuth();
     const router = useRouter();
@@ -799,6 +802,53 @@ export default function HostDashboard() {
         }
     };
 
+    // Handle placing random bid from modal
+    const handlePlaceRandomBid = async () => {
+        if (!selectedRandomTeam || !selectedRandomBidAmount) {
+            toast.error('Please select a team and bid amount');
+            return;
+        }
+
+        if (!currentPlayer) {
+            toast.error('No player currently on block');
+            return;
+        }
+
+        // Check budget
+        const remainingBudget = selectedRandomTeam.remaining_budget || (selectedRandomTeam.budget - (selectedRandomTeam.spent || 0));
+        if (selectedRandomBidAmount > remainingBudget) {
+            toast.error(`${selectedRandomTeam.name} has insufficient budget for this bid`);
+            return;
+        }
+
+        setActionLoading('random-bid');
+        try {
+            const result = await api.placeBidForTeam(selectedRandomTeam.id, selectedRandomBidAmount);
+            toast.success(`Bid placed for ${selectedRandomTeam.name}: ${formatCurrency(selectedRandomBidAmount)}`);
+            
+            // Refresh auction state
+            const stateData = await api.getAuctionState();
+            setAuctionState(stateData);
+            if (stateData?.bids) {
+                setBidHistory(stateData.bids);
+            }
+            
+            // Refresh teams to update budgets
+            const teamsData = await api.getTeams();
+            setTeams(teamsData || []);
+            
+            // Close modal and reset selections
+            setRandomBidModalOpen(false);
+            setSelectedRandomTeam(null);
+            setSelectedRandomBidAmount(null);
+        } catch (error: any) {
+            console.error('Error placing random bid:', error);
+            toast.error(error.message || `Failed to place bid for ${selectedRandomTeam.name}`);
+        } finally {
+            setActionLoading(null);
+        }
+    };
+
     if (authLoading || loading) {
         return (
             <div className="h-screen bg-slate-50 flex items-center justify-center">
@@ -979,39 +1029,196 @@ export default function HostDashboard() {
                                             <h1 className="text-2xl font-bold text-slate-900 mb-1">Master Bid Controls</h1>
                                             <p className="text-sm text-slate-600">Place bids on behalf of any team for the current player</p>
                                         </div>
-                                        <Card className="p-4 bg-white border-slate-200 shadow-sm">
-                                            <div className="flex items-center gap-4">
-                                                <div className="flex-1">
-                                                    <p className="text-sm font-semibold text-slate-800 mb-0.5">Disable Bidder Bidding</p>
-                                                    <p className="text-xs text-slate-500">
-                                                        {auctionState?.bidder_bidding_disabled ? 'Bidders cannot place bids' : 'Bidders can place bids'}
-                                                    </p>
-                                                </div>
-                                                <button
-                                                    onClick={() => handleToggleBidderBidding(!auctionState?.bidder_bidding_disabled)}
-                                                    disabled={actionLoading === 'toggle-bidder-bidding'}
-                                                    className={`relative inline-flex h-7 w-12 items-center rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-inner ${
-                                                        auctionState?.bidder_bidding_disabled
-                                                            ? 'bg-red-600 hover:bg-red-700'
-                                                            : 'bg-slate-300 hover:bg-slate-400'
-                                                    }`}
-                                                >
-                                                    {actionLoading === 'toggle-bidder-bidding' ? (
-                                                        <div className="absolute inset-0 flex items-center justify-center">
-                                                            <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                        <div className="flex items-center gap-3">
+                                            <Dialog open={randomBidModalOpen} onOpenChange={setRandomBidModalOpen}>
+                                                <DialogTrigger asChild>
+                                                    <Button
+                                                        variant="outline"
+                                                        className="bg-purple-50 hover:bg-purple-100 border-purple-300 text-purple-700 font-semibold"
+                                                        disabled={!currentPlayer}
+                                                    >
+                                                        <Zap className="w-4 h-4 mr-2" />
+                                                        Random Bid
+                                                    </Button>
+                                                </DialogTrigger>
+                                                <DialogContent className="bg-white border-slate-200 max-w-2xl flex flex-col max-h-[90vh]">
+                                                    <DialogHeader className="shrink-0">
+                                                        <DialogTitle className="text-slate-900 flex items-center gap-2">
+                                                            <Zap className="w-5 h-5 text-purple-600" />
+                                                            Place Random Bid
+                                                        </DialogTitle>
+                                                        <DialogDescription className="text-slate-600">
+                                                            Select any team and any bid amount from the ladder
+                                                        </DialogDescription>
+                                                    </DialogHeader>
+                                                    <ScrollArea className="flex-1 min-h-0 px-1">
+                                                        <div className="py-4 space-y-6 pr-4">
+                                                            {/* Team Selection */}
+                                                            <div>
+                                                                <p className="text-sm font-semibold text-slate-800 mb-3">Select Team</p>
+                                                                <ScrollArea className="h-56 border border-slate-200 rounded-lg p-2">
+                                                                    <div className="grid grid-cols-2 gap-2">
+                                                                        {teams.map(team => {
+                                                                            const spent = team.spent || 0;
+                                                                            const remaining = team.remaining_budget || (team.budget - spent);
+                                                                            const isSelected = selectedRandomTeam?.id === team.id;
+                                                                            return (
+                                                                                <button
+                                                                                    key={team.id}
+                                                                                    onClick={() => setSelectedRandomTeam(team)}
+                                                                                    className={`p-3 rounded-lg border-2 transition-all text-left ${
+                                                                                        isSelected
+                                                                                            ? 'border-purple-500 bg-purple-50'
+                                                                                            : 'border-slate-200 hover:border-slate-300 bg-white'
+                                                                                    }`}
+                                                                                >
+                                                                                    <div className="flex items-center gap-2 mb-2">
+                                                                                        {team.logo_url ? (
+                                                                                            <img src={getImageUrl(team.logo_url)} alt={team.name} className="w-8 h-8 rounded object-contain bg-white border border-slate-200" />
+                                                                                        ) : (
+                                                                                            <div className="w-8 h-8 rounded flex items-center justify-center text-[10px] font-bold text-white" style={{ backgroundColor: team.color }}>
+                                                                                                {team.short_name}
+                                                                                            </div>
+                                                                                        )}
+                                                                                        <div className="flex-1 min-w-0">
+                                                                                            <p className="font-semibold text-slate-900 text-sm truncate">{team.name}</p>
+                                                                                            <p className="text-xs text-slate-500">Left: {formatCurrency(remaining)}</p>
+                                                                                        </div>
+                                                                                        {isSelected && (
+                                                                                            <div className="w-5 h-5 rounded-full bg-purple-600 flex items-center justify-center">
+                                                                                                <span className="text-white text-xs">✓</span>
+                                                                                            </div>
+                                                                                        )}
+                                                                                    </div>
+                                                                                </button>
+                                                                            );
+                                                                        })}
+                                                                    </div>
+                                                                </ScrollArea>
+                                                            </div>
+
+                                                            {/* Bid Amount Selection */}
+                                                            <div>
+                                                                <p className="text-sm font-semibold text-slate-800 mb-3">Select Bid Amount</p>
+                                                                <ScrollArea className="h-40 border border-slate-200 rounded-lg p-2">
+                                                                    <div className="grid grid-cols-4 md:grid-cols-6 gap-2">
+                                                                        {BID_LADDER.map(amount => {
+                                                                            const isSelected = selectedRandomBidAmount === amount;
+                                                                            const canAfford = selectedRandomTeam ? (selectedRandomTeam.remaining_budget || (selectedRandomTeam.budget - (selectedRandomTeam.spent || 0))) >= amount : true;
+                                                                            return (
+                                                                                <button
+                                                                                    key={amount}
+                                                                                    onClick={() => setSelectedRandomBidAmount(amount)}
+                                                                                    disabled={!canAfford}
+                                                                                    className={`p-2 rounded-lg border-2 transition-all font-semibold text-sm ${
+                                                                                        isSelected
+                                                                                            ? 'border-purple-500 bg-purple-50 text-purple-700'
+                                                                                            : canAfford
+                                                                                            ? 'border-slate-200 hover:border-slate-300 bg-white text-slate-700'
+                                                                                            : 'border-slate-100 bg-slate-50 text-slate-400 cursor-not-allowed opacity-50'
+                                                                                    }`}
+                                                                                >
+                                                                                    {formatCurrency(amount)}
+                                                                                </button>
+                                                                            );
+                                                                        })}
+                                                                    </div>
+                                                                </ScrollArea>
+                                                            </div>
+
+                                                            {/* Selected Info */}
+                                                            {selectedRandomTeam && selectedRandomBidAmount && (
+                                                                <div className="p-4 bg-purple-50 border border-purple-200 rounded-lg">
+                                                                    <p className="text-sm font-semibold text-slate-800 mb-2">Bid Summary</p>
+                                                                    <div className="space-y-1 text-sm">
+                                                                        <div className="flex justify-between">
+                                                                            <span className="text-slate-600">Team:</span>
+                                                                            <span className="font-semibold text-slate-900">{selectedRandomTeam.name}</span>
+                                                                        </div>
+                                                                        <div className="flex justify-between">
+                                                                            <span className="text-slate-600">Bid Amount:</span>
+                                                                            <span className="font-bold text-purple-700">{formatCurrency(selectedRandomBidAmount)}</span>
+                                                                        </div>
+                                                                        <div className="flex justify-between">
+                                                                            <span className="text-slate-600">Remaining Budget:</span>
+                                                                            <span className={`font-semibold ${
+                                                                                (selectedRandomTeam.remaining_budget || (selectedRandomTeam.budget - (selectedRandomTeam.spent || 0))) >= selectedRandomBidAmount
+                                                                                    ? 'text-emerald-600'
+                                                                                    : 'text-red-600'
+                                                                            }`}>
+                                                                                {formatCurrency(selectedRandomTeam.remaining_budget || (selectedRandomTeam.budget - (selectedRandomTeam.spent || 0)))}
+                                                                            </span>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            )}
                                                         </div>
-                                                    ) : (
-                                                        <span
-                                                            className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform duration-200 ${
-                                                                auctionState?.bidder_bidding_disabled
-                                                                    ? 'translate-x-6'
-                                                                    : 'translate-x-1'
-                                                            }`}
-                                                        />
-                                                    )}
-                                                </button>
-                                            </div>
-                                        </Card>
+                                                    </ScrollArea>
+                                                    <DialogFooter className="shrink-0 border-t border-slate-200 pt-4 mt-4">
+                                                        <Button
+                                                            variant="outline"
+                                                            onClick={() => {
+                                                                setRandomBidModalOpen(false);
+                                                                setSelectedRandomTeam(null);
+                                                                setSelectedRandomBidAmount(null);
+                                                            }}
+                                                        >
+                                                            Cancel
+                                                        </Button>
+                                                        <Button
+                                                            onClick={handlePlaceRandomBid}
+                                                            disabled={!selectedRandomTeam || !selectedRandomBidAmount || actionLoading === 'random-bid'}
+                                                            className="bg-purple-600 hover:bg-purple-700 text-white"
+                                                        >
+                                                            {actionLoading === 'random-bid' ? (
+                                                                <>
+                                                                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                                                                    Placing...
+                                                                </>
+                                                            ) : (
+                                                                <>
+                                                                    <Zap className="w-4 h-4 mr-2" />
+                                                                    Place Bid
+                                                                </>
+                                                            )}
+                                                        </Button>
+                                                    </DialogFooter>
+                                                </DialogContent>
+                                            </Dialog>
+                                            <Card className="p-4 bg-white border-slate-200 shadow-sm">
+                                                <div className="flex items-center gap-4">
+                                                    <div className="flex-1">
+                                                        <p className="text-sm font-semibold text-slate-800 mb-0.5">Disable Bidder Bidding</p>
+                                                        <p className="text-xs text-slate-500">
+                                                            {auctionState?.bidder_bidding_disabled ? 'Bidders cannot place bids' : 'Bidders can place bids'}
+                                                        </p>
+                                                    </div>
+                                                    <button
+                                                        onClick={() => handleToggleBidderBidding(!auctionState?.bidder_bidding_disabled)}
+                                                        disabled={actionLoading === 'toggle-bidder-bidding'}
+                                                        className={`relative inline-flex h-7 w-12 items-center rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-inner ${
+                                                            auctionState?.bidder_bidding_disabled
+                                                                ? 'bg-red-600 hover:bg-red-700'
+                                                                : 'bg-slate-300 hover:bg-slate-400'
+                                                        }`}
+                                                    >
+                                                        {actionLoading === 'toggle-bidder-bidding' ? (
+                                                            <div className="absolute inset-0 flex items-center justify-center">
+                                                                <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                                            </div>
+                                                        ) : (
+                                                            <span
+                                                                className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform duration-200 ${
+                                                                    auctionState?.bidder_bidding_disabled
+                                                                        ? 'translate-x-6'
+                                                                        : 'translate-x-1'
+                                                                }`}
+                                                            />
+                                                        )}
+                                                    </button>
+                                                </div>
+                                            </Card>
+                                        </div>
                                     </div>
                                 </div>
 
@@ -1024,8 +1231,8 @@ export default function HostDashboard() {
                                 ) : (
                                     <>
                                         {/* Current Player Info Card */}
-                                        <Card className="mb-6 p-4 bg-gradient-to-br from-indigo-50 to-purple-50 border-indigo-200">
-                                            <div className="flex items-center gap-4">
+                                        <Card className="mb-2 p-2 bg-gradient-to-br from-indigo-50 to-purple-50 border-indigo-200">
+                                            <div className="flex items-center gap-2">
                                                 {currentPlayer.image_url ? (
                                                     <img src={getImageUrl(currentPlayer.image_url)} alt={currentPlayer.name} className="w-16 h-16 rounded-lg object-cover" />
                                                 ) : (
@@ -1034,8 +1241,8 @@ export default function HostDashboard() {
                                                     </div>
                                                 )}
                                                 <div className="flex-1">
-                                                    <h2 className="text-xl font-bold text-slate-900 mb-1">{currentPlayer.name}</h2>
-                                                    <div className="flex items-center gap-3 text-sm text-slate-600">
+                                                    <h2 className="text-xl font-bold text-slate-900 mb-0.5">{currentPlayer.name}</h2>
+                                                    <div className="flex items-center gap-2 text-sm text-slate-600">
                                                         <span>{currentPlayer.country_flag || '🏏'}</span>
                                                         <span>{currentPlayer.country}</span>
                                                         <Badge className="bg-indigo-100 text-indigo-700 border-indigo-300">{currentPlayer.role}</Badge>
@@ -1044,10 +1251,10 @@ export default function HostDashboard() {
                                                     </div>
                                                 </div>
                                                 <div className="text-right">
-                                                    <p className="text-xs text-slate-500 mb-1">Current Bid</p>
+                                                    <p className="text-xs text-slate-500 mb-0.5">Current Bid</p>
                                                     <p className="text-2xl font-bold text-indigo-600">{formatCurrency(currentBid)}</p>
                                                     {currentBidder && (
-                                                        <div className="mt-2 flex items-center justify-end gap-2">
+                                                        <div className="mt-1 flex items-center justify-end gap-1.5">
                                                             <span className="text-xs text-slate-500">Leading:</span>
                                                             <div className="flex items-center gap-1.5 px-2 py-1 rounded" style={{ backgroundColor: `${currentBidder.color}15` }}>
                                                                 <div className="w-3 h-3 rounded-full" style={{ backgroundColor: currentBidder.color }}></div>
@@ -1057,7 +1264,7 @@ export default function HostDashboard() {
                                                     )}
                                                 </div>
                                             </div>
-                                            <div className="mt-4 pt-4 border-t border-indigo-200">
+                                            <div className="mt-1 pt-1 border-t border-indigo-200">
                                                 <div className="flex items-center justify-between">
                                                     <span className="text-sm text-slate-600">Next Bid Amount:</span>
                                                     <span className="text-lg font-bold text-indigo-700">{formatCurrency(getNextBidAmount())}</span>
@@ -1066,7 +1273,7 @@ export default function HostDashboard() {
                                         </Card>
 
                                         {/* Teams Grid */}
-                                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+                                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
                                             {teams.map(team => {
                                                 const spent = team.spent || 0;
                                                 const remaining = team.remaining_budget || (team.budget - spent);

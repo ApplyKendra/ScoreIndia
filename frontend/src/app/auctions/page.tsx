@@ -595,9 +595,9 @@ export default function AuctionsPage() {
         <div className="min-h-screen bg-linear-to-br from-slate-50 via-blue-50/30 to-slate-100">
             {/* Premium Header */}
             <header className={`sticky top-0 z-50 bg-white/90 backdrop-blur-2xl border-b border-slate-200/60 shadow-sm transition-transform duration-300 ${isVisible ? 'translate-y-0' : '-translate-y-full'}`}>
-                <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-4">
+                <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-2">
                     <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-3">
                             <Link href="/">
                                 <Button variant="ghost" size="sm" className="gap-2 rounded-xl hover:bg-slate-100">
                                     <ArrowLeft className="w-4 h-4" />
@@ -616,7 +616,7 @@ export default function AuctionsPage() {
                                         </div>
                                     )}
                                 </div>
-                                <p className="text-[10px] sm:text-xs text-slate-500 font-medium">Season 2026</p>
+                                <p className="text-[10px] sm:text-xs text-slate-500 font-medium mt-0.5">Season 2026</p>
                             </div>
                         </div>
                         <div className="flex items-center gap-2 sm:gap-3">
@@ -636,7 +636,7 @@ export default function AuctionsPage() {
             </header>
 
             {/* Tab Navigation - Desktop: Top, Mobile: Below on-the-block card */}
-            <div className={`hidden lg:block sticky z-40 bg-white border-b border-slate-200/60 transition-all duration-300 ${isVisible ? 'top-[57px] sm:top-[73px]' : 'top-0'}`}>
+            <div className={`hidden lg:block sticky z-40 bg-white border-b border-slate-200/60 transition-all duration-300 ${isVisible ? 'top-[49px] sm:top-[49px]' : 'top-0'}`}>
                 <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                     <div className="flex gap-1.5 overflow-x-auto no-scrollbar py-2 sm:py-3">
                         {tabs.map((tab) => {
@@ -743,11 +743,8 @@ export default function AuctionsPage() {
 
                                                 {/* Player Name & Info - Right side */}
                                                 <div className="flex-1 min-w-0 flex flex-col justify-center">
-                                                    {/* Country Flag + Name */}
-                                                    <div className="flex items-center gap-2 mb-2">
-                                                        {currentPlayer.country_flag && (
-                                                            <span className="text-xl sm:text-3xl">{currentPlayer.country_flag}</span>
-                                                        )}
+                                                    {/* Player Name */}
+                                                    <div className="mb-2">
                                                         <h2 className="text-lg sm:text-3xl lg:text-4xl font-black text-white tracking-tight truncate">
                                                             {currentPlayer.name}
                                                         </h2>
