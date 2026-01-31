@@ -26,7 +26,7 @@ func (r *TeamRepository) FindAll(ctx context.Context) ([]models.Team, error) {
 			   COALESCE(COUNT(p.id), 0)::int as player_count,
 			   COALESCE(SUM(CASE WHEN p.country NOT IN ('India', '🇮🇳') THEN 1 ELSE 0 END), 0)::int as foreign_count
 		FROM teams t
-		LEFT JOIN players p ON p.team_id = t.id AND p.status = 'sold'
+		LEFT JOIN players p ON p.team_id = t.id AND (p.status = 'sold' OR p.status = 'retained')
 		GROUP BY t.id
 		ORDER BY t.name
 	`)
@@ -61,7 +61,7 @@ func (r *TeamRepository) FindByID(ctx context.Context, id uuid.UUID) (*models.Te
 			   COALESCE(COUNT(p.id), 0)::int as player_count,
 			   COALESCE(SUM(CASE WHEN p.country NOT IN ('India', '🇮🇳') THEN 1 ELSE 0 END), 0)::int as foreign_count
 		FROM teams t
-		LEFT JOIN players p ON p.team_id = t.id AND p.status = 'sold'
+		LEFT JOIN players p ON p.team_id = t.id AND (p.status = 'sold' OR p.status = 'retained')
 		WHERE t.id = $1
 		GROUP BY t.id
 	`, id).Scan(

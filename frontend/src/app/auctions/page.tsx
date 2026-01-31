@@ -160,6 +160,21 @@ export default function AuctionsPage() {
                 // Update state and sync bid ref
                 setAuctionState(prev => {
                     const newState = data;
+                    // CRITICAL: If auction is completed (either from newState or prev), ALWAYS clear current_player
+                    const isCompleted = newState.status === 'completed' || prev?.status === 'completed';
+                    if (isCompleted) {
+                        console.log('[Auction State] Status is completed, clearing current_player. newState.status:', newState.status, 'prev?.status:', prev?.status);
+                        const clearedState = {
+                            ...newState,
+                            status: 'completed' as const, // Force status to completed
+                            current_player: undefined,
+                            current_bid: undefined,
+                            current_bidder: undefined,
+                            bids: [],
+                        };
+                        console.log('[Auction State] Setting cleared state:', clearedState);
+                        return clearedState;
+                    }
                     // Sync bid ref with new state bids
                     if (newState.bids && newState.bids.length > 0) {
                         currentBidsRef.current = newState.bids as Bid[];
@@ -261,14 +276,24 @@ export default function AuctionsPage() {
                 }));
                 break;
             case 'auction:ended':
-                // Auction has ended - update state to show completed status
-                setAuctionState(prev => prev ? {
-                    ...prev,
-                    status: 'completed',
-                    current_player: undefined,
-                    current_bid: undefined,
-                    current_bidder: undefined,
-                } : null);
+                // Auction has ended - FORCE update state to show completed status
+                // This MUST clear everything and set status to completed, no matter what
+                console.log('[Auction Ended] Received auction:ended event, forcing status to completed');
+                setAuctionState(prev => {
+                    // Preserve all other state properties but force status to completed and clear player
+                    const newState = {
+                        ...prev,
+                        status: 'completed' as const, // Force type to 'completed'
+                        current_player: undefined,
+                        current_bid: undefined,
+                        current_bidder: undefined,
+                        bids: [],
+                    };
+                    console.log('[Auction Ended] Setting state to:', newState);
+                    return newState;
+                });
+                // Clear bid ref
+                currentBidsRef.current = [];
                 // Hide live stream when auction ends
                 setLiveStreamUrl('');
                 break;
@@ -575,10 +600,22 @@ export default function AuctionsPage() {
         setRoleFilter(role);
     }, []);
 
-    const currentPlayer = auctionState?.current_player;
+    // CRITICAL: If auction is completed, currentPlayer must be undefined regardless of state
+    const currentPlayer = auctionState?.status === 'completed' ? undefined : auctionState?.current_player;
     const currentBid = auctionState?.current_bid || currentPlayer?.base_price || 0;
     const currentBidder = auctionState?.current_bidder;
     const bidHistory = auctionState?.bids || [];
+
+    // Debug: Log state changes for auction status
+    useEffect(() => {
+        if (process.env.NODE_ENV === 'development') {
+            console.log('[Auction State Debug] Current state:', {
+                status: auctionState?.status,
+                hasCurrentPlayer: !!auctionState?.current_player,
+                currentPlayerName: auctionState?.current_player?.name,
+            });
+        }
+    }, [auctionState?.status, auctionState?.current_player]);
 
     if (loading) {
         return (
@@ -716,11 +753,47 @@ export default function AuctionsPage() {
                                                         allowFullScreen
                                                     />
                                                 </div>
+
                                             </div>
+
                                         </div>
                                     )}
 
-                                    {currentPlayer ? (
+                                    {/* CRITICAL: Check status === 'completed' FIRST - no matter what, if completed, show ended message */}
+                                    {(() => {
+                                        // Force check - if status is 'completed', ALWAYS show ended message
+                                        const status = auctionState?.status;
+                                        const isCompleted = status === 'completed';
+                                        if (process.env.NODE_ENV === 'development') {
+                                            console.log('[Render] Checking status. auctionState?.status:', status, 'isCompleted:', isCompleted, 'auctionState:', auctionState);
+                                        }
+                                        return isCompleted;
+                                    })() ? (
+                                        <div className="relative z-10 py-12 text-center">
+                                            <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-linear-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/30">
+                                                <Trophy className="w-12 h-12 text-white" />
+                                            </div>
+                                            <h2 className="text-3xl sm:text-4xl font-black text-white mb-4">Auction Ended</h2>
+                                            <p className="text-lg text-indigo-200 mb-8 max-w-lg mx-auto">
+                                                The auction session has officially concluded. Please review the final summaries below.
+                                            </p>
+
+                                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 max-w-2xl mx-auto">
+                                                <div className="bg-white/10 rounded-2xl p-4 border border-white/5 backdrop-blur-sm">
+                                                    <p className="text-xs text-indigo-300 font-bold uppercase mb-1">Total Sold</p>
+                                                    <p className="text-2xl font-black text-white">{playerCounts.sold}</p>
+                                                </div>
+                                                <div className="bg-white/10 rounded-2xl p-4 border border-white/5 backdrop-blur-sm">
+                                                    <p className="text-xs text-indigo-300 font-bold uppercase mb-1">Total Unsold</p>
+                                                    <p className="text-2xl font-black text-white">{playerCounts.unsold}</p>
+                                                </div>
+                                                <div className="bg-white/10 rounded-2xl p-4 border border-white/5 backdrop-blur-sm col-span-2 sm:col-span-1">
+                                                    <p className="text-xs text-indigo-300 font-bold uppercase mb-1">Top Bid</p>
+                                                    <p className="text-xl font-black text-white">{topBuys[0] ? formatCurrency(topBuys[0].sold_price || 0) : 'N/A'}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ) : currentPlayer ? (
                                         <div className="relative z-10">
                                             {/* 2. Player Image (big) + Name/Info (row layout) */}
                                             <div className="flex flex-row gap-4 sm:gap-6 mb-4 sm:mb-6">
@@ -859,31 +932,6 @@ export default function AuctionsPage() {
                                             <p className="text-lg text-indigo-200/80 max-w-md mx-auto leading-relaxed">
                                                 The auctioneer has called a Short Break. Bidding will resume shortly.
                                             </p>
-                                        </div>
-                                    ) : auctionState?.status === 'completed' ? (
-                                        <div className="relative z-10 py-12 text-center">
-                                            <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-linear-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/30">
-                                                <Trophy className="w-12 h-12 text-white" />
-                                            </div>
-                                            <h2 className="text-3xl sm:text-4xl font-black text-white mb-4">Auction Ended</h2>
-                                            <p className="text-lg text-indigo-200 mb-8 max-w-lg mx-auto">
-                                                The auction session has officially concluded. Please review the final summaries below.
-                                            </p>
-
-                                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 max-w-2xl mx-auto">
-                                                <div className="bg-white/10 rounded-2xl p-4 border border-white/5 backdrop-blur-sm">
-                                                    <p className="text-xs text-indigo-300 font-bold uppercase mb-1">Total Sold</p>
-                                                    <p className="text-2xl font-black text-white">{playerCounts.sold}</p>
-                                                </div>
-                                                <div className="bg-white/10 rounded-2xl p-4 border border-white/5 backdrop-blur-sm">
-                                                    <p className="text-xs text-indigo-300 font-bold uppercase mb-1">Total Unsold</p>
-                                                    <p className="text-2xl font-black text-white">{playerCounts.unsold}</p>
-                                                </div>
-                                                <div className="bg-white/10 rounded-2xl p-4 border border-white/5 backdrop-blur-sm col-span-2 sm:col-span-1">
-                                                    <p className="text-xs text-indigo-300 font-bold uppercase mb-1">Top Bid</p>
-                                                    <p className="text-xl font-black text-white">{topBuys[0] ? formatCurrency(topBuys[0].sold_price || 0) : 'N/A'}</p>
-                                                </div>
-                                            </div>
                                         </div>
                                     ) : (
                                         <div className="relative z-10 py-8 sm:py-12">
@@ -1048,7 +1096,7 @@ export default function AuctionsPage() {
                                                                 )}
                                                             </div>
                                                             <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 bg-slate-700 text-white px-4 py-1 rounded-full text-sm font-bold border border-slate-600">
-                                                                PASSED
+                                                                UNSOLD
                                                             </div>
                                                         </div>
 
@@ -1726,4 +1774,6 @@ export default function AuctionsPage() {
         </div >
     );
 }
+
+
 
